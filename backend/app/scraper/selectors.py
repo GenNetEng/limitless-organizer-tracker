@@ -20,3 +20,6 @@ LOGIN_SUBMIT_SELECTOR = ".login-form button[type='submit']"
 
 # Button/link that resubmits the organization application.
 RESUBMIT_BUTTON_SELECTOR = "button.resubmit, a.resubmit"
+
+# Element containing the outcome message after a resubmit action.
+RESUBMIT_RESULT_SELECTOR = ".resubmit-result"
