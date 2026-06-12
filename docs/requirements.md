@@ -21,11 +21,11 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 
 | ID | Requirement | Serves | Status / Phase |
 |----|-------------|--------|-----------------|
-| FR1 | Log into play.limitlesstcg.com via Playwright using stored username/password, persisting session for reuse | BR1, BR2 | Pending — Phase 5 (`app/scraper/browser.py`) |
-| FR2 | Check organizer/organization application status on a configurable schedule; record each check as a timestamped datapoint (status enum + raw text) | BR1 | Parsing done (Phase 4); login + scheduled task pending — Phase 5/6 |
-| FR3 | Resubmit the organization application 1-2x/day on a configurable schedule | BR2 | Pending — Phase 5 (`app/scraper/resubmit.py`) |
-| FR4 | Post a Discord notification when a resubmission occurs | BR2 | Pending — Phase 5 (`app/notifications/discord.py`) |
-| FR5 | Log each resubmission as a timestamped datapoint (success flag, discord-notified flag) | BR1, BR2 | Model done (Phase 2); persistence wiring pending — Phase 5/6 |
+| FR1 | Log into play.limitlesstcg.com via Playwright using stored username/password, persisting session for reuse | BR1, BR2 | **Done — Phase 5** (`app/scraper/browser.py`) |
+| FR2 | Check organizer/organization application status on a configurable schedule; record each check as a timestamped datapoint (status enum + raw text) | BR1 | Parsing (Phase 4) + login (Phase 5) done; scheduled task + persistence — Pending Phase 6 |
+| FR3 | Resubmit the organization application 1-2x/day on a configurable schedule | BR2 | Resubmit logic **done — Phase 5** (`app/scraper/resubmit.py`); scheduled task — Pending Phase 6 |
+| FR4 | Post a Discord notification when a resubmission occurs | BR2 | Notifier **done — Phase 5** (`app/notifications/discord.py`); wiring into scheduled task — Pending Phase 6 |
+| FR5 | Log each resubmission as a timestamped datapoint (success flag, discord-notified flag) | BR1, BR2 | Model done (Phase 2); persistence wiring — Pending Phase 6 |
 | FR6 | Ingest tournament data from `GET /api/tournaments` across all games | BR3 | Recent ingestion **done — Phase 3**; paginated historical backfill (configurable window via `TOURNAMENT_BACKFILL_MONTHS`, default 3 months) — Pending Phase 10 |
 | FR7 | Determine each organizer's ID and first-tournament date per game from ingested data | BR3 | **Done — Phase 3** (`OrganizerActivity`) |
 | FR8 | Compute counts of newly-active organizers per week/month, overall and filterable by game | BR3 | Pending — Phase 11 |
@@ -43,7 +43,7 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | NFR2 | API-first backend, written in Python (FastAPI), decoupled from frontend | **Established — Phases 1-2** |
 | NFR3 | Always-running architecture via Celery worker + beat scheduler | Pending — Phase 6 (MVP1 tasks), Phase 10 (MVP2 task) |
 | NFR4 | Monorepo, public on GitHub, with GitHub Actions CI | **Established — Phase 1** |
-| NFR5 | Scraper logic decoupled from live site; tested via fixture HTML, no live calls in CI (`@pytest.mark.live` reserved for future) | **Established — Phase 4**, continues in Phase 5 |
+| NFR5 | Scraper logic decoupled from live site; tested via fixture HTML, no live calls in CI (`@pytest.mark.live` reserved for future) | **Established — Phases 4-5** |
 | NFR6 | Configuration via environment variables (`.env`), no secrets committed | **Established — Phases 1-2** |
 
 ## MVP Breakdown

@@ -7,6 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `app/scraper/browser.py`: `login(page, username, password, storage_state_path=...)`
+  authenticates against the play.limitlesstcg.com password login form and
+  persists the session to `storage_state.json` for reuse (FR1).
+- `app/scraper/resubmit.py`: `resubmit_application(page) -> bool` clicks the
+  resubmit button and reports success/failure based on the resulting page
+  state (FR3). `app/scraper/parsing.py` gains `parse_resubmit_result` plus a
+  `RESUBMIT_RESULT_SELECTOR` and new fixtures
+  (`org_settings_resubmit_success.html`, `org_settings_resubmit_failure.html`).
+- `app/notifications/discord.py`: `post_resubmission_notice(webhook_url,
+  timestamp, success)` posts a resubmission-outcome message to a Discord
+  webhook via `httpx` (FR4).
+- `docs/requirements.md`: FR1 marked done; FR2/FR3/FR4/FR5 updated to reflect
+  login/resubmit/notifier logic landing in Phase 5, with scheduled-task
+  wiring and persistence remaining in Phase 6. NFR5 now covers Phases 4-5.
 - `docs/requirements.md`: BR3 expanded to cover wait-time estimation, and two
   new functional requirements for MVP2: FR12 (linear regression of
   `organizer_id` vs. `first_tournament_date` to estimate the onboarding rate
@@ -59,6 +73,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   verification pass against an authenticated session.
 
 ### Tests
+- Unit tests for `parse_resubmit_result`, the `login` browser helper, and
+  `resubmit_application` (mocked Playwright `Page`), plus Discord message
+  templating. Integration test for `post_resubmission_notice` (respx-mocked).
+  Acceptance tests in `tests/acceptance/` cover the login flow (FR1) and the
+  resubmit-then-notify flow for both success and failure outcomes (FR3, FR4).
 - Unit tests for the `ApplicationStatus` enum, model table names, the
   `TournamentDTO` schema, tournament ingestion/activity aggregation
   (first-seen tracking, per-game separation, re-ingestion updates, upserts),
