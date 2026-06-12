@@ -1,13 +1,10 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.pagination import DEFAULT_LIMIT, MAX_LIMIT, paginate
 from app.api.schemas import Page, ResubmissionEventOut, StatusCheckOut
 from app.db.models import ApplicationStatusCheck, ResubmissionEvent
 from app.db.session import get_db
-
-DEFAULT_LIMIT = 50
-MAX_LIMIT = 200
 
 router = APIRouter(prefix="/api", tags=["status"])
 
@@ -18,13 +15,12 @@ def get_status_history(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ) -> Page[StatusCheckOut]:
-    total = db.scalar(select(func.count()).select_from(ApplicationStatusCheck)) or 0
-    items = (
-        db.query(ApplicationStatusCheck)
-        .order_by(ApplicationStatusCheck.checked_at.desc(), ApplicationStatusCheck.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+    items, total = paginate(
+        db,
+        ApplicationStatusCheck,
+        (ApplicationStatusCheck.checked_at.desc(), ApplicationStatusCheck.id.desc()),
+        limit,
+        offset,
     )
     return Page(items=items, total=total, limit=limit, offset=offset)
 
@@ -35,12 +31,11 @@ def get_resubmissions(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ) -> Page[ResubmissionEventOut]:
-    total = db.scalar(select(func.count()).select_from(ResubmissionEvent)) or 0
-    items = (
-        db.query(ResubmissionEvent)
-        .order_by(ResubmissionEvent.submitted_at.desc(), ResubmissionEvent.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+    items, total = paginate(
+        db,
+        ResubmissionEvent,
+        (ResubmissionEvent.submitted_at.desc(), ResubmissionEvent.id.desc()),
+        limit,
+        offset,
     )
     return Page(items=items, total=total, limit=limit, offset=offset)
