@@ -21,6 +21,27 @@ Newest entries first.
 
 ---
 
+## 2026-06-12: Status/resubmission API design (Phase 7)
+
+**Decision**: `GET /api/status-history` and `GET /api/resubmissions` use
+`?limit=&offset=` query params (defaults 50, max 200) and return a JSON
+envelope `{items, total, limit, offset}`, ordered by timestamp descending.
+Response models use snake_case field names matching the SQLAlchemy column
+names (`checked_at`, `raw_text`, `submitted_at`, `discord_notified`, etc.),
+defined in a new shared `app/api/schemas.py`, with both endpoints living in
+`app/api/routers/status.py` per the existing plan.
+
+**Alternatives considered**: bare-array response with an `X-Total-Count`
+header instead of an envelope; cursor-based (keyset) pagination; camelCase
+field aliases matching the `TournamentDTO` precedent; colocating the response
+models directly in `status.py` instead of a shared schemas module.
+
+**Why**: Owner preferred the explicit pagination envelope (easier for the
+Phase 8 dashboard to render page/total info), snake_case fields (simplest
+Pydantic models, no alias config, frontend maps names in its API client), and
+a shared `schemas.py` so Phase 11's organizer-activity router can reuse the
+pagination envelope type.
+
 ## 2026-06-12: Celery task session/browser lifecycle (Phase 6)
 
 **Decision**: Add `app/scraper/session.py` with an `authenticated_page()`

@@ -29,8 +29,8 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR6 | Ingest tournament data from `GET /api/tournaments` across all games | BR3 | Recent ingestion **done — Phase 3**; paginated historical backfill (configurable window via `TOURNAMENT_BACKFILL_MONTHS`, default 3 months) — Pending Phase 10 |
 | FR7 | Determine each organizer's ID and first-tournament date per game from ingested data | BR3 | **Done — Phase 3** (`OrganizerActivity`) |
 | FR8 | Compute counts of newly-active organizers per week/month, overall and filterable by game | BR3 | Pending — Phase 11 |
-| FR9 | Dashboard displays application status-check history (timeline) | BR1 | Pending — Phase 8 |
-| FR10 | Dashboard displays resubmission log | BR1, BR2 | Pending — Phase 8 |
+| FR9 | Dashboard displays application status-check history (timeline) | BR1 | API **done — Phase 7** (`GET /api/status-history`, `app/api/routers/status.py`); dashboard UI — Pending Phase 8 |
+| FR10 | Dashboard displays resubmission log | BR1, BR2 | API **done — Phase 7** (`GET /api/resubmissions`, `app/api/routers/status.py`); dashboard UI — Pending Phase 8 |
 | FR11 | Dashboard displays newly-active-organizer counts per week/month, filterable by game | BR3 | Pending — Phase 12 |
 | FR12 | Fit a linear regression of `organizer_id` vs. `first_tournament_date` (per game) to estimate the onboarding rate (slope) and project the date a target organizer ID will become active | BR3 | Pending — Phase 11 |
 | FR13 | Dashboard displays the onboarding-rate regression (scatter + fitted line, R²) and a wait-time estimator for a user-supplied target organizer ID | BR3 | Pending — Phase 12 |
