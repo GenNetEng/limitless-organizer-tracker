@@ -12,5 +12,14 @@ the platform's organizer onboarding activity over time.
 - **Backend**: FastAPI + SQLAlchemy + Celery (worker/beat) + Postgres + Redis.
 - **Frontend**: React + TypeScript dashboard (Vite).
 
-> Full setup/usage docs are in progress — see the project plan for the build
-> order. This section will be expanded as each piece lands.
+## Requirements & MVPs
+
+This project is built incrementally against a tracked set of business,
+functional, and non-functional requirements, grouped into MVPs (MVP1:
+application status & resubmission tracker, MVP2: organizer activity
+analytics, MVP3: documentation & traceability). See
+[`docs/requirements.md`](docs/requirements.md) for the full BR/FR/NFR list,
+MVP acceptance criteria, and per-phase build order.
+
+> Full setup/usage docs are in progress and will be expanded as each piece
+> lands (see Phase 14 in `docs/requirements.md`).

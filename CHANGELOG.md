@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `docs/requirements.md`: Business/Functional/Non-Functional requirements
+  (BR1-3, FR1-11, NFR1-6) with an MVP breakdown (MVP1: application status &
+  resubmission tracker, MVP2: organizer activity analytics, MVP3:
+  documentation & traceability) and a per-phase build order through Phase 14.
+  Phases 1-4 are retroactively tagged: FR6/FR7/NFR1/NFR2/NFR4/NFR6 are done
+  (Phases 1-3), and application-status HTML parsing (part of FR2) and NFR5
+  are done (Phase 4). README links to this doc under a new "Requirements &
+  MVPs" section.
 - Monorepo scaffold: `.gitignore`, `.env.example`, `docker-compose.yml`
   (postgres, redis, backend, celery-worker, celery-beat, frontend),
   `backend/Dockerfile`, `frontend/Dockerfile`, `backend/pyproject.toml`,
