@@ -17,7 +17,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   MVPs" section.
 - GitHub milestones for MVP1-MVP3 and one tracking issue per remaining phase
   (#2-#11), linked from the `docs/requirements.md` build-order table.
-  MVPs" section.
+- `docs/dev_guide.md`: local backend setup, test layout (unit/integration/
+  acceptance/fixtures), `@pytest.mark.live` usage, environment variable
+  reference, running the full stack via `docker compose`, CI overview, and
+  Alembic migration workflow.
+- `CONTRIBUTING.md`: per-phase contribution workflow (branch → TDD → docs →
+  CHANGELOG → commit → PR → `/code-review` + `/security-review` → merge),
+  commit message conventions, and general repo rules. README links to both
+  new docs.
 - Monorepo scaffold: `.gitignore`, `.env.example`, `docker-compose.yml`
   (postgres, redis, backend, celery-worker, celery-beat, frontend),
   `backend/Dockerfile`, `frontend/Dockerfile`, `backend/pyproject.toml`,
