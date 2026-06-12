@@ -23,18 +23,18 @@ def authenticated_page(
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
-        context = browser.new_context(storage_state=state)
-        page = context.new_page()
-
-        if state is None:
-            login(
-                page,
-                settings.limitless_username,
-                settings.limitless_password,
-                storage_state_path=storage_state_path,
-            )
-
         try:
+            context = browser.new_context(storage_state=state)
+            page = context.new_page()
+
+            if state is None:
+                login(
+                    page,
+                    settings.limitless_username,
+                    settings.limitless_password,
+                    storage_state_path=storage_state_path,
+                )
+
             yield page
         finally:
             browser.close()

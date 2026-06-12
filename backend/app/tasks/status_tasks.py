@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import httpx
 from sqlalchemy.orm import Session
 
 from app.celery_app import celery_app
@@ -22,7 +23,7 @@ def record_status_check(
     """
     previous = (
         session.query(ApplicationStatusCheck)
-        .order_by(ApplicationStatusCheck.checked_at.desc())
+        .order_by(ApplicationStatusCheck.checked_at.desc(), ApplicationStatusCheck.id.desc())
         .first()
     )
     changed = previous is not None and previous.status != result.status
@@ -41,7 +42,7 @@ def check_application_status_task() -> None:
     """Check the organizer application status and record it (FR2).
 
     Posts a Discord notification only if the status changed since the last
-    check.
+    check; a failure to notify does not affect the recorded datapoint.
     """
     with authenticated_page() as page:
         result = check_application_status(page)
@@ -54,4 +55,7 @@ def check_application_status_task() -> None:
         session.close()
 
     if changed:
-        post_status_update_notice(settings.discord_webhook_url, result.status, checked_at)
+        try:
+            post_status_update_notice(settings.discord_webhook_url, result.status, checked_at)
+        except httpx.HTTPError:
+            pass

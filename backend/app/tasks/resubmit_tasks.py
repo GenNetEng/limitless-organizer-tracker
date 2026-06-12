@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import httpx
 from sqlalchemy.orm import Session
 
 from app.celery_app import celery_app
@@ -27,14 +28,20 @@ def record_resubmission(
 def resubmit_application_task() -> None:
     """Resubmit the organization application and record the outcome (FR3, FR5).
 
-    Always posts a Discord notification with the outcome (FR4).
+    Posts a Discord notification with the outcome (FR4); the outcome is
+    recorded (FR5) even if the notification fails.
     """
     with authenticated_page() as page:
         success = resubmit_application(page)
 
     submitted_at = datetime.now(timezone.utc)
-    response = post_resubmission_notice(settings.discord_webhook_url, submitted_at, success)
-    discord_notified = response.status_code < 300
+
+    discord_notified = False
+    try:
+        response = post_resubmission_notice(settings.discord_webhook_url, submitted_at, success)
+        discord_notified = response.status_code < 300
+    except httpx.HTTPError:
+        discord_notified = False
 
     session = SessionLocal()
     try:

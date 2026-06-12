@@ -1,4 +1,4 @@
-from app.celery_app import celery_app, parse_resubmit_times
+from app.celery_app import _status_check_schedule, celery_app, parse_resubmit_times
 
 
 def test_parse_resubmit_times_parses_multiple_times():
@@ -7,6 +7,22 @@ def test_parse_resubmit_times_parses_multiple_times():
 
 def test_parse_resubmit_times_strips_whitespace():
     assert parse_resubmit_times(" 09:00 , 21:00 ") == [(9, 0), (21, 0)]
+
+
+def test_parse_resubmit_times_empty_string_returns_no_times():
+    assert parse_resubmit_times("") == []
+
+
+def test_parse_resubmit_times_skips_blank_entries():
+    assert parse_resubmit_times("09:00,,21:00,") == [(9, 0), (21, 0)]
+
+
+def test_status_check_schedule_treats_zero_interval_as_hourly():
+    assert _status_check_schedule(0).hour == _status_check_schedule(1).hour
+
+
+def test_status_check_schedule_treats_negative_interval_as_hourly():
+    assert _status_check_schedule(-1).hour == _status_check_schedule(1).hour
 
 
 def test_beat_schedule_includes_status_check_task():

@@ -95,6 +95,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `app/scraper/selectors.py` as best-guess placeholders pending a live
   verification pass against an authenticated session.
 
+### Fixed
+- `app/tasks/resubmit_tasks.py` / `app/tasks/status_tasks.py`: Discord
+  notification failures (e.g. `discord_webhook_url` unset, the default) no
+  longer crash the task or prevent the FR2/FR5 datapoint from being recorded
+  — `httpx.HTTPError` is caught around each notification call and
+  `discord_notified` is recorded as `False`.
+- `app/celery_app.py`: `parse_resubmit_times` now skips blank entries instead
+  of raising on an empty `resubmit_times_utc`, and a new
+  `_status_check_schedule` helper treats a non-positive
+  `application_status_check_interval_hours` as hourly instead of raising
+  `ValueError` from `crontab(hour="*/0")` — both previously crashed
+  `app.celery_app` at import time on misconfiguration.
+- `app/scraper/session.py`: `authenticated_page()` now closes the browser even
+  if `login()` raises, preventing a leaked Chromium process on login failure.
+- `app/tasks/status_tasks.py`: `record_status_check`'s previous-check lookup
+  now breaks `checked_at` ties with `id desc`, making status-change detection
+  deterministic.
+
 ### Tests
 - Unit tests for `authenticated_page` (mocked Playwright, both with and
   without an existing `storage_state.json`), `parse_resubmit_times` and the
@@ -105,7 +123,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `resubmit_application_task` in Celery eager mode against an in-memory
   SQLite DB with mocked Playwright/Discord. Acceptance tests in
   `tests/acceptance/` cover the scheduled status-change and resubmission
-  flows end-to-end (FR2, FR5).
+  flows end-to-end (FR2, FR5). Additional unit/integration tests cover the
+  code-review fixes above: `parse_resubmit_times` with empty/blank entries,
+  `_status_check_schedule` with a non-positive interval,
+  `authenticated_page` closing the browser when `login()` raises, and both
+  scheduled tasks recording their datapoint when `discord_webhook_url` is
+  unset.
 - Unit tests for `parse_resubmit_result`, the `login` browser helper, and
   `resubmit_application` (mocked Playwright `Page`), plus Discord message
   templating. Integration test for `post_resubmission_notice` (respx-mocked).
