@@ -14,4 +14,5 @@ def resubmit_application(page: Page) -> bool:
     """
     page.goto(f"{settings.limitless_base_url}{ORG_SETTINGS_PATH}")
     page.click(RESUBMIT_BUTTON_SELECTOR)
+    page.wait_for_load_state("networkidle")
     return parse_resubmit_result(page.content())

@@ -19,8 +19,7 @@ def test_login_authenticates_and_persists_session_for_reuse(tmp_path):
     storage_state_path = tmp_path / "storage_state.json"
 
     # When the scraper logs in
-    login(page, settings.limitless_username or "alice", settings.limitless_password or "s3cret",
-          storage_state_path=storage_state_path)
+    login(page, "alice", "s3cret", storage_state_path=storage_state_path)
 
     # Then the page navigated to the login form and the session was persisted
     page.goto.assert_called_once_with(f"{settings.limitless_base_url}{LOGIN_PATH}")

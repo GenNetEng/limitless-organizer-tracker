@@ -16,6 +16,7 @@ def test_resubmit_application_returns_true_on_success():
 
     page.goto.assert_called_once_with(f"{settings.limitless_base_url}{ORG_SETTINGS_PATH}")
     page.click.assert_called_once_with(RESUBMIT_BUTTON_SELECTOR)
+    page.wait_for_load_state.assert_called_once_with("networkidle")
     assert result is True
 
 

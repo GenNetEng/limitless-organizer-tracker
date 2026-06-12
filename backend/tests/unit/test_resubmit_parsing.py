@@ -24,3 +24,11 @@ def test_parse_resubmit_result_defaults_to_failure_when_no_result_element():
     html = (FIXTURE_DIR / "org_settings_pending.html").read_text()
 
     assert parse_resubmit_result(html) is False
+
+
+def test_parse_resubmit_result_treats_unsuccessful_as_failure():
+    html = """
+    <div class="resubmit-result">Your resubmission was unsuccessful.</div>
+    """
+
+    assert parse_resubmit_result(html) is False

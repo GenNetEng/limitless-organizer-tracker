@@ -28,4 +28,5 @@ def login(
     page.fill(LOGIN_USERNAME_SELECTOR, username)
     page.fill(LOGIN_PASSWORD_SELECTOR, password)
     page.click(LOGIN_SUBMIT_SELECTOR)
+    page.wait_for_load_state("networkidle")
     page.context.storage_state(path=str(storage_state_path))

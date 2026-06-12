@@ -20,4 +20,5 @@ def test_login_fills_form_and_persists_storage_state(tmp_path):
     page.fill.assert_any_call(LOGIN_USERNAME_SELECTOR, "alice")
     page.fill.assert_any_call(LOGIN_PASSWORD_SELECTOR, "s3cret")
     page.click.assert_called_once_with(LOGIN_SUBMIT_SELECTOR)
+    page.wait_for_load_state.assert_called_once_with("networkidle")
     page.context.storage_state.assert_called_once_with(path=str(storage_state_path))

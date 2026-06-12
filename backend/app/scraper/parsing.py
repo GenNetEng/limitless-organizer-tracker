@@ -15,8 +15,8 @@ _STATUS_KEYWORDS: tuple[tuple[str, ApplicationStatus], ...] = (
 )
 
 # Failure keywords are checked first since some failure messages may also
-# contain "resubmit".
-_RESUBMIT_FAILURE_KEYWORDS = ("error", "failed", "unable")
+# contain "resubmit", and "unsuccessful" contains "success" as a substring.
+_RESUBMIT_FAILURE_KEYWORDS = ("error", "failed", "unable", "unsuccessful")
 _RESUBMIT_SUCCESS_KEYWORDS = ("resubmitted", "received", "success")
 
 
