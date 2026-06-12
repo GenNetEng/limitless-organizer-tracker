@@ -25,9 +25,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   tournament rows and maintains an `OrganizerActivity` row per
   (organizer_id, game) tracking first/last-seen tournament dates.
 
+- Application-status scraper (`app/scraper/`): `parse_status_html` extracts
+  the organizer application status (pending/approved/rejected/expired/unknown)
+  from the `/account/settings/orgs` page HTML, and `check_application_status`
+  is a thin Playwright wrapper around it. CSS selectors are isolated in
+  `app/scraper/selectors.py` as best-guess placeholders pending a live
+  verification pass against an authenticated session.
+
 ### Tests
 - Unit tests for the `ApplicationStatus` enum, model table names, the
-  `TournamentDTO` schema, and tournament ingestion/activity aggregation
-  (first-seen tracking, per-game separation, re-ingestion updates, upserts).
+  `TournamentDTO` schema, tournament ingestion/activity aggregation
+  (first-seen tracking, per-game separation, re-ingestion updates, upserts),
+  and application-status HTML parsing against hand-authored fixtures for
+  each status plus the "no application yet" case.
 - Integration tests for `/healthz`, DB model round-trips, and the
   tournaments API client (mocked via `respx` using real sample payloads).
