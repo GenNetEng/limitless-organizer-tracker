@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `docs/requirements.md`: BR3 expanded to cover wait-time estimation, and two
+  new functional requirements for MVP2: FR12 (linear regression of
+  `organizer_id` vs. `first_tournament_date` to estimate the onboarding rate
+  and project a target organizer ID's active date) and FR13 (dashboard
+  regression chart + wait-time estimator). FR6 now also covers a paginated
+  historical backfill (`TOURNAMENT_BACKFILL_MONTHS`, default 3 months) needed
+  to seed the FR12 regression, scoped to Phase 10. Phases 10-12 build-order
+  descriptions updated accordingly.
 - `docs/requirements.md`: Business/Functional/Non-Functional requirements
   (BR1-3, FR1-11, NFR1-6) with an MVP breakdown (MVP1: application status &
   resubmission tracker, MVP2: organizer activity analytics, MVP3:
