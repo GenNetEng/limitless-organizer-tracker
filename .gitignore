@@ -1,0 +1,36 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+coverage/
+
+# --- Env & secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Playwright ---
+backend/storage_state.json
+backend/playwright-report/
+backend/test-results/
+
+# --- Claude Code local state ---
+.claude/
+
+# --- Editors / OS ---
+.DS_Store
+*.swp
+
+# --- Docker ---
+*.pid
