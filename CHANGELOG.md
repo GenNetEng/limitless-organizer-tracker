@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `app/api/routers/status.py`: `GET /api/status-history` and
+  `GET /api/resubmissions`, returning `ApplicationStatusCheck` /
+  `ResubmissionEvent` rows ordered by timestamp descending, paginated via
+  `?limit=&offset=` (default `limit=50`, max `200`) in a
+  `{items, total, limit, offset}` envelope (`app/api/schemas.py`). The
+  count+paginate query logic is shared via `app/api/pagination.py`
+  (`paginate()`), for reuse by future routers (e.g. Phase 11). Wired into
+  `app/main.py`. Covers FR9/FR10 (API support for the Phase 8 dashboard).
 - `app/scraper/session.py`: `authenticated_page()` context manager launches a
   Playwright browser, reuses `storage_state.json` if present, otherwise logs
   in with the configured credentials and persists the session.
@@ -114,6 +122,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   deterministic.
 
 ### Tests
+- Integration tests for `GET /api/status-history` and `GET /api/resubmissions`
+  via `TestClient` against an in-memory SQLite DB (overriding `get_db`):
+  envelope shape, descending-timestamp ordering, `limit`/`offset` pagination,
+  the `limit<=200` validation boundary, and the empty-table case.
 - Unit tests for `authenticated_page` (mocked Playwright, both with and
   without an existing `storage_state.json`), `parse_resubmit_times` and the
   beat schedule contents, `record_status_check` (first-check and
