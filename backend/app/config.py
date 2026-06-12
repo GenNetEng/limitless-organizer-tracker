@@ -1,0 +1,24 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    database_url: str = "sqlite:///./dev.db"
+
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/1"
+
+    limitless_base_url: str = "https://play.limitlesstcg.com"
+    limitless_username: str = ""
+    limitless_password: str = ""
+
+    discord_webhook_url: str = ""
+
+    application_status_check_interval_hours: int = 4
+    resubmit_times_utc: str = "09:00,21:00"
+    tournament_ingest_interval_hours: int = 1
+    tournament_ingest_limit: int = 1000
+
+
+settings = Settings()

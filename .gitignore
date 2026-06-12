@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 .venv/
 venv/
+*.db
 
 # --- Node / frontend ---
 node_modules/
