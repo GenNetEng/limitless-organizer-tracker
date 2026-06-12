@@ -7,6 +7,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `app/scraper/session.py`: `authenticated_page()` context manager launches a
+  Playwright browser, reuses `storage_state.json` if present, otherwise logs
+  in with the configured credentials and persists the session.
+- `app/celery_app.py`: Celery app bound to `celery_broker_url` /
+  `celery_result_backend`, with a beat schedule built from
+  `application_status_check_interval_hours` (status-check task) and
+  `resubmit_times_utc` (one resubmit-task entry per configured time, via
+  `parse_resubmit_times`).
+- `app/tasks/status_tasks.py`: `check_application_status_task` checks the
+  application status via an authenticated page, records each check as a
+  timestamped datapoint (`record_status_check`, FR2), and posts a Discord
+  status-change notice (`post_status_update_notice`,
+  `app/notifications/discord.py`) only when the status differs from the
+  previous check.
+- `app/tasks/resubmit_tasks.py`: `resubmit_application_task` resubmits the
+  application via an authenticated page, records the outcome
+  (`record_resubmission`, FR5), and always posts a Discord resubmission
+  notice (FR4).
+- `docs/requirements.md`: FR2/FR3/FR5 marked done, FR4 extended to cover the
+  Phase 6 status-change notice, and NFR3 marked done for MVP1 tasks.
+- `DECISIONS.md`: new technical-decisions log (newest-first), with a
+  "Technical decisions" section in `CONTRIBUTING.md` requiring owner sign-off
+  before any non-trivial technical decision.
 - `app/scraper/browser.py`: `login(page, username, password, storage_state_path=...)`
   authenticates against the play.limitlesstcg.com password login form and
   persists the session to `storage_state.json` for reuse (FR1).
@@ -72,7 +95,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `app/scraper/selectors.py` as best-guess placeholders pending a live
   verification pass against an authenticated session.
 
+### Fixed
+- `app/tasks/resubmit_tasks.py` / `app/tasks/status_tasks.py`: Discord
+  notification failures (e.g. `discord_webhook_url` unset, the default) no
+  longer crash the task or prevent the FR2/FR5 datapoint from being recorded
+  — `httpx.HTTPError` is caught around each notification call and
+  `discord_notified` is recorded as `False`.
+- `app/celery_app.py`: `parse_resubmit_times` now skips blank entries instead
+  of raising on an empty `resubmit_times_utc`, and a new
+  `_status_check_schedule` helper treats a non-positive
+  `application_status_check_interval_hours` as hourly instead of raising
+  `ValueError` from `crontab(hour="*/0")` — both previously crashed
+  `app.celery_app` at import time on misconfiguration.
+- `app/scraper/session.py`: `authenticated_page()` now closes the browser even
+  if `login()` raises, preventing a leaked Chromium process on login failure.
+- `app/tasks/status_tasks.py`: `record_status_check`'s previous-check lookup
+  now breaks `checked_at` ties with `id desc`, making status-change detection
+  deterministic.
+
 ### Tests
+- Unit tests for `authenticated_page` (mocked Playwright, both with and
+  without an existing `storage_state.json`), `parse_resubmit_times` and the
+  beat schedule contents, `record_status_check` (first-check and
+  status-change detection), `record_resubmission`, and the new
+  `build_status_update_message`/`post_status_update_notice` Discord helpers.
+  Integration tests run `check_application_status_task` and
+  `resubmit_application_task` in Celery eager mode against an in-memory
+  SQLite DB with mocked Playwright/Discord. Acceptance tests in
+  `tests/acceptance/` cover the scheduled status-change and resubmission
+  flows end-to-end (FR2, FR5). Additional unit/integration tests cover the
+  code-review fixes above: `parse_resubmit_times` with empty/blank entries,
+  `_status_check_schedule` with a non-positive interval,
+  `authenticated_page` closing the browser when `login()` raises, and both
+  scheduled tasks recording their datapoint when `discord_webhook_url` is
+  unset.
 - Unit tests for `parse_resubmit_result`, the `login` browser helper, and
   `resubmit_application` (mocked Playwright `Page`), plus Discord message
   templating. Integration test for `post_resubmission_notice` (respx-mocked).

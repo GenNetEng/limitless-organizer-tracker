@@ -21,6 +21,20 @@ Newest entries first.
 
 ---
 
+## 2026-06-12: Celery task session/browser lifecycle (Phase 6)
+
+**Decision**: Add `app/scraper/session.py` with an `authenticated_page()`
+context manager: launches chromium, loads `storage_state.json` if present,
+falls back to `browser.login()` with settings credentials if missing/expired,
+yields a `Page`, closes the browser on exit. Both `status_tasks.py` and
+`resubmit_tasks.py` use this single helper.
+
+**Alternatives considered**: Inline per-task browser/session setup,
+duplicating the launch + fallback-login logic in each task module.
+
+**Why**: Single seam to mock in tests (consistent with NFR5 — no live calls
+in CI), avoids duplicating session-management logic across tasks.
+
 ## 2026-06-12: Branch protection on `main`
 
 **Decision**: Rely on workflow convention only (branch -> PR -> review ->
