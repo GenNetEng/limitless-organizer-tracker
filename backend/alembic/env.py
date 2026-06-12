@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from app.config import settings
 from app.db.base import Base
 from app.db import models  # noqa: F401  (ensures models are registered on Base.metadata)
+from app.db.types import UTCDateTime
 
 config = context.config
 
@@ -17,6 +18,13 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 target_metadata = Base.metadata
 
 
+def render_item(type_, obj, autogen_context):
+    """Render our UTCDateTime decorator as plain sa.DateTime(timezone=True) in migrations."""
+    if isinstance(obj, UTCDateTime):
+        return "sa.DateTime(timezone=True)"
+    return False
+
+
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -24,6 +32,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_item=render_item,
     )
 
     with context.begin_transaction():
@@ -38,7 +47,9 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection, target_metadata=target_metadata, render_item=render_item
+        )
 
         with context.begin_transaction():
             context.run_migrations()

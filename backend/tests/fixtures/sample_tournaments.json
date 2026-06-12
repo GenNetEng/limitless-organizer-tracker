@@ -1,0 +1,47 @@
+[
+  {
+    "game": "PTCG",
+    "name": "Torneo Relámpago ⚡ #50 PTCG Live",
+    "date": "2026-06-12T02:00:00.000Z",
+    "format": "STANDARD",
+    "id": "6a0b39da13f957d6d4b4acba",
+    "players": 32,
+    "organizerId": 2512
+  },
+  {
+    "game": "PTCG",
+    "name": "META Productos sellados Play TCG (CHILE)",
+    "date": "2026-06-12T02:00:00.000Z",
+    "format": "STANDARD",
+    "id": "6a2b2dde2d97f3b0c2614342",
+    "players": 15,
+    "organizerId": 2142
+  },
+  {
+    "game": "POCKET",
+    "name": "Storm x Knowtice Pop Up Blitz-$5",
+    "date": "2026-06-12T00:15:00.000Z",
+    "format": null,
+    "id": "6a2b202c2d97f3b0c26142e6",
+    "players": 86,
+    "organizerId": 2461
+  },
+  {
+    "game": "PTCG",
+    "name": "Torneo Clasificatorio Jueves 11 Junio",
+    "date": "2026-06-12T00:00:00.000Z",
+    "format": "STANDARD",
+    "id": "6a2b38a42d97f3b0c26143b9",
+    "players": 22,
+    "organizerId": 2306
+  },
+  {
+    "game": "DCG",
+    "name": "Eagle's Nest S9W9.5 BT25 Webcam Locals",
+    "date": "2026-06-12T00:00:00.000Z",
+    "format": null,
+    "id": "6a25e9bc56b11a587a94bb04",
+    "players": 11,
+    "organizerId": 452
+  }
+]
