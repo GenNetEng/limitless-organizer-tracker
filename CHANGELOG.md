@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   (Phases 1-3), and application-status HTML parsing (part of FR2) and NFR5
   are done (Phase 4). README links to this doc under a new "Requirements &
   MVPs" section.
+- GitHub milestones for MVP1-MVP3 and one tracking issue per remaining phase
+  (#2-#11), linked from the `docs/requirements.md` build-order table.
+  MVPs" section.
 - Monorepo scaffold: `.gitignore`, `.env.example`, `docker-compose.yml`
   (postgres, redis, backend, celery-worker, celery-beat, frontend),
   `backend/Dockerfile`, `frontend/Dockerfile`, `backend/pyproject.toml`,

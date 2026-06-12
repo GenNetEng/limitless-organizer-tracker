@@ -68,20 +68,23 @@ references.
 
 ## Build Order
 
-| Phase | Description | MVP |
-|-------|-------------|-----|
-| 1 | Repo scaffold + CI | — |
-| 2 | Backend foundation (config, FastAPI healthz, models, Alembic) | — |
-| 3 | Tournament ingestion + organizer activity aggregation | MVP2 |
-| 4 | Application-status scraper (fixture-based HTML parsing) | MVP1 |
-| 4.5 | Requirements traceability doc (this file) | — |
-| 5 | Resubmit scraper + Discord notifier | MVP1 |
-| 6 | Celery app + beat schedule for status-check/resubmit tasks | MVP1 |
-| 7 | FastAPI routers: status history, resubmissions | MVP1 |
-| 8 | Frontend scaffold + MVP1 dashboard (status timeline, resubmission log) | MVP1 |
-| 9 | MVP1 docker-compose verification (acceptance checkpoint) | MVP1 |
-| 10 | Tournament ingestion Celery task + beat schedule | MVP2 |
-| 11 | FastAPI routers: organizer activity, games | MVP2 |
-| 12 | Frontend organizer-activity chart | MVP2 |
-| 13 | MVP2 docker-compose verification (acceptance checkpoint) | MVP2 |
-| 14 | README + traceability finalization | MVP3 |
+Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer-tracker/milestones)
+(one per MVP) and one issue per phase.
+
+| Phase | Description | MVP | Issue |
+|-------|-------------|-----|-------|
+| 1 | Repo scaffold + CI | — | — |
+| 2 | Backend foundation (config, FastAPI healthz, models, Alembic) | — | — |
+| 3 | Tournament ingestion + organizer activity aggregation | MVP2 | — |
+| 4 | Application-status scraper (fixture-based HTML parsing) | MVP1 | — |
+| 4.5 | Requirements traceability doc (this file) | — | [#1](https://github.com/GenNetEng/limitless-organizer-tracker/pull/1) |
+| 5 | Resubmit scraper + Discord notifier | MVP1 | [#2](https://github.com/GenNetEng/limitless-organizer-tracker/issues/2) |
+| 6 | Celery app + beat schedule for status-check/resubmit tasks | MVP1 | [#3](https://github.com/GenNetEng/limitless-organizer-tracker/issues/3) |
+| 7 | FastAPI routers: status history, resubmissions | MVP1 | [#4](https://github.com/GenNetEng/limitless-organizer-tracker/issues/4) |
+| 8 | Frontend scaffold + MVP1 dashboard (status timeline, resubmission log) | MVP1 | [#5](https://github.com/GenNetEng/limitless-organizer-tracker/issues/5) |
+| 9 | MVP1 docker-compose verification (acceptance checkpoint) | MVP1 | [#6](https://github.com/GenNetEng/limitless-organizer-tracker/issues/6) |
+| 10 | Tournament ingestion Celery task + beat schedule | MVP2 | [#7](https://github.com/GenNetEng/limitless-organizer-tracker/issues/7) |
+| 11 | FastAPI routers: organizer activity, games | MVP2 | [#8](https://github.com/GenNetEng/limitless-organizer-tracker/issues/8) |
+| 12 | Frontend organizer-activity chart | MVP2 | [#9](https://github.com/GenNetEng/limitless-organizer-tracker/issues/9) |
+| 13 | MVP2 docker-compose verification (acceptance checkpoint) | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
+| 14 | README + traceability finalization | MVP3 | [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11) |
