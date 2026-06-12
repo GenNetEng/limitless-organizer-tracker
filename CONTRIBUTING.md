@@ -31,6 +31,17 @@ Each phase corresponds to a GitHub issue (see the Build Order table in
    branch.
 10. **Merge**: only after review passes and the owner approves.
 
+## Technical decisions
+
+Any non-trivial technical decision — new dependency, choice between libraries
+or patterns, file/module structure, auth/session design, API design, CI/CD or
+GitHub repo configuration, etc. — must be presented to the owner with
+alternatives and tradeoffs **before** it is implemented. No exceptions for
+"obvious" choices.
+
+Once approved, record the decision in [`DECISIONS.md`](DECISIONS.md) using
+the template at the top of that file.
+
 ## Commit messages
 
 [Conventional Commits](https://www.conventionalcommits.org/) format:
