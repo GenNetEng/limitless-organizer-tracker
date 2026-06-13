@@ -21,6 +21,58 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: Versioning scheme — minor bump per MVP (MVP1 = v0.1.0)
+
+**Decision**: Tag the MVP1 acceptance checkpoint (Phase 9) as `v0.1.0`.
+Going forward, each completed MVP milestone bumps the minor version
+(`0.1.0` → `0.2.0` for MVP2, `0.3.0` for MVP3, ...), with the corresponding
+`[Unreleased]` section in `CHANGELOG.md` cut over to a dated release section.
+A `1.0.0` major release will be determined later once the project reaches a
+stable, fully-traced state (per `docs/requirements.md`).
+
+**Alternatives considered**: none — owner specified this scheme directly.
+
+**Why**: Owner's choice, to give each MVP milestone a citable release
+version without committing to a 1.0.0 definition yet.
+
+---
+
+## 2026-06-13: Auto-apply DB migrations on container startup (Phase 9)
+
+**Decision**: Add `backend/entrypoint.sh`, which runs `alembic upgrade head`
+then `exec "$@"`. `backend/Dockerfile` sets it as `ENTRYPOINT`; the `backend`
+service's existing `command:` (uvicorn) becomes the entrypoint's arguments,
+so it applies migrations before starting.
+
+**Amendment (same day, found during verification)**: running the same
+entrypoint concurrently in `celery-worker` and `celery-beat` against a fresh
+DB caused all three containers to race on `alembic upgrade head` —
+`CREATE TABLE alembic_version` collided (`duplicate key value violates unique
+constraint "pg_type_typname_nsp_index"`), crashing two of the three
+containers. `celery-worker`/`celery-beat` now set `entrypoint: []` in
+`docker-compose.yml` to skip migrations — only `backend` (the service
+serving DB-backed endpoints immediately on startup) applies them; Celery
+itself doesn't touch the DB until a scheduled task runs, by which point
+`backend` has already migrated.
+
+**Alternatives considered**: a one-off `migrate` service in
+`docker-compose.yml` with `depends_on: condition: service_completed_successfully`
+on the other services (migrations run exactly once, but adds a new service
+and `depends_on` edges to maintain); documenting `docker compose exec backend
+alembic upgrade head` as a required first-time manual step (no code change,
+but every fresh environment hits a 500 on `/api/status-history` etc. until a
+contributor finds the doc).
+
+**Why**: Discovered during Phase 9 docker-compose verification — a fresh
+`docker compose up` left the DB schema-less and `/api/status-history`
+returned 500 until migrations were applied manually. Owner preferred the
+entrypoint script: one small file, self-contained in the backend image,
+idempotent (alembic no-ops at head), and applies automatically for
+`backend`/`celery-worker`/`celery-beat` without new compose services or
+dependency wiring.
+
+---
+
 ## 2026-06-13: Frontend styling approach (Phase 8)
 
 **Decision**: Use Tailwind CSS for styling the MVP1 dashboard

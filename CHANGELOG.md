@@ -2,11 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/). Per
+[DECISIONS.md](DECISIONS.md), each MVP milestone bumps the minor version
+(0.1.0, 0.2.0, ...) until a 1.0.0 release is determined.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-13
+
 ### Added
+- **MVP1 acceptance (Phase 9)**: verified via `docker compose up --build` —
+  `postgres`/`redis` report healthy, `backend` serves `/healthz` (200) after
+  applying migrations on startup, `celery-worker`/`celery-beat` connect to
+  Redis and start without error, and `frontend` serves the dashboard at
+  `:5173`. `docker compose run --rm backend pytest` (68/68) and
+  `docker compose run --rm frontend npm test -- --run` (5/5) both pass inside
+  the containers. Closes the MVP1 acceptance checkpoint in
+  `docs/requirements.md`.
+- `backend/entrypoint.sh`: runs `alembic upgrade head` before exec'ing the
+  container command. Set as the `backend` image's `ENTRYPOINT`
+  (`backend/Dockerfile`), so the `backend` service applies pending migrations
+  on every `docker compose up` instead of requiring a manual
+  `docker compose exec backend alembic upgrade head`.
 - `frontend/`: Vite + React + TypeScript dashboard scaffold. `src/api/client.ts`
   fetches `/api/status-history` and `/api/resubmissions` (typed `Page<T>`
   envelope matching `app/api/schemas.py`) via `VITE_API_BASE_URL`.
@@ -114,6 +132,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   verification pass against an authenticated session.
 
 ### Fixed
+- `docker-compose.yml`: `celery-worker` and `celery-beat` now set
+  `entrypoint: []` to skip the `backend` image's migration-running
+  entrypoint. Running `alembic upgrade head` concurrently in all three
+  backend-image services against a fresh database raced on
+  `CREATE TABLE alembic_version`, crashing two of the three containers with
+  `psycopg.errors.UniqueViolation`. Only `backend` now applies migrations on
+  startup.
+- `backend/Dockerfile`: `COPY . .` now runs before
+  `pip install -e ".[dev]"`, so the editable install's generated package
+  finder includes the `app` source mapping. Previously, `docker compose run
+  --rm backend pytest` failed all 24 test files with
+  `ModuleNotFoundError: No module named 'app'` (the editable install was
+  performed against an empty source tree); `uvicorn`/`celery` masked this
+  because both prepend `cwd` to `sys.path` when resolving import strings.
 - `app/tasks/resubmit_tasks.py` / `app/tasks/status_tasks.py`: Discord
   notification failures (e.g. `discord_webhook_url` unset, the default) no
   longer crash the task or prevent the FR2/FR5 datapoint from being recorded
