@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- `frontend/`: Vite + React + TypeScript dashboard scaffold. `src/api/client.ts`
+  fetches `/api/status-history` and `/api/resubmissions` (typed `Page<T>`
+  envelope matching `app/api/schemas.py`) via `VITE_API_BASE_URL`.
+  `src/components/StatusTimeline.tsx` and `src/components/ResubmissionLog.tsx`
+  render the two feeds via TanStack Query; `src/pages/Dashboard.tsx` renders
+  both. Styled with Tailwind CSS. Covers FR9/FR10 (dashboard UI).
+- `app/main.py`: `CORSMiddleware` allowing cross-origin requests from the
+  frontend dev server, configurable via the new `CORS_ALLOWED_ORIGINS`
+  setting (default `http://localhost:5173`), so the dashboard can call the
+  API directly from the browser.
 - `app/api/routers/status.py`: `GET /api/status-history` and
   `GET /api/resubmissions`, returning `ApplicationStatusCheck` /
   `ResubmissionEvent` rows ordered by timestamp descending, paginated via
@@ -122,6 +132,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   deterministic.
 
 ### Tests
+- `frontend`: Vitest + React Testing Library + MSW component tests for
+  `StatusTimeline`, `ResubmissionLog`, and `Dashboard` covering loading
+  states and rendering of mocked `/api/status-history` /
+  `/api/resubmissions` responses.
+- Integration tests for `CORSMiddleware`: a simple cross-origin `GET` and a
+  preflight `OPTIONS` request from `http://localhost:5173` both receive
+  `Access-Control-Allow-Origin`.
 - Integration tests for `GET /api/status-history` and `GET /api/resubmissions`
   via `TestClient` against an in-memory SQLite DB (overriding `get_db`):
   envelope shape, descending-timestamp ordering, `limit`/`offset` pagination,
