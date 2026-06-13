@@ -21,6 +21,29 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: Playwright/browser image version pin
+
+**Decision**: Bump `backend/Dockerfile`'s base image to
+`mcr.microsoft.com/playwright/python:v1.60.0-noble` and pin
+`playwright==1.60.0` in `backend/pyproject.toml` (previously `>=1.45`), so
+the installed `playwright` package version always matches the browsers
+bundled in the image.
+
+**Alternatives considered**: pin `playwright==1.48.0` to match the
+then-current `v1.48.0-noble` base image instead — smaller diff, no new
+~2GB image pull, but keeps the stack on an older Playwright.
+
+**Why**: First live run of `POST /api/status-check` (FR14) returned 500 —
+`playwright>=1.45` had resolved to `1.60.0` at image build time, but the
+`v1.48.0-noble` base image only bundles `1.48.0`'s browsers, so
+`BrowserType.launch()` couldn't find the browser executable. Owner chose to
+move forward to `v1.60.0-noble`/`1.60.0` rather than pin back to `1.48.0`.
+Pinning (rather than leaving an open `>=` floor) keeps the pip-resolved
+version and the image's bundled browsers from drifting apart again on a
+future rebuild.
+
+---
+
 ## 2026-06-13: On-demand status-check API trigger (FR14), no auth
 
 **Decision**: Add `POST /api/status-check` (FR14), which runs the FR2
