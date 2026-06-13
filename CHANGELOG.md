@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- `LIMITLESS_APPLICATION_ID` (`.env.example`, `app/config.py`): the
+  organizer application's ID, taken from the URL of the application page
+  (`https://play.limitlesstcg.com/user/application/<id>`) or the Discord
+  resubmission message's link. Used by FR2's status check to build the
+  application page URL.
 - `POST /api/status-check` (FR14, `app/api/routers/status.py`): runs an
   on-demand application-status check synchronously (login, scrape, record
   datapoint, post a Discord notice if the status changed) and returns the
@@ -34,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   `BrowserType.launch: Executable doesn't exist at
   /ms-playwright/chromium_headless_shell-1223/...` (500 from
   `POST /api/status-check`).
+- FR2 (`app/scraper/selectors.py`, `app/scraper/application_status.py`): the
+  status check now navigates to the organizer's own application page
+  (`/user/application/<LIMITLESS_APPLICATION_ID>`) and reads the status from
+  `.organizer-application .status .code`, both verified against a live,
+  authenticated session. Previously it navigated to
+  `/account/settings/orgs` (a placeholder that returns no content for this
+  account) and looked for a non-existent `.application-status` element, so
+  `POST /api/status-check` returned 200 with `status: "unknown"` and an
+  empty `raw_text` instead of the real status. The "pending" wording is
+  verified live; "approved"/"rejected"/"expired" fixtures
+  (`tests/fixtures/html/application_*.html`) are best-guess based on the same
+  structure — if a real status doesn't match, `parse_status_html` falls back
+  to `UNKNOWN` and preserves `raw_text` for manual reading.
 
 ### Changed
 - Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):

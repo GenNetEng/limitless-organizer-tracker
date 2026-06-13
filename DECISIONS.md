@@ -21,6 +21,36 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: FR2 live URL/selector fix + LIMITLESS_APPLICATION_ID config
+
+**Decision**: Point FR2's status check at the organizer's own application
+page, `/user/application/<LIMITLESS_APPLICATION_ID>`, and read the status
+from `.organizer-application .status .code` (verified live for the
+"pending" state). Add a new required-in-practice config var,
+`LIMITLESS_APPLICATION_ID`, sourced from the application page URL or the
+Discord resubmission message's link. Best-guess fixtures for
+approved/rejected/expired follow the same verified structure but their
+wording is unverified; `parse_status_html`'s existing `UNKNOWN` +
+preserved-`raw_text` fallback is the safety net if the real wording differs.
+
+**Alternatives considered**: Click through from `/account/settings/orgs` to
+discover the application URL/ID at runtime instead of configuring it —
+avoids a new env var, but adds a scrape step and another selector to keep in
+sync, for a value (the application ID) that doesn't change once an account
+has applied.
+
+**Why**: The first live run of `POST /api/status-check` (after the Phase 9/
+PR #25 Playwright fix) returned 200 but `status: "unknown"` with empty
+`raw_text` — `/account/settings/orgs` returns no content for this account,
+and `.application-status` doesn't exist on the real page. Investigating the
+Discord-linked application URL (`/user/application/<id>`) with the
+already-persisted session showed the real `.organizer-application .status
+.code` structure. Scope was limited to FR2 (status check); FR3 (resubmit,
+which lives on the same page behind a "Continue" step) is deferred to a
+follow-up to avoid triggering a real resubmission while verifying.
+
+---
+
 ## 2026-06-13: Playwright/browser image version pin
 
 **Decision**: Bump `backend/Dockerfile`'s base image to
