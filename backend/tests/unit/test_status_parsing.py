@@ -11,10 +11,10 @@ FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 @pytest.mark.parametrize(
     ("fixture_name", "expected_status", "expected_substring"),
     [
-        ("org_settings_pending.html", ApplicationStatus.PENDING, "Pending"),
-        ("org_settings_approved.html", ApplicationStatus.APPROVED, "Approved"),
-        ("org_settings_rejected.html", ApplicationStatus.REJECTED, "Rejected"),
-        ("org_settings_expired.html", ApplicationStatus.EXPIRED, "Expired"),
+        ("application_pending.html", ApplicationStatus.PENDING, "pending"),
+        ("application_approved.html", ApplicationStatus.APPROVED, "approved"),
+        ("application_rejected.html", ApplicationStatus.REJECTED, "rejected"),
+        ("application_expired.html", ApplicationStatus.EXPIRED, "expired"),
     ],
 )
 def test_parse_status_html_detects_known_statuses(fixture_name, expected_status, expected_substring):
@@ -27,7 +27,7 @@ def test_parse_status_html_detects_known_statuses(fixture_name, expected_status,
 
 
 def test_parse_status_html_returns_unknown_when_no_application_exists():
-    html = (FIXTURE_DIR / "org_settings_no_application.html").read_text()
+    html = (FIXTURE_DIR / "application_unrecognized.html").read_text()
 
     result = parse_status_html(html)
 

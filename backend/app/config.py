@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     limitless_base_url: str = "https://play.limitlesstcg.com"
     limitless_username: str = ""
     limitless_password: str = ""
+    limitless_application_id: str = ""
 
     discord_webhook_url: str = ""
 
