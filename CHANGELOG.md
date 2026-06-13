@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   the new `POST /api/status-check` (FR14) can be called cross-origin from the
   dashboard's configured origin. Previously only `GET` was allowed, which
   would fail the browser's preflight check for any `POST` request.
+- `backend/Dockerfile` / `backend/pyproject.toml`: pin `playwright==1.60.0`
+  and bump the base image to `mcr.microsoft.com/playwright/python:v1.60.0-noble`
+  so the installed `playwright` package matches the browsers bundled in the
+  image. Previously `playwright>=1.45` resolved to `1.60.0` at build time
+  while the `v1.48.0-noble` base image only bundled `1.48.0`'s browsers,
+  causing every `authenticated_page()` call (FR2/FR3/FR14) to fail with
+  `BrowserType.launch: Executable doesn't exist at
+  /ms-playwright/chromium_headless_shell-1223/...` (500 from
+  `POST /api/status-check`).
 
 ### Changed
 - Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):
