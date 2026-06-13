@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Changed
+- Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):
+  `DISCORD_WEBHOOK_URL` points to a webhook on the user's own server, not the
+  Limitless organizer Discord. The tracker posts a notification there for the
+  user to manually copy/paste into the organizer Discord. No code change —
+  `app/notifications/discord.py` already just posts to whatever webhook URL
+  is configured. See `DECISIONS.md`.
+
 ## [0.1.0] - 2026-06-13
 
 ### Added

@@ -5,7 +5,8 @@ the platform's organizer onboarding activity over time.
 
 - **Scraper** (Playwright, Python): logs into `play.limitlesstcg.com`, checks
   the organizer-application status on a schedule, resubmits 1-2x/day, and
-  posts a Discord notification on each resubmission.
+  posts a Discord notification (to your own server, via `DISCORD_WEBHOOK_URL`)
+  on each resubmission, for you to copy/paste into the organizer Discord.
 - **Tournament ingestion**: polls `https://play.limitlesstcg.com/api/tournaments`
   to build a history of organizer activity (first-tournament date per
   organizer, across all games).
