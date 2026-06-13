@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   `run_application_status_check(session)`, shared by both the Celery task and
   this endpoint.
 
+### Fixed
+- `app/main.py`: `CORSMiddleware` now allows `POST` (in addition to `GET`), so
+  the new `POST /api/status-check` (FR14) can be called cross-origin from the
+  dashboard's configured origin. Previously only `GET` was allowed, which
+  would fail the browser's preflight check for any `POST` request.
+
 ### Changed
 - Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):
   `DISCORD_WEBHOOK_URL` points to a webhook on the user's own server, not the
