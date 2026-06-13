@@ -14,7 +14,7 @@ app = FastAPI(title="Limitless Organizer Tracker")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=parse_cors_origins(settings.cors_allowed_origins),
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 app.include_router(status_router.router)

@@ -37,25 +37,33 @@ def record_status_check(
     return check, changed
 
 
-@celery_app.task(name="app.tasks.status_tasks.check_application_status_task")
-def check_application_status_task() -> None:
-    """Check the organizer application status and record it (FR2).
+def run_application_status_check(session: Session) -> tuple[ApplicationStatusCheck, bool]:
+    """Check the organizer application status and record it (FR2, FR14).
 
     Posts a Discord notification only if the status changed since the last
     check; a failure to notify does not affect the recorded datapoint.
+    Returns the inserted check row and whether the status changed.
     """
     with authenticated_page() as page:
         result = check_application_status(page)
 
     checked_at = datetime.now(timezone.utc)
-    session = SessionLocal()
-    try:
-        _, changed = record_status_check(session, result, checked_at)
-    finally:
-        session.close()
+    check, changed = record_status_check(session, result, checked_at)
 
     if changed:
         try:
             post_status_update_notice(settings.discord_webhook_url, result.status, checked_at)
         except httpx.HTTPError:
             pass
+
+    return check, changed
+
+
+@celery_app.task(name="app.tasks.status_tasks.check_application_status_task")
+def check_application_status_task() -> None:
+    """Run an application-status check on the Celery beat schedule (FR2)."""
+    session = SessionLocal()
+    try:
+        run_application_status_check(session)
+    finally:
+        session.close()

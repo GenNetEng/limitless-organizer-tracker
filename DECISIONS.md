@@ -21,6 +21,29 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: On-demand status-check API trigger (FR14), no auth
+
+**Decision**: Add `POST /api/status-check` (FR14), which runs the FR2
+application-status check synchronously and returns the recorded
+`StatusCheckOut`. `app/tasks/status_tasks.py` exposes
+`run_application_status_check(session)`, shared by the Celery task
+(`check_application_status_task`) and this endpoint. No authentication is
+added to this or any other endpoint.
+
+**Alternatives considered**: also adding `POST /api/resubmit` to trigger
+FR3 on demand — deferred, since a resubmission has real side effects (counts
+as an actual submission to Limitless and posts a Discord notice) and isn't
+needed for the immediate goal; shared-secret API-key auth for the new
+endpoint — deferred since the existing API has no auth at all and this is
+still local/single-user.
+
+**Why**: Owner wants to verify the scraper selectors / current status
+on demand (e.g. right after deploying) without waiting for the next
+`application_status_check_interval_hours` tick, and confirmed no auth is
+needed yet given current (local, single-user) deployment.
+
+---
+
 ## 2026-06-13: Discord notification target — user's own server, not the organizer Discord (FR4/BR2 clarification)
 
 **Decision**: `DISCORD_WEBHOOK_URL` (FR4) points to a webhook on the user's
