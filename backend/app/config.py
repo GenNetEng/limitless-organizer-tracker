@@ -15,6 +15,8 @@ class Settings(BaseSettings):
 
     discord_webhook_url: str = ""
 
+    cors_allowed_origins: str = "http://localhost:5173"
+
     application_status_check_interval_hours: int = 4
     resubmit_times_utc: str = "09:00,21:00"
     tournament_ingest_interval_hours: int = 1

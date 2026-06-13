@@ -21,6 +21,22 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: Frontend styling approach (Phase 8)
+
+**Decision**: Use Tailwind CSS for styling the MVP1 dashboard
+(`StatusTimeline`, `ResubmissionLog`, `Dashboard`), via `tailwindcss` +
+`postcss` + `autoprefixer` and a `src/index.css` with the standard
+`@tailwind base/components/utilities` directives.
+
+**Alternatives considered**: plain CSS / CSS Modules (no new deps, but more
+manual layout work); a full component library such as Mantine (faster
+polished UI, but adds several dependencies and requires wrapping the app and
+tests in a `MantineProvider`).
+
+**Why**: Owner preferred Tailwind as a middle ground — utility classes give a
+reasonably polished look without a component-library dependency or
+provider-wrapping overhead in component tests.
+
 ## 2026-06-12: Status/resubmission API design (Phase 7)
 
 **Decision**: `GET /api/status-history` and `GET /api/resubmissions` use
