@@ -21,6 +21,22 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: Versioning scheme — minor bump per MVP (MVP1 = v0.1.0)
+
+**Decision**: Tag the MVP1 acceptance checkpoint (Phase 9) as `v0.1.0`.
+Going forward, each completed MVP milestone bumps the minor version
+(`0.1.0` → `0.2.0` for MVP2, `0.3.0` for MVP3, ...), with the corresponding
+`[Unreleased]` section in `CHANGELOG.md` cut over to a dated release section.
+A `1.0.0` major release will be determined later once the project reaches a
+stable, fully-traced state (per `docs/requirements.md`).
+
+**Alternatives considered**: none — owner specified this scheme directly.
+
+**Why**: Owner's choice, to give each MVP milestone a citable release
+version without committing to a 1.0.0 definition yet.
+
+---
+
 ## 2026-06-13: Auto-apply DB migrations on container startup (Phase 9)
 
 **Decision**: Add `backend/entrypoint.sh`, which runs `alembic upgrade head`
