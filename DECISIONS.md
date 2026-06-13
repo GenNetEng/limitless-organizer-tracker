@@ -21,6 +21,32 @@ Newest entries first.
 
 ---
 
+## 2026-06-13: Discord notification target — user's own server, not the organizer Discord (FR4/BR2 clarification)
+
+**Decision**: `DISCORD_WEBHOOK_URL` (FR4) points to a webhook on the user's
+own Discord server, not the Limitless organizer Discord. The tracker posts a
+notification describing each resubmission/status-change event there; the
+user manually copies/pastes it into the organizer Discord, preserving the
+existing manual habit (BR2).
+
+**Alternatives considered**: posting directly to the organizer Discord via
+webhook — rejected, since a webhook/bot post is tagged "APP" and visibly
+distinct from a normal user message; a "self-bot" using the user's actual
+account credentials to post indistinguishably from a manual post — rejected,
+violates Discord's Terms of Service (account automation) and would post
+automated content into a channel/server the user doesn't control without the
+moderators' knowledge.
+
+**Why**: Owner doesn't control the organizer Discord and wants the automated
+post there to remain genuinely manual (and honestly attributed to them as a
+human action), while still getting an automated reminder/notification with
+ready-to-paste text. No code changes required — `app/notifications/discord.py`
+already just posts `{"content": message}` to whatever webhook URL is
+configured; this is a configuration/documentation clarification of FR4/BR2's
+intended deployment.
+
+---
+
 ## 2026-06-13: Versioning scheme — minor bump per MVP (MVP1 = v0.1.0)
 
 **Decision**: Tag the MVP1 acceptance checkpoint (Phase 9) as `v0.1.0`.

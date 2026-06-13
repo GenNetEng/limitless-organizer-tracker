@@ -10,7 +10,8 @@ Tracker, and maps them to the MVPs and build phases that implement them.
   (status-check history, outcomes) that Limitless does not report on.
 - **BR2**: Maximize approval likelihood by automating frequent, scheduled
   resubmission per Limitless's LIFO-favoring review process, with a Discord
-  post per resubmission (matching the existing manual habit).
+  notification per resubmission sent to the user's own server (for manual
+  copy/paste into the organizer Discord, matching the existing manual habit).
 - **BR3**: Provide visibility into platform-wide organizer growth — how many
   new organizers (across all games) become active each week/month, based on
   each organizer's first tournament date — and estimate how long a new
@@ -24,7 +25,7 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR1 | Log into play.limitlesstcg.com via Playwright using stored username/password, persisting session for reuse | BR1, BR2 | **Done — Phase 5** (`app/scraper/browser.py`) |
 | FR2 | Check organizer/organization application status on a configurable schedule; record each check as a timestamped datapoint (status enum + raw text) | BR1 | **Done — Phase 6** (`app/tasks/status_tasks.py`, `check_application_status_task`, beat schedule via `application_status_check_interval_hours`) |
 | FR3 | Resubmit the organization application 1-2x/day on a configurable schedule | BR2 | **Done — Phase 6** (`app/tasks/resubmit_tasks.py`, `resubmit_application_task`, beat schedule via `resubmit_times_utc`) |
-| FR4 | Post a Discord notification when a resubmission occurs | BR2 | **Done — Phase 5/6** (`app/notifications/discord.py`; wired into `resubmit_application_task`. Phase 6 also adds a status-change notice for FR2.) |
+| FR4 | Post a Discord notification (to the user's own server, via `DISCORD_WEBHOOK_URL`) when a resubmission occurs, for manual copy/paste into the organizer Discord | BR2 | **Done — Phase 5/6** (`app/notifications/discord.py`; wired into `resubmit_application_task`. Phase 6 also adds a status-change notice for FR2.) |
 | FR5 | Log each resubmission as a timestamped datapoint (success flag, discord-notified flag) | BR1, BR2 | **Done — Phase 6** (`record_resubmission` in `app/tasks/resubmit_tasks.py`) |
 | FR6 | Ingest tournament data from `GET /api/tournaments` across all games | BR3 | Recent ingestion **done — Phase 3**; paginated historical backfill (configurable window via `TOURNAMENT_BACKFILL_MONTHS`, default 3 months) — Pending Phase 10 |
 | FR7 | Determine each organizer's ID and first-tournament date per game from ingested data | BR3 | **Done — Phase 3** (`OrganizerActivity`) |
