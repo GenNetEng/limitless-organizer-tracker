@@ -56,6 +56,13 @@ postgres/redis + frontend; status checks and resubmissions are logged on
 schedule; Discord notified on resubmission; dashboard shows status timeline
 and resubmission log.
 
+**Verified — Phase 9 (2026-06-13)**: `docker compose up --build` brings up all
+six services; `backend` applies migrations on startup and serves `/healthz`
+(200); `celery-worker`/`celery-beat` connect to Redis and start without
+error; `frontend` serves the dashboard at `:5173`. Full test suites pass in
+containers: `docker compose run --rm backend pytest` (68/68) and
+`docker compose run --rm frontend npm test -- --run` (5/5).
+
 ### MVP2 — Organizer Activity Analytics
 Serves BR3 / FR6-8, FR11-13, remaining NFR3. Phases 10-13.
 
@@ -88,7 +95,7 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 6 | Celery app + beat schedule for status-check/resubmit tasks | MVP1 | [#3](https://github.com/GenNetEng/limitless-organizer-tracker/issues/3) |
 | 7 | FastAPI routers: status history, resubmissions | MVP1 | [#4](https://github.com/GenNetEng/limitless-organizer-tracker/issues/4) |
 | 8 | Frontend scaffold + MVP1 dashboard (status timeline, resubmission log) | MVP1 | [#5](https://github.com/GenNetEng/limitless-organizer-tracker/issues/5) |
-| 9 | MVP1 docker-compose verification (acceptance checkpoint) | MVP1 | [#6](https://github.com/GenNetEng/limitless-organizer-tracker/issues/6) |
+| 9 | MVP1 docker-compose verification (acceptance checkpoint) — **Done** | MVP1 | [#6](https://github.com/GenNetEng/limitless-organizer-tracker/issues/6) |
 | 10 | Tournament ingestion Celery task + beat schedule, including paginated historical backfill (default 3 months) | MVP2 | [#7](https://github.com/GenNetEng/limitless-organizer-tracker/issues/7) |
 | 11 | FastAPI routers: organizer activity, games, onboarding-rate regression/wait estimate (FR12) | MVP2 | [#8](https://github.com/GenNetEng/limitless-organizer-tracker/issues/8) |
 | 12 | Frontend organizer-activity chart + wait-time estimator (FR13) | MVP2 | [#9](https://github.com/GenNetEng/limitless-organizer-tracker/issues/9) |
