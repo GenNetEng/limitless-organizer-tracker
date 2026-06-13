@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Added
+- `POST /api/status-check` (FR14, `app/api/routers/status.py`): runs an
+  on-demand application-status check synchronously (login, scrape, record
+  datapoint, post a Discord notice if the status changed) and returns the
+  recorded `StatusCheckOut`. Lets you verify scraper selectors / check status
+  immediately instead of waiting for the next
+  `application_status_check_interval_hours` tick. No auth, matching the rest
+  of the API. `app/tasks/status_tasks.py` now exposes
+  `run_application_status_check(session)`, shared by both the Celery task and
+  this endpoint.
+
 ### Changed
 - Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):
   `DISCORD_WEBHOOK_URL` points to a webhook on the user's own server, not the

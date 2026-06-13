@@ -5,8 +5,16 @@ from app.api.pagination import DEFAULT_LIMIT, MAX_LIMIT, paginate
 from app.api.schemas import Page, ResubmissionEventOut, StatusCheckOut
 from app.db.models import ApplicationStatusCheck, ResubmissionEvent
 from app.db.session import get_db
+from app.tasks.status_tasks import run_application_status_check
 
 router = APIRouter(prefix="/api", tags=["status"])
+
+
+@router.post("/status-check", response_model=StatusCheckOut)
+def post_status_check(db: Session = Depends(get_db)) -> ApplicationStatusCheck:
+    """Run an on-demand application-status check and return the result (FR14)."""
+    check, _ = run_application_status_check(db)
+    return check
 
 
 @router.get("/status-history", response_model=Page[StatusCheckOut])

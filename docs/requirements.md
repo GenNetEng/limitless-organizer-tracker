@@ -35,6 +35,7 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR11 | Dashboard displays newly-active-organizer counts per week/month, filterable by game | BR3 | Pending — Phase 12 |
 | FR12 | Fit a linear regression of `organizer_id` vs. `first_tournament_date` (per game) to estimate the onboarding rate (slope) and project the date a target organizer ID will become active | BR3 | Pending — Phase 11 |
 | FR13 | Dashboard displays the onboarding-rate regression (scatter + fitted line, R²) and a wait-time estimator for a user-supplied target organizer ID | BR3 | Pending — Phase 12 |
+| FR14 | Provide an API endpoint to trigger an on-demand application-status check (extends FR2), running synchronously and returning the recorded result | BR1 | **Done** — [#23](https://github.com/GenNetEng/limitless-organizer-tracker/issues/23) (`POST /api/status-check`, `app/api/routers/status.py`) |
 
 ## Non-Functional Requirements (NFR)
 
