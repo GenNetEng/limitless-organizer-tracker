@@ -4,10 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import status as status_router
 from app.config import settings
 
+
+def parse_cors_origins(value: str) -> list[str]:
+    """Parse a comma-separated list of origins, trimming surrounding whitespace."""
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
 app = FastAPI(title="Limitless Organizer Tracker")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_allowed_origins.split(","),
+    allow_origins=parse_cors_origins(settings.cors_allowed_origins),
     allow_methods=["GET"],
     allow_headers=["*"],
 )
