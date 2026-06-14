@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- `app/tasks/tournament_tasks.py` (FR6, FR7, NFR3): `ingest_tournaments_task`
+  runs on the `tournament_ingest_interval_hours` beat schedule (default
+  hourly). It pages through `GET /api/tournaments` (`app/limitless_client/
+  tournaments_api.py` now accepts a `page` param) newest-first and ingests
+  each page via the existing `ingest_tournaments`, stopping once a page is
+  empty or its oldest tournament is older than `TOURNAMENT_BACKFILL_MONTHS`
+  (new setting, default 3 months). Re-walking the full backfill window on
+  every run is idempotent (upsert) and self-heals retroactive edits within
+  the window — see `DECISIONS.md` for the alternatives considered.
 - `LIMITLESS_APPLICATION_ID` (`.env.example`, `app/config.py`): the
   organizer application's ID, taken from the URL of the application page
   (`https://play.limitlesstcg.com/user/application/<id>`) or the Discord

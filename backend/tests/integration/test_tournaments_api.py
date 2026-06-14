@@ -26,3 +26,30 @@ def test_fetch_tournaments_returns_parsed_dtos():
     assert len(tournaments) == len(sample)
     assert tournaments[0].id == sample[0]["id"]
     assert tournaments[0].organizer_id == sample[0]["organizerId"]
+
+
+@respx.mock
+def test_fetch_tournaments_passes_page_param():
+    sample = json.loads(FIXTURE.read_text())
+    route = respx.get(f"{settings.limitless_base_url}/api/tournaments").mock(
+        return_value=httpx.Response(200, json=sample)
+    )
+
+    fetch_tournaments(limit=1000, page=2)
+
+    request = route.calls.last.request
+    assert request.url.params["limit"] == "1000"
+    assert request.url.params["page"] == "2"
+
+
+@respx.mock
+def test_fetch_tournaments_omits_page_param_by_default():
+    sample = json.loads(FIXTURE.read_text())
+    route = respx.get(f"{settings.limitless_base_url}/api/tournaments").mock(
+        return_value=httpx.Response(200, json=sample)
+    )
+
+    fetch_tournaments(limit=1000)
+
+    request = route.calls.last.request
+    assert "page" not in request.url.params

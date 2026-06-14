@@ -1,4 +1,4 @@
-from app.celery_app import _status_check_schedule, celery_app, parse_resubmit_times
+from app.celery_app import _hourly_schedule, celery_app, parse_resubmit_times
 
 
 def test_parse_resubmit_times_parses_multiple_times():
@@ -17,12 +17,12 @@ def test_parse_resubmit_times_skips_blank_entries():
     assert parse_resubmit_times("09:00,,21:00,") == [(9, 0), (21, 0)]
 
 
-def test_status_check_schedule_treats_zero_interval_as_hourly():
-    assert _status_check_schedule(0).hour == _status_check_schedule(1).hour
+def test_hourly_schedule_treats_zero_interval_as_hourly():
+    assert _hourly_schedule(0).hour == _hourly_schedule(1).hour
 
 
-def test_status_check_schedule_treats_negative_interval_as_hourly():
-    assert _status_check_schedule(-1).hour == _status_check_schedule(1).hour
+def test_hourly_schedule_treats_negative_interval_as_hourly():
+    assert _hourly_schedule(-1).hour == _hourly_schedule(1).hour
 
 
 def test_beat_schedule_includes_status_check_task():
@@ -46,4 +46,14 @@ def test_beat_schedule_includes_one_entry_per_resubmit_time():
     assert all(
         entry["task"] == "app.tasks.resubmit_tasks.resubmit_application_task"
         for entry in resubmit_entries.values()
+    )
+
+
+def test_beat_schedule_includes_tournament_ingestion_task():
+    schedule = celery_app.conf.beat_schedule
+
+    assert "ingest-tournaments" in schedule
+    assert (
+        schedule["ingest-tournaments"]["task"]
+        == "app.tasks.tournament_tasks.ingest_tournaments_task"
     )

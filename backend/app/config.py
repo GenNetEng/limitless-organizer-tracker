@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     resubmit_times_utc: str = "09:00,21:00"
     tournament_ingest_interval_hours: int = 1
     tournament_ingest_limit: int = 1000
+    tournament_backfill_months: int = 3
 
 
 settings = Settings()

@@ -7,6 +7,30 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-14: Tournament-ingestion backfill strategy (Phase 10)
+
+**Decision**: `ingest_tournaments_task` pages through
+`GET /api/tournaments?limit=<tournament_ingest_limit>&page=N` starting at
+`page=1`, ingesting each page via the existing `ingest_tournaments()`, and
+stops when either a page is empty or the oldest tournament on the page is
+older than `TOURNAMENT_BACKFILL_MONTHS` (default 3) ago. This runs on every
+scheduled tick (`tournament_ingest_interval_hours`).
+
+**Alternatives considered**: a separate one-time `backfill_tournaments_task`
+run manually once after deploy, with the regular task only fetching page 1
+(less ongoing API load, but an easy-to-forget manual step and not purely
+beat-scheduled per NFR3); a "catch-up" variant that stops early once a page's
+tournaments are all already in the DB, with a first-run cap at
+`TOURNAMENT_BACKFILL_MONTHS` (more efficient after the first run, but more
+complex stop logic and doesn't re-check old data for retroactive edits).
+
+**Why**: Confirmed live against `play.limitlesstcg.com/api/tournaments` —
+`?page=N` paginates (ordered newest-first), `?offset=` is ignored, and
+`limit=2000` covers ~2 months. So a 3-month window is ~2-3 requests of
+~1-3k upserts per hourly run, which the owner judged an acceptable cost for
+a simple, idempotent, self-healing (re-checks the whole window for retroactive
+edits) single task with no extra scheduling/state.
+
 ## Template
 
 ```
