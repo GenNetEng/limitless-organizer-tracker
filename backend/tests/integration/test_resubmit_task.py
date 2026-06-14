@@ -31,7 +31,7 @@ def test_resubmit_application_task_records_event_and_notifies_on_success(monkeyp
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
     mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "org_settings_resubmit_success.html").read_text()
+    mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
     )
@@ -64,7 +64,7 @@ def test_resubmit_application_task_records_event_on_failure(monkeypatch):
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
     mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "org_settings_resubmit_failure.html").read_text()
+    mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_failure.html").read_text()
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
     )
@@ -95,7 +95,7 @@ def test_resubmit_application_task_records_event_when_discord_webhook_unset(monk
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", "")
 
     mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "org_settings_resubmit_success.html").read_text()
+    mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
     )

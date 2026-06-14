@@ -14,12 +14,6 @@ _STATUS_KEYWORDS: tuple[tuple[str, ApplicationStatus], ...] = (
     ("pending", ApplicationStatus.PENDING),
 )
 
-# Failure keywords are checked first since some failure messages may also
-# contain "resubmit", and "unsuccessful" contains "success" as a substring.
-_RESUBMIT_FAILURE_KEYWORDS = ("error", "failed", "unable", "unsuccessful")
-_RESUBMIT_SUCCESS_KEYWORDS = ("resubmitted", "received", "success")
-
-
 @dataclass(frozen=True)
 class ApplicationStatusResult:
     status: ApplicationStatus
@@ -41,12 +35,17 @@ def parse_status_html(html: str) -> ApplicationStatusResult:
 
 
 def parse_resubmit_result(html: str) -> bool:
-    """Parse whether a resubmit action succeeded from the resulting page HTML."""
+    """Parse whether a resubmit action succeeded from the resulting page HTML.
+
+    A resubmit succeeds when `.page3` (hidden by default via inline
+    `display: none`) has been revealed with its "success" class intact.
+    Any other state (no `.page3`, or `.page3` still hidden) is a failure.
+    """
     soup = BeautifulSoup(html, "html.parser")
     element = soup.select_one(RESUBMIT_RESULT_SELECTOR)
-    raw_text = element.get_text(strip=True) if element else ""
-
-    lowered = raw_text.lower()
-    if any(keyword in lowered for keyword in _RESUBMIT_FAILURE_KEYWORDS):
+    if element is None:
         return False
-    return any(keyword in lowered for keyword in _RESUBMIT_SUCCESS_KEYWORDS)
+
+    classes = element.get("class") or []
+    style = element.get("style") or ""
+    return "success" in classes and "display: none" not in style
