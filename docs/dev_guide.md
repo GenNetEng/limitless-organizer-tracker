@@ -93,6 +93,36 @@ Run the backend test suite inside Docker:
 docker compose run backend pytest
 ```
 
+## VS Code dev container
+
+`.devcontainer/devcontainer.json` attaches VS Code to the `backend` service,
+layering `.devcontainer/docker-compose.yml` on top of the root
+`docker-compose.yml` to mount the full repo (including `.git`) at
+`/workspace` for source control. Because this file lives in `.devcontainer/`
+(not `docker-compose.override.yml` at the repo root), plain `docker compose`
+commands run from the repo root are unaffected — the `/workspace` mount only
+applies inside the dev container. `postgres`, `redis`, `celery-worker`,
+`celery-beat`, and `frontend` run as sibling containers on the same compose
+stack — "Reopen in Container" brings up the whole stack via `docker compose
+up`. `shutdownAction` is `none`, so closing the VS Code window doesn't stop
+the other services. Run tests from `/workspace/backend` (`pyproject.toml`'s
+`testpaths` is relative to that directory).
+
+The container includes the GitHub CLI (`gh`) feature, runs `pip install -e
+".[dev]"` on creation (so new deps in `pyproject.toml` are picked up without
+an image rebuild), and adds GitLens/Error Lens plus format-on-save with
+Ruff's fix-all/organize-imports code actions.
+
+This project's `~/.claude/projects/.../memory/` directory (on the host) is
+bind-mounted into the container at the path Claude Code expects for the
+`/workspace` project, so memory carries over when running Claude Code inside
+the dev container. Claude Code auth/credentials are NOT mounted — log in
+separately inside the container if needed.
+
+After "Reopen in Container" (or any rebuild), run `scripts/dev-setup.sh` to
+authenticate `gh`/Claude Code and create `.env` from `.env.example` if
+missing.
+
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
