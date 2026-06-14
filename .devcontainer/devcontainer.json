@@ -1,0 +1,27 @@
+{
+  "name": "limitless-organizer-tracker (backend)",
+  "dockerComposeFile": ["../docker-compose.yml", "../docker-compose.override.yml"],
+  "service": "backend",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "none",
+  "forwardPorts": [8000, 5173, 5432, 6379],
+  "portsAttributes": {
+    "8000": { "label": "backend (FastAPI)" },
+    "5173": { "label": "frontend (Vite)" },
+    "5432": { "label": "postgres" },
+    "6379": { "label": "redis" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance", "charliermarsh.ruff"],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.testing.pytestEnabled": true,
+        "python.testing.cwd": "/workspace/backend",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  }
+}

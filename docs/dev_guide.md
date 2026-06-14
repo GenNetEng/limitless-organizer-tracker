@@ -93,6 +93,17 @@ Run the backend test suite inside Docker:
 docker compose run backend pytest
 ```
 
+## VS Code dev container
+
+`.devcontainer/devcontainer.json` (with `docker-compose.override.yml`)
+attaches VS Code to the `backend` service, with the full repo (including
+`.git`) mounted at `/workspace` for source control. `postgres`, `redis`,
+`celery-worker`, `celery-beat`, and `frontend` run as sibling containers on
+the same compose stack — "Reopen in Container" brings up the whole stack via
+`docker compose up`. `shutdownAction` is `none`, so closing the VS Code
+window doesn't stop the other services. Run tests from `/workspace/backend`
+(`pyproject.toml`'s `testpaths` is relative to that directory).
+
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
