@@ -21,6 +21,36 @@ Newest entries first.
 
 ---
 
+## 2026-06-14: FR3 live selector fix for the resubmit flow
+
+**Decision**: Point FR3's resubmit at `/user/application/<LIMITLESS_APPLICATION_ID>`
+(the same page as FR2) instead of `/account/settings/orgs`. A live,
+read-only investigation (no click on the actual "Resubmit" button) showed
+the page renders all three steps of the resubmit wizard in one DOM: a
+`.page1` form, a `.page2` confirmation step, and a `.page3` success message,
+with `.page2`/`.page3` hidden via inline `display: none` until revealed.
+`resubmit_application()` now clicks `.page1 button.continue` (a verified
+pure client-side reveal of `.page2`, no network request) and then
+`.page2 button.submit` (the actual resubmit, not exercised live).
+`parse_resubmit_result()` now checks whether `.page3` has been revealed with
+its `success` class intact. The failure-path structure (an error in
+`.response`) is best-guess, following the same `UNKNOWN`-fallback philosophy
+as FR2's unverified non-pending statuses — `application_resubmit_failure.html`
+reflects this best guess.
+
+**Alternatives considered**: Leave the failure-path detection unimplemented
+pending a live failure case — rejected because `parse_resubmit_result`
+already defaults to `False` for any state other than a fully-revealed
+`.page3.success`, so no real failure can be misread as a success.
+
+**Why**: Deferred from PR #26 (FR2 live fix), which scoped out FR3 because
+clicking "Resubmit" has a real side effect. The org-settings-based selectors
+(`ORG_SETTINGS_PATH`, `.resubmit-result`, `button.resubmit`/`a.resubmit`)
+were placeholders from before any live verification and pointed at a page
+that returns no content for this account — same root cause as the FR2 bug.
+
+---
+
 ## 2026-06-13: FR2 live URL/selector fix + LIMITLESS_APPLICATION_ID config
 
 **Decision**: Point FR2's status check at the organizer's own application

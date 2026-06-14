@@ -52,6 +52,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   (`tests/fixtures/html/application_*.html`) are best-guess based on the same
   structure — if a real status doesn't match, `parse_status_html` falls back
   to `UNKNOWN` and preserves `raw_text` for manual reading.
+- FR3 (`app/scraper/selectors.py`, `app/scraper/resubmit.py`,
+  `app/scraper/parsing.py`): resubmit now navigates to
+  `/user/application/<LIMITLESS_APPLICATION_ID>` (same as FR2) and walks the
+  on-page wizard — clicking `.page1 button.continue` (verified live as a
+  pure client-side reveal of `.page2`, no network request) and then
+  `.page2 button.submit` (the actual resubmit). `parse_resubmit_result` now
+  checks whether `.page3` has been revealed with its `success` class intact.
+  Previously resubmit navigated to `/account/settings/orgs` and clicked a
+  non-existent `button.resubmit`/`a.resubmit`, the same placeholder bug as
+  FR2. The success path (`.page3.success`) is verified structurally; the
+  failure path (an error in `.response`) is best-guess, per the same
+  `UNKNOWN`-fallback philosophy as FR2 — see
+  `tests/fixtures/html/application_resubmit_*.html`.
 
 ### Changed
 - Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):

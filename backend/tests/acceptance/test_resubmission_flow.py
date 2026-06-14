@@ -24,7 +24,7 @@ WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
 def test_resubmission_success_triggers_discord_notification():
     # Given an authenticated page whose resubmit action succeeds
     page = MagicMock()
-    page.content.return_value = (FIXTURE_DIR / "org_settings_resubmit_success.html").read_text()
+    page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
     route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
 
     # When the application is resubmitted and the result is reported
@@ -44,7 +44,7 @@ def test_resubmission_success_triggers_discord_notification():
 def test_resubmission_failure_triggers_discord_notification():
     # Given an authenticated page whose resubmit action fails
     page = MagicMock()
-    page.content.return_value = (FIXTURE_DIR / "org_settings_resubmit_failure.html").read_text()
+    page.content.return_value = (FIXTURE_DIR / "application_resubmit_failure.html").read_text()
     route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
 
     # When the application is resubmitted and the result is reported
