@@ -95,14 +95,18 @@ docker compose run backend pytest
 
 ## VS Code dev container
 
-`.devcontainer/devcontainer.json` (with `docker-compose.override.yml`)
-attaches VS Code to the `backend` service, with the full repo (including
-`.git`) mounted at `/workspace` for source control. `postgres`, `redis`,
-`celery-worker`, `celery-beat`, and `frontend` run as sibling containers on
-the same compose stack — "Reopen in Container" brings up the whole stack via
-`docker compose up`. `shutdownAction` is `none`, so closing the VS Code
-window doesn't stop the other services. Run tests from `/workspace/backend`
-(`pyproject.toml`'s `testpaths` is relative to that directory).
+`.devcontainer/devcontainer.json` attaches VS Code to the `backend` service,
+layering `.devcontainer/docker-compose.yml` on top of the root
+`docker-compose.yml` to mount the full repo (including `.git`) at
+`/workspace` for source control. Because this file lives in `.devcontainer/`
+(not `docker-compose.override.yml` at the repo root), plain `docker compose`
+commands run from the repo root are unaffected — the `/workspace` mount only
+applies inside the dev container. `postgres`, `redis`, `celery-worker`,
+`celery-beat`, and `frontend` run as sibling containers on the same compose
+stack — "Reopen in Container" brings up the whole stack via `docker compose
+up`. `shutdownAction` is `none`, so closing the VS Code window doesn't stop
+the other services. Run tests from `/workspace/backend` (`pyproject.toml`'s
+`testpaths` is relative to that directory).
 
 The container includes the GitHub CLI (`gh`) feature, runs `pip install -e
 ".[dev]"` on creation (so new deps in `pyproject.toml` are picked up without

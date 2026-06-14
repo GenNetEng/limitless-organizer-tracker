@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
   "name": "limitless-organizer-tracker (backend)",
-  "dockerComposeFile": ["../docker-compose.yml", "../docker-compose.override.yml"],
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
   "service": "backend",
   "workspaceFolder": "/workspace",
   "shutdownAction": "none",
