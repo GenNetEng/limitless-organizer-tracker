@@ -7,7 +7,7 @@ celery_app = Celery(
     "limitless_organizer_tracker",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.status_tasks", "app.tasks.resubmit_tasks"],
+    include=["app.tasks.status_tasks", "app.tasks.resubmit_tasks", "app.tasks.tournament_tasks"],
 )
 
 
@@ -27,11 +27,11 @@ def parse_resubmit_times(value: str) -> list[tuple[int, int]]:
     return times
 
 
-def _status_check_schedule(interval_hours: int) -> crontab:
-    """Build the status-check crontab, treating a non-positive interval as hourly.
+def _hourly_schedule(interval_hours: int) -> crontab:
+    """Build an every-N-hours crontab, treating a non-positive interval as hourly.
 
     `crontab(hour="*/0")` raises ValueError, so a misconfigured interval of 0
-    (or less) falls back to checking every hour instead of crashing on import.
+    (or less) falls back to running every hour instead of crashing on import.
     """
     hours = interval_hours if interval_hours > 0 else 1
     return crontab(minute=0, hour=f"*/{hours}")
@@ -40,7 +40,11 @@ def _status_check_schedule(interval_hours: int) -> crontab:
 celery_app.conf.beat_schedule = {
     "check-application-status": {
         "task": "app.tasks.status_tasks.check_application_status_task",
-        "schedule": _status_check_schedule(settings.application_status_check_interval_hours),
+        "schedule": _hourly_schedule(settings.application_status_check_interval_hours),
+    },
+    "ingest-tournaments": {
+        "task": "app.tasks.tournament_tasks.ingest_tournaments_task",
+        "schedule": _hourly_schedule(settings.tournament_ingest_interval_hours),
     },
     **{
         f"resubmit-application-{hour:02d}{minute:02d}": {
