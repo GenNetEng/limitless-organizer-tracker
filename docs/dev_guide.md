@@ -104,6 +104,21 @@ the same compose stack — "Reopen in Container" brings up the whole stack via
 window doesn't stop the other services. Run tests from `/workspace/backend`
 (`pyproject.toml`'s `testpaths` is relative to that directory).
 
+The container includes the GitHub CLI (`gh`) feature, runs `pip install -e
+".[dev]"` on creation (so new deps in `pyproject.toml` are picked up without
+an image rebuild), and adds GitLens/Error Lens plus format-on-save with
+Ruff's fix-all/organize-imports code actions.
+
+This project's `~/.claude/projects/.../memory/` directory (on the host) is
+bind-mounted into the container at the path Claude Code expects for the
+`/workspace` project, so memory carries over when running Claude Code inside
+the dev container. Claude Code auth/credentials are NOT mounted — log in
+separately inside the container if needed.
+
+After "Reopen in Container" (or any rebuild), run `scripts/dev-setup.sh` to
+authenticate `gh`/Claude Code and create `.env` from `.env.example` if
+missing.
+
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:

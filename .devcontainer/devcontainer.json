@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
   "name": "limitless-organizer-tracker (backend)",
   "dockerComposeFile": ["../docker-compose.yml", "../docker-compose.override.yml"],
   "service": "backend",
@@ -11,15 +12,33 @@
     "5432": { "label": "postgres" },
     "6379": { "label": "redis" }
   },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "pip install -e '/app[dev]'",
+  "mounts": [
+    "source=${localEnv:HOME}/.claude/projects/-Users-bkcrisler-Documents-GitHub-limitless-organizer-tracker/memory,target=/root/.claude/projects/-workspace/memory,type=bind,consistency=cached"
+  ],
   "customizations": {
     "vscode": {
-      "extensions": ["ms-python.python", "ms-python.vscode-pylance", "charliermarsh.ruff"],
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "eamodio.gitlens",
+        "usernamehw.errorlens"
+      ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/bin/python3",
         "python.testing.pytestEnabled": true,
         "python.testing.cwd": "/workspace/backend",
+        "editor.formatOnSave": true,
         "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff"
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
         }
       }
     }
