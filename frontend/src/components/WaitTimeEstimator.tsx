@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getGames, getWaitEstimate, type WaitEstimate } from "../api/client";
+import { ApiError, getGames, getWaitEstimate, type WaitEstimate } from "../api/client";
 import { toFittedLineData, toScatterData } from "../lib/waitEstimateChartData";
 
 interface EstimateQuery {
@@ -85,7 +85,13 @@ export function WaitTimeEstimator() {
       </form>
 
       {estimateQuery.isLoading && <p>Calculating wait estimate…</p>}
-      {estimateQuery.isError && <p>Not enough data to estimate a wait time for this game.</p>}
+      {estimateQuery.isError && (
+        <p>
+          {estimateQuery.error instanceof ApiError && estimateQuery.error.status === 404
+            ? "Not enough data to estimate a wait time for this game."
+            : "Failed to load wait estimate."}
+        </p>
+      )}
 
       {estimateQuery.data && (
         <div>

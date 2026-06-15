@@ -53,4 +53,19 @@ describe("WaitTimeEstimator", () => {
 
     expect(await screen.findByText(/not enough data/i)).toBeInTheDocument();
   });
+
+  it("shows a generic failure message for a non-404 error", async () => {
+    server.use(
+      http.get("*/api/organizers/wait-estimate", () =>
+        HttpResponse.json({ detail: "internal error" }, { status: 500 }),
+      ),
+    );
+
+    renderWithQueryClient(<WaitTimeEstimator />);
+
+    await fillAndSubmit();
+
+    expect(await screen.findByText(/failed to load wait estimate/i)).toBeInTheDocument();
+    expect(screen.queryByText(/not enough data/i)).not.toBeInTheDocument();
+  });
 });

@@ -49,10 +49,20 @@ export interface WaitEstimate {
   points: WaitEstimatePoint[];
 }
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);
   if (!response.ok) {
-    throw new Error(`Request to ${path} failed with status ${response.status}`);
+    throw new ApiError(`Request to ${path} failed with status ${response.status}`, response.status);
   }
   return (await response.json()) as T;
 }
