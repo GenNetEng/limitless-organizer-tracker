@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from datetime import datetime, timezone
 
 import pytest
@@ -39,15 +38,6 @@ def client():
         yield TestClient(app), test_session_factory
     finally:
         app.dependency_overrides.clear()
-
-
-@contextmanager
-def _seed(session_factory, rows):
-    with session_factory() as session:
-        for row in rows:
-            session.add(OrganizerActivity(**row))
-        session.commit()
-    yield
 
 
 def _activity(organizer_id, game, first_date, last_date=None, first_id="t1"):
@@ -193,6 +183,25 @@ def test_get_wait_estimate_returns_projection(client):
     assert body["slope"] > 0
     assert 0.0 <= body["r_squared"] <= 1.0
     assert body["projected_active_date"] > "2026-03-03"
+
+
+def test_get_wait_estimate_clamps_out_of_range_projection(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get(
+        "/api/organizers/wait-estimate", params={"organizer_id": 10**12, "game": "PTCG"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["projected_active_date"] == "9999-12-31"
 
 
 def test_get_wait_estimate_returns_404_with_insufficient_data(client):

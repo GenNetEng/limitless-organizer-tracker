@@ -40,13 +40,20 @@ def get_wait_estimate(
     game: str = Query(...),
     db: Session = Depends(get_db),
 ) -> WaitEstimateOut:
-    rows = db.scalars(select(OrganizerActivity).where(OrganizerActivity.game == game)).all()
+    rows = db.execute(
+        select(OrganizerActivity.organizer_id, OrganizerActivity.first_tournament_date).where(
+            OrganizerActivity.game == game
+        )
+    ).all()
     if len(rows) < 2:
         raise HTTPException(status_code=404, detail="not enough activity data to estimate")
 
-    points = [(float(row.organizer_id), float(row.first_tournament_date.date().toordinal())) for row in rows]
+    points = [(float(organizer_id_), float(first_date.date().toordinal())) for organizer_id_, first_date in rows]
     result = fit_linear_regression(points)
-    projected_date = date.fromordinal(round(result.predict(float(organizer_id))))
+
+    projected_ordinal = round(result.predict(float(organizer_id)))
+    projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
+    projected_date = date.fromordinal(projected_ordinal)
 
     return WaitEstimateOut(
         organizer_id=organizer_id,
