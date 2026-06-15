@@ -26,6 +26,7 @@ describe("OrganizerActivityChart", () => {
     renderWithQueryClient(<OrganizerActivityChart />);
 
     const select = await screen.findByLabelText(/game/i);
+    await screen.findByRole("option", { name: "PTCG" });
     fireEvent.change(select, { target: { value: "PTCG" } });
 
     await waitFor(() => {
