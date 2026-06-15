@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.analytics.buckets import bucket_activity
 from app.analytics.regression import fit_linear_regression
-from app.api.schemas import ActivityBucketOut, WaitEstimateOut
+from app.api.schemas import ActivityBucketOut, WaitEstimateOut, WaitEstimatePointOut
 from app.db.models import OrganizerActivity
 from app.db.session import get_db
 
@@ -59,7 +59,12 @@ def get_wait_estimate(
         organizer_id=organizer_id,
         game=game,
         slope=result.slope,
+        intercept=result.intercept,
         r_squared=result.r_squared,
         projected_active_date=projected_date,
         sample_size=len(rows),
+        points=[
+            WaitEstimatePointOut(organizer_id=organizer_id_, first_tournament_date=first_date.date())
+            for organizer_id_, first_date in rows
+        ],
     )

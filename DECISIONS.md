@@ -7,6 +7,38 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-15: Organizer-activity chart + wait-time estimator (Phase 12)
+
+**Decision**: Three design points for the new frontend dashboard sections
+(FR11, FR13):
+
+1. **Scatter data for FR13**: extend `GET /api/organizers/wait-estimate`
+   (rather than adding a new endpoint) with an `intercept` field and a
+   `points` array of `{organizer_id, first_tournament_date}` for every
+   `OrganizerActivity` row used to fit the regression. The frontend derives
+   both the scatter plot and the fitted line from this single response.
+2. **Chart type for FR11**: render both a bar and a line over the same
+   weekly activity counts in a single Recharts `ComposedChart`
+   (`OrganizerActivityChart`), rather than choosing one chart type. Chart
+   data shaping is done by a pure, unit-tested transform
+   (`src/lib/activityChartData.ts`) rather than hardcoded inline.
+3. **Interval toggle**: the activity chart shows week buckets only for this
+   phase; no week/month toggle in the UI (the backend still supports
+   `interval=month` for future use).
+
+**Alternatives considered**: a separate `/api/organizers/wait-estimate/points`
+endpoint (avoids growing the existing response, but means two requests and
+two loading states for one chart); a single bar-only or line-only chart for
+FR11 (simpler, but loses one of the two "stories" the owner wanted to see);
+a week/month toggle now (more flexible, deferred since the owner asked for
+week-only in this phase).
+
+**Why**: Owner sign-off via AskUserQuestion — one response shape keeps the
+wait-time estimator's fetch/loading logic simple, a combined bar+line chart
+shows both the per-period counts and the trend without two separate charts,
+and the reusable transform utility (`toActivityChartData`) keeps the chart
+component free of date-formatting/shaping logic.
+
 ## 2026-06-15: Organizer-activity API design (Phase 11)
 
 **Decision**: Three design points for the new `app/api/routers/organizers.py`

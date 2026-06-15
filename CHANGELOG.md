@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- Frontend (FR11, FR13, Phase 12): the dashboard now has "Organizer Activity"
+  and "Wait Time Estimator" sections.
+  - `OrganizerActivityChart` fetches `GET /api/organizers/activity` (weekly
+    buckets) and `GET /api/games`, with a game filter `<select>`. It renders
+    a Recharts `ComposedChart` combining a bar and a line over the same
+    weekly counts, plus an `sr-only` accessible list of `{label}: {count}`
+    for screen readers and tests.
+  - `WaitTimeEstimator` takes an organizer ID + game, fetches
+    `GET /api/organizers/wait-estimate`, and renders the slope, R²,
+    projected active date, and sample size, plus a `ComposedChart` scatter
+    of each organizer's first-tournament date (`points`) with the fitted
+    regression line.
+  - `src/lib/activityChartData.ts` and `src/lib/waitEstimateChartData.ts` are
+    pure, unit-tested transforms from API responses to chart-ready data
+    (including converting the regression's ordinal-day units to JS epoch
+    timestamps).
+  - `recharts` added as a new frontend dependency.
+- `GET /api/organizers/wait-estimate` (FR13, Phase 12): response now also
+  includes `intercept` and a `points` array (each organizer's `organizer_id`
+  and `first_tournament_date`) so the frontend can render a scatter plot and
+  fitted line alongside the regression stats.
 - `app/api/routers/organizers.py` (FR8, FR12): three new read-only endpoints
   over `OrganizerActivity`:
   - `GET /api/games` returns the distinct `game` values, sorted.
