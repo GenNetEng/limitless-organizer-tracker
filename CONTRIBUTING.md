@@ -29,7 +29,17 @@ Each phase corresponds to a GitHub issue (see the Build Order table in
 9. **Review**: `/code-review` and `/security-review` are run on the PR
    before merge. Address any findings with follow-up commits on the same
    branch.
-10. **Merge**: only after review passes and the owner approves.
+10. **Manual verification**: bring up the stack (`docker compose up --build`)
+    and walk through the new/changed behavior before merge.
+    - **UI/dashboard changes**: exercise each new or changed element in the
+      browser — happy path plus at least one edge case (empty state, error
+      state, or insufficient-data state).
+    - **API changes**: hit the new/changed endpoint(s) with `curl`, including
+      an edge case (e.g. missing/invalid params, not-found case).
+    - Note any issues found as follow-up commits (or filed issues for
+      non-blocking items) before merging.
+11. **Merge**: only after review passes, manual verification is complete, and
+    the owner approves.
 
 ## Technical decisions
 
