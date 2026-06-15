@@ -13,4 +13,13 @@ describe("Dashboard", () => {
     expect(await screen.findByText("check 2")).toBeInTheDocument();
     expect(await screen.findAllByText("Success")).toHaveLength(1);
   });
+
+  it("renders the organizer activity and wait time estimator sections", async () => {
+    renderWithQueryClient(<Dashboard />);
+
+    expect(screen.getByRole("heading", { name: /organizer activity/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /wait time estimator/i })).toBeInTheDocument();
+
+    expect(await screen.findByText("Jun 1: 2")).toBeInTheDocument();
+  });
 });

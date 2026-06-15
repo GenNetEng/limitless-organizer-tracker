@@ -1,5 +1,7 @@
+import { OrganizerActivityChart } from "../components/OrganizerActivityChart";
 import { ResubmissionLog } from "../components/ResubmissionLog";
 import { StatusTimeline } from "../components/StatusTimeline";
+import { WaitTimeEstimator } from "../components/WaitTimeEstimator";
 
 export function Dashboard() {
   return (
@@ -12,6 +14,14 @@ export function Dashboard() {
       <section>
         <h2 className="mb-2 text-lg font-semibold">Resubmission Log</h2>
         <ResubmissionLog />
+      </section>
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Organizer Activity</h2>
+        <OrganizerActivityChart />
+      </section>
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Wait Time Estimator</h2>
+        <WaitTimeEstimator />
       </section>
     </main>
   );

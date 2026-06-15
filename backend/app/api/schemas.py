@@ -38,10 +38,17 @@ class ActivityBucketOut(BaseModel):
     count: int
 
 
+class WaitEstimatePointOut(BaseModel):
+    organizer_id: int
+    first_tournament_date: date
+
+
 class WaitEstimateOut(BaseModel):
     organizer_id: int
     game: str
     slope: float
+    intercept: float
     r_squared: float
     projected_active_date: date
     sample_size: int
+    points: list[WaitEstimatePointOut]

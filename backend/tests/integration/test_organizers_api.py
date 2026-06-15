@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -183,6 +183,14 @@ def test_get_wait_estimate_returns_projection(client):
     assert body["slope"] > 0
     assert 0.0 <= body["r_squared"] <= 1.0
     assert body["projected_active_date"] > "2026-03-03"
+    assert body["points"] == [
+        {"organizer_id": 100, "first_tournament_date": "2026-01-01"},
+        {"organizer_id": 200, "first_tournament_date": "2026-02-01"},
+        {"organizer_id": 300, "first_tournament_date": "2026-03-03"},
+    ]
+    assert body["slope"] * 100 + body["intercept"] == pytest.approx(
+        date(2026, 1, 1).toordinal()
+    )
 
 
 def test_get_wait_estimate_clamps_out_of_range_projection(client):
