@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   `run_application_status_check(session)`, shared by both the Celery task and
   this endpoint.
 
+### Changed
+- `CONTRIBUTING.md`: per-phase workflow now includes a "Manual verification"
+  step between `/code-review`/`/security-review` and merge — bring up the
+  stack with `docker compose up --build` and walk through new/changed
+  behavior (UI happy path + an edge case, or `curl` against new/changed
+  endpoints) before merging.
+
 ### Fixed
 - `app/main.py`: `CORSMiddleware` now allows `POST` (in addition to `GET`), so
   the new `POST /api/status-check` (FR14) can be called cross-origin from the
