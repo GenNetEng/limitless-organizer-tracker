@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict
@@ -31,3 +31,17 @@ class ResubmissionEventOut(BaseModel):
     submitted_at: datetime
     success: bool
     discord_notified: bool
+
+
+class ActivityBucketOut(BaseModel):
+    period: date
+    count: int
+
+
+class WaitEstimateOut(BaseModel):
+    organizer_id: int
+    game: str
+    slope: float
+    r_squared: float
+    projected_active_date: date
+    sample_size: int

@@ -7,6 +7,37 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-15: Organizer-activity API design (Phase 11)
+
+**Decision**: Three design points for the new `app/api/routers/organizers.py`
+endpoints (FR8, FR12):
+
+1. **Regression implementation**: `app/analytics/regression.py` implements
+   ordinary least squares by hand (sums of x, y, xy, x², y²) using only the
+   stdlib, returning slope/intercept/r_squared. No numpy/scipy/scikit-learn
+   dependency added.
+2. **Activity bucket format**: `GET /api/organizers/activity` returns
+   `{"period": "YYYY-MM-DD", "count": N}` items, where `period` is the
+   bucket *start* date — Monday for `interval=week` (ISO week), the 1st of
+   the month for `interval=month`.
+3. **Wait-estimate insufficient-data handling**: `GET
+   /api/organizers/wait-estimate?organizer_id=&game=` returns `404 Not
+   Found` if the given `game` has fewer than 2 `OrganizerActivity` rows
+   (can't fit a regression).
+
+**Alternatives considered**: numpy/`polyfit` for the regression (more
+standard, but a new dependency for one small calculation on a tiny per-game
+dataset); ISO week/month labels (`"2026-W24"`/`"2026-06"`) for activity
+buckets (more compact, but needs extra frontend parsing to plot on a date
+axis for Phase 12's chart); `200` with null fields + `sample_size` for the
+insufficient-data wait-estimate case (lets the frontend always parse the
+same shape, but `404` is simpler for `response.ok` checks).
+
+**Why**: Owner sign-off via AskUserQuestion — keep the backend dependency
+surface minimal (dataset per game is small, one row per organizer), make
+activity buckets directly usable as a chart x-axis without frontend
+date-math, and keep the wait-estimate error case a simple HTTP-status check.
+
 ## 2026-06-14: Tournament-ingestion backfill strategy (Phase 10)
 
 **Decision**: `ingest_tournaments_task` pages through
