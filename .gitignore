@@ -32,6 +32,10 @@ backend/test-results/
 # --- Editors / OS ---
 .DS_Store
 *.swp
+*.code-workspace
+
+# --- Dev container ---
+.devcontainer/devcontainer-lock.json
 
 # --- Docker ---
 *.pid

@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- `app/api/routers/organizers.py` (FR8, FR12): three new read-only endpoints
+  over `OrganizerActivity`:
+  - `GET /api/games` returns the distinct `game` values, sorted.
+  - `GET /api/organizers/activity?game=&interval=week|month` (default
+    `week`) buckets `first_tournament_date` into week-start (Monday) or
+    month-start (1st) periods, optionally filtered by `game`, returning
+    `[{"period": "YYYY-MM-DD", "count": N}, ...]`. Bucketing is a pure
+    function (`app/analytics/buckets.py`, unit-tested).
+  - `GET /api/organizers/wait-estimate?organizer_id=&game=` fits an
+    ordinary-least-squares line of `organizer_id` vs. `first_tournament_date`
+    (`app/analytics/regression.py`, pure stdlib, unit-tested) over that
+    game's `OrganizerActivity` rows and returns the slope, R², a projected
+    active date for `organizer_id`, and the sample size. Returns `404` if
+    the game has fewer than 2 rows. See `DECISIONS.md` for the design
+    choices (no new regression dependency, bucket label format, 404 on
+    insufficient data).
 - `app/tasks/tournament_tasks.py` (FR6, FR7, NFR3): `ingest_tournaments_task`
   runs on the `tournament_ingest_interval_hours` beat schedule (default
   hourly). It pages through `GET /api/tournaments` (`app/limitless_client/
