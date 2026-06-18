@@ -74,3 +74,27 @@ def test_record_status_check_reports_no_change_when_status_unchanged(session):
     _, changed = record_status_check(session, result, timestamp)
 
     assert changed is False
+
+
+def test_record_status_check_persists_review_note(session):
+    result = ApplicationStatusResult(
+        status=ApplicationStatus.REJECTED,
+        raw_text="Status: rejected",
+        review_note="Your application was rejected. Please join the Discord.",
+    )
+    timestamp = datetime(2026, 6, 18, 9, 0, tzinfo=timezone.utc)
+
+    record_status_check(session, result, timestamp)
+
+    fetched = session.query(ApplicationStatusCheck).one()
+    assert fetched.review_note == "Your application was rejected. Please join the Discord."
+
+
+def test_record_status_check_review_note_is_none_when_absent(session):
+    result = ApplicationStatusResult(status=ApplicationStatus.PENDING, raw_text="Pending review")
+    timestamp = datetime(2026, 6, 18, 9, 0, tzinfo=timezone.utc)
+
+    record_status_check(session, result, timestamp)
+
+    fetched = session.query(ApplicationStatusCheck).one()
+    assert fetched.review_note is None

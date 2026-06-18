@@ -33,6 +33,10 @@ LOGIN_PATH = "/login"
 # Element containing the current organization application status text.
 APPLICATION_STATUS_SELECTOR = ".organizer-application .status .code"
 
+# Element that may contain a reviewer note (e.g. rejection reason). Empty
+# when no note has been left; populated at reviewer discretion.
+REVIEW_NOTE_SELECTOR = ".organizer-application .response"
+
 # Login form (password-based, as opposed to the Discord OAuth button).
 LOGIN_USERNAME_SELECTOR = ".login-form input[name='username']"
 LOGIN_PASSWORD_SELECTOR = ".login-form input[name='password']"

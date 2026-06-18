@@ -7,6 +7,20 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-18: Kubernetes database: Percona Distribution for PostgreSQL (Phase 17)
+
+**Decision**: Use **Percona Distribution for PostgreSQL** (via the Percona Operator for PostgreSQL, `percona/pg-operator` Helm chart) instead of the Bitnami PostgreSQL subchart for the k3s deployment.
+
+**Rationale**: Owner specified Percona Postgres as the target. Percona Distribution for PostgreSQL adds enterprise-grade features over vanilla PostgreSQL: enhanced monitoring (pg_stat_monitor), PITR backups, and HA support — relevant for a long-running local cluster. The Percona Operator manages the lifecycle via CRDs, which is the idiomatic Kubernetes approach.
+
+**Alternatives considered**:
+- `bitnami/postgresql` subchart — simpler, no operator overhead, but plain PostgreSQL with no enhanced monitoring or backup primitives
+- Vanilla `postgres:16-alpine` (current docker-compose image) — not suitable for production k8s
+
+**Note**: docker-compose development environment continues to use `postgres:16-alpine` (unchanged). The Percona Operator is k8s-only.
+
+---
+
 ## 2026-06-18: Wait-estimate redesign: global top-1000 Pareto-frontier regression (Phase 12.5, FR12/FR13)
 
 **Decision**: Redesign `GET /api/organizers/wait-estimate` around two owner-approved choices:

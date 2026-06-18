@@ -23,6 +23,7 @@ class ApplicationStatusCheck(Base):
     checked_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     status: Mapped[ApplicationStatus] = mapped_column(SAEnum(ApplicationStatus, native_enum=False))
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ResubmissionEvent(Base):

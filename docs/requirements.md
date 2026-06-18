@@ -36,6 +36,8 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR12 | Identify the top 1000 highest `organizer_id`s globally (one point per organizer using `MIN(first_tournament_date)` across games), compute the Pareto frontier (lower-envelope — points not dominated by any other point with a higher ID and earlier date), fit OLS regression on the frontier to estimate the onboarding rate (slope), and optionally project when a target organizer ID will become active | BR3 | **Done — Phase 12.5** ([#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41), `GET /api/organizers/wait-estimate`, `app/analytics/frontier.py`, `app/analytics/regression.py`) |
 | FR13 | Dashboard displays the onboarding-rate scatter (general + frontier series) with fitted line and R²; optionally shows a projected active date for a user-supplied target organizer ID | BR3 | **Done — Phase 12.5** ([#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41), `frontend/src/components/WaitTimeEstimator.tsx`) |
 | FR14 | Provide an API endpoint to trigger an on-demand application-status check (extends FR2), running synchronously and returning the recorded result | BR1 | **Done** — [#23](https://github.com/GenNetEng/limitless-organizer-tracker/issues/23) (`POST /api/status-check`, `app/api/routers/status.py`) |
+| FR15 | Given an organizer ID, query the local tournament table to return tournament count, games hosted, total/avg player count, and most-recent tournament name+date for a configurable trailing window (default 30 days) | BR3 | Phase 15 — [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| FR16 | Dashboard displays organizer profile stats (FR15 output) and a stat card showing the highest organizer ID currently in the database | BR3 | Phase 15 — [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
 
 ## Non-Functional Requirements (NFR)
 
@@ -104,3 +106,6 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 12.5 | Redesign wait-estimate: global top-1000 Pareto-frontier regression (FR12, FR13) | MVP2 | [#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41) |
 | 13 | MVP2 docker-compose verification (acceptance checkpoint) | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
 | 14 | README + traceability finalization | MVP3 | [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11) |
+| 15 | Organizer profile lookup: tournament stats + highest-ID stat card (FR15, FR16) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| 16 | Cyberpunk theme via DaisyUI | MVP3 | [#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46) |
+| 17 | Helm chart + Rancher Fleet GitOps deployment to local k3s/MicroOS cluster | MVP3 | [#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47) |

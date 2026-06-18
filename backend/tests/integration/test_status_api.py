@@ -123,6 +123,36 @@ def test_get_status_history_empty_db(client):
     assert response.json() == {"items": [], "total": 0, "limit": 50, "offset": 0}
 
 
+def test_get_status_history_includes_review_note_when_present(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(
+            ApplicationStatusCheck(
+                checked_at=BASE_TIME,
+                status=ApplicationStatus.REJECTED,
+                raw_text="Status: rejected",
+                review_note="Your application was rejected. Please join the Discord.",
+            )
+        )
+        session.commit()
+
+    response = test_client.get("/api/status-history")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"][0]["review_note"] == "Your application was rejected. Please join the Discord."
+
+
+def test_get_status_history_review_note_is_null_when_absent(client):
+    test_client, session_factory = client
+    _seed_status_checks(session_factory, 1)
+
+    response = test_client.get("/api/status-history")
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["review_note"] is None
+
+
 def test_get_resubmissions_returns_envelope_ordered_by_submitted_at_desc(client):
     test_client, session_factory = client
     _seed_resubmissions(session_factory, 3)
