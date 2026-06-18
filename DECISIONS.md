@@ -7,6 +7,28 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-18: Wait-estimate redesign: global top-1000 Pareto-frontier regression (Phase 12.5, FR12/FR13)
+
+**Decision**: Redesign `GET /api/organizers/wait-estimate` around two owner-approved choices:
+
+1. **Global top-1000, no game filter**: query the 1000 highest `organizer_id`s across all
+   games, one point per organizer using `MIN(first_tournament_date)` across their games.
+   `organizer_id` is a global account-creation-ordered ID — per-game filtering obscures the
+   global onboarding-rate signal. (Alternative considered: per-game filter as before.)
+
+2. **Pareto-frontier regression instead of plain OLS over all points**: `first_tournament_date`
+   is *not* the onboarding/approval date — it's "sometime after" with a variable scheduling
+   lag per organizer. For a cohort of organizers onboarded around the same time (similar ID
+   range), the ones with the shortest lag (earliest `first_tournament_date`) are the best
+   proxy for the true onboarding date — "highest IDs with earliest dates" (owner's framing).
+   The frontier = points not dominated by any other point with a higher-or-equal ID and
+   earlier-or-equal date; fitting OLS on the frontier removes high-lag noise from the slope
+   estimate. (Alternative considered: plain OLS over top-1000 without frontier filtering —
+   rejected because variable lag biases the slope upward.)
+
+Frontend: chart renders on load (no form submission required); two `Scatter` series (general
+population in light blue, frontier organizers in red) plus the fitted trend line.
+
 ## 2026-06-15: Organizer-activity chart + wait-time estimator (Phase 12)
 
 **Decision**: Three design points for the new frontend dashboard sections

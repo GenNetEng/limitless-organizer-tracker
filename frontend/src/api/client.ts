@@ -36,16 +36,17 @@ export interface ActivityBucket {
 export interface WaitEstimatePoint {
   organizer_id: number;
   first_tournament_date: string;
+  is_frontier: boolean;
 }
 
 export interface WaitEstimate {
-  organizer_id: number;
-  game: string;
+  organizer_id: number | null;
   slope: number;
   intercept: number;
   r_squared: number;
-  projected_active_date: string;
+  projected_active_date: string | null;
   sample_size: number;
+  frontier_size: number;
   points: WaitEstimatePoint[];
 }
 
@@ -84,7 +85,8 @@ export function getOrganizerActivity(game: string | null): Promise<ActivityBucke
   return getJson<ActivityBucket[]>(`/api/organizers/activity${query}`);
 }
 
-export function getWaitEstimate(organizerId: number, game: string): Promise<WaitEstimate> {
-  const params = new URLSearchParams({ organizer_id: String(organizerId), game });
-  return getJson<WaitEstimate>(`/api/organizers/wait-estimate?${params.toString()}`);
+export function getWaitEstimate(organizerId?: number): Promise<WaitEstimate> {
+  const query =
+    organizerId !== undefined ? `?organizer_id=${encodeURIComponent(organizerId)}` : "";
+  return getJson<WaitEstimate>(`/api/organizers/wait-estimate${query}`);
 }

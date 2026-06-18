@@ -31,16 +31,16 @@ export const organizerActivityForPTCG = [{ period: "2026-06-01", count: 1 }];
 
 export const waitEstimate = {
   organizer_id: 400,
-  game: "PTCG",
   slope: 0.5,
   intercept: 739000,
   r_squared: 0.95,
   projected_active_date: "2026-04-01",
   sample_size: 3,
+  frontier_size: 2,
   points: [
-    { organizer_id: 100, first_tournament_date: "2026-01-01" },
-    { organizer_id: 200, first_tournament_date: "2026-02-01" },
-    { organizer_id: 300, first_tournament_date: "2026-03-03" },
+    { organizer_id: 100, first_tournament_date: "2026-01-01", is_frontier: true },
+    { organizer_id: 200, first_tournament_date: "2026-02-01", is_frontier: false },
+    { organizer_id: 300, first_tournament_date: "2026-03-03", is_frontier: true },
   ],
 };
 
@@ -52,5 +52,11 @@ export const handlers = [
     const game = new URL(request.url).searchParams.get("game");
     return HttpResponse.json(game === "PTCG" ? organizerActivityForPTCG : organizerActivityByWeek);
   }),
-  http.get("*/api/organizers/wait-estimate", () => HttpResponse.json(waitEstimate)),
+  http.get("*/api/organizers/wait-estimate", ({ request }) => {
+    const organizerId = new URL(request.url).searchParams.get("organizer_id");
+    const response = organizerId
+      ? waitEstimate
+      : { ...waitEstimate, organizer_id: null, projected_active_date: null };
+    return HttpResponse.json(response);
+  }),
 ];

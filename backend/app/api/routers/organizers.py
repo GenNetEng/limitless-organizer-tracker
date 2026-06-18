@@ -2,14 +2,17 @@ from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.analytics.buckets import bucket_activity
+from app.analytics.frontier import compute_frontier
 from app.analytics.regression import fit_linear_regression
 from app.api.schemas import ActivityBucketOut, WaitEstimateOut, WaitEstimatePointOut
 from app.db.models import OrganizerActivity
 from app.db.session import get_db
+
+TOP_N_ORGANIZERS = 1000
 
 router = APIRouter(prefix="/api", tags=["organizers"])
 
@@ -36,35 +39,50 @@ def get_organizer_activity(
 
 @router.get("/organizers/wait-estimate", response_model=WaitEstimateOut)
 def get_wait_estimate(
-    organizer_id: int = Query(...),
-    game: str = Query(...),
+    organizer_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ) -> WaitEstimateOut:
     rows = db.execute(
-        select(OrganizerActivity.organizer_id, OrganizerActivity.first_tournament_date).where(
-            OrganizerActivity.game == game
+        select(
+            OrganizerActivity.organizer_id,
+            func.min(OrganizerActivity.first_tournament_date).label("first_tournament_date"),
         )
+        .group_by(OrganizerActivity.organizer_id)
+        .order_by(OrganizerActivity.organizer_id.desc())
+        .limit(TOP_N_ORGANIZERS)
     ).all()
     if len(rows) < 2:
         raise HTTPException(status_code=404, detail="not enough activity data to estimate")
 
-    points = [(float(organizer_id_), float(first_date.date().toordinal())) for organizer_id_, first_date in rows]
-    result = fit_linear_regression(points)
+    points = sorted(
+        [(float(oid), float(first_date.date().toordinal())) for oid, first_date in rows],
+        key=lambda p: p[0],
+    )
+    frontier_points = compute_frontier(points)
+    frontier_ids = {p[0] for p in frontier_points}
+    regression_points = frontier_points if len(frontier_points) >= 2 else points
+    result = fit_linear_regression(regression_points)
 
-    projected_ordinal = round(result.predict(float(organizer_id)))
-    projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
-    projected_date = date.fromordinal(projected_ordinal)
+    projected_date = None
+    if organizer_id is not None:
+        projected_ordinal = round(result.predict(float(organizer_id)))
+        projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
+        projected_date = date.fromordinal(projected_ordinal)
 
     return WaitEstimateOut(
         organizer_id=organizer_id,
-        game=game,
         slope=result.slope,
         intercept=result.intercept,
         r_squared=result.r_squared,
         projected_active_date=projected_date,
-        sample_size=len(rows),
+        sample_size=len(points),
+        frontier_size=len(regression_points),
         points=[
-            WaitEstimatePointOut(organizer_id=organizer_id_, first_tournament_date=first_date.date())
-            for organizer_id_, first_date in rows
+            WaitEstimatePointOut(
+                organizer_id=int(oid),
+                first_tournament_date=date.fromordinal(int(ordinal)),
+                is_frontier=oid in frontier_ids,
+            )
+            for oid, ordinal in points
         ],
     )

@@ -10,40 +10,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ApiError, getGames, getWaitEstimate, type WaitEstimate } from "../api/client";
-import { toFittedLineData, toScatterData } from "../lib/waitEstimateChartData";
-
-interface EstimateQuery {
-  organizerId: number;
-  game: string;
-}
-
-function fetchEstimate(query: EstimateQuery | null): Promise<WaitEstimate> {
-  if (query === null) {
-    return Promise.reject(new Error("no organizer ID / game selected"));
-  }
-  return getWaitEstimate(query.organizerId, query.game);
-}
+import { ApiError, getWaitEstimate, type WaitEstimate } from "../api/client";
+import { toFittedLineData, toFrontierScatterData, toScatterData } from "../lib/waitEstimateChartData";
 
 export function WaitTimeEstimator() {
   const [organizerIdInput, setOrganizerIdInput] = useState("");
-  const [game, setGame] = useState("");
-  const [query, setQuery] = useState<EstimateQuery | null>(null);
+  const [targetOrganizerId, setTargetOrganizerId] = useState<number | undefined>(undefined);
 
-  const gamesQuery = useQuery({ queryKey: ["games"], queryFn: getGames });
-  const estimateQuery = useQuery({
-    queryKey: ["wait-estimate", query],
-    queryFn: () => fetchEstimate(query),
-    enabled: query !== null,
+  const estimateQuery = useQuery<WaitEstimate, Error>({
+    queryKey: ["wait-estimate", targetOrganizerId],
+    queryFn: () => getWaitEstimate(targetOrganizerId),
   });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const organizerId = Number(organizerIdInput);
-    if (!game || organizerIdInput.trim() === "" || !Number.isFinite(organizerId)) {
+    const parsed = Number(organizerIdInput.trim());
+    if (organizerIdInput.trim() === "" || !Number.isFinite(parsed)) {
       return;
     }
-    setQuery({ organizerId, game });
+    setTargetOrganizerId(parsed);
   };
 
   return (
@@ -51,7 +36,7 @@ export function WaitTimeEstimator() {
       <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-2">
         <div>
           <label htmlFor="wait-estimate-organizer-id" className="block text-sm font-medium">
-            Organizer ID
+            Organizer ID (optional — enter yours for a projected date)
           </label>
           <input
             id="wait-estimate-organizer-id"
@@ -60,24 +45,6 @@ export function WaitTimeEstimator() {
             onChange={(event) => setOrganizerIdInput(event.target.value)}
             className="rounded border border-gray-300 px-2 py-1"
           />
-        </div>
-        <div>
-          <label htmlFor="wait-estimate-game" className="block text-sm font-medium">
-            Game
-          </label>
-          <select
-            id="wait-estimate-game"
-            value={game}
-            onChange={(event) => setGame(event.target.value)}
-            className="rounded border border-gray-300 px-2 py-1"
-          >
-            <option value="">Select a game</option>
-            {(gamesQuery.data ?? []).map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
         </div>
         <button type="submit" className="rounded bg-blue-600 px-3 py-1 text-white">
           Estimate
@@ -88,7 +55,7 @@ export function WaitTimeEstimator() {
       {estimateQuery.isError && (
         <p>
           {estimateQuery.error instanceof ApiError && estimateQuery.error.status === 404
-            ? "Not enough data to estimate a wait time for this game."
+            ? "Not enough data to estimate an onboarding trend."
             : "Failed to load wait estimate."}
         </p>
       )}
@@ -96,10 +63,6 @@ export function WaitTimeEstimator() {
       {estimateQuery.data && (
         <div>
           <dl className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div>
-              <dt className="text-sm text-gray-500">Projected active date</dt>
-              <dd className="font-semibold">{estimateQuery.data.projected_active_date}</dd>
-            </div>
             <div>
               <dt className="text-sm text-gray-500">Slope (days / organizer ID)</dt>
               <dd className="font-semibold">{estimateQuery.data.slope.toFixed(4)}</dd>
@@ -112,7 +75,22 @@ export function WaitTimeEstimator() {
               <dt className="text-sm text-gray-500">Sample size</dt>
               <dd className="font-semibold">{estimateQuery.data.sample_size}</dd>
             </div>
+            <div>
+              <dt className="text-sm text-gray-500">Frontier organizers</dt>
+              <dd className="font-semibold">{estimateQuery.data.frontier_size}</dd>
+            </div>
           </dl>
+
+          {estimateQuery.data.organizer_id !== null &&
+            estimateQuery.data.projected_active_date !== null && (
+              <dl className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-sm text-gray-500">Projected active date</dt>
+                  <dd className="font-semibold">{estimateQuery.data.projected_active_date}</dd>
+                </div>
+              </dl>
+            )}
+
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart>
               <CartesianGrid strokeDasharray="3 3" />
@@ -125,7 +103,18 @@ export function WaitTimeEstimator() {
                 tickFormatter={(value: number) => new Date(value).toLocaleDateString()}
               />
               <Tooltip />
-              <Scatter name="Organizers" data={toScatterData(estimateQuery.data)} dataKey="timestamp" fill="#1d4ed8" />
+              <Scatter
+                name="All organizers"
+                data={toScatterData(estimateQuery.data)}
+                dataKey="timestamp"
+                fill="#93c5fd"
+              />
+              <Scatter
+                name="Frontier (fastest onboarding)"
+                data={toFrontierScatterData(estimateQuery.data)}
+                dataKey="timestamp"
+                fill="#dc2626"
+              />
               <Line
                 name="Fitted line"
                 data={toFittedLineData(estimateQuery.data)}

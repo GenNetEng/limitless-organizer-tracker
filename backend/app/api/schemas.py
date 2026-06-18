@@ -41,14 +41,15 @@ class ActivityBucketOut(BaseModel):
 class WaitEstimatePointOut(BaseModel):
     organizer_id: int
     first_tournament_date: date
+    is_frontier: bool
 
 
 class WaitEstimateOut(BaseModel):
-    organizer_id: int
-    game: str
+    organizer_id: int | None
     slope: float
     intercept: float
     r_squared: float
-    projected_active_date: date
+    projected_active_date: date | None
     sample_size: int
+    frontier_size: int
     points: list[WaitEstimatePointOut]
