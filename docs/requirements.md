@@ -72,9 +72,20 @@ Serves BR3 / FR6-8, FR11-13, remaining NFR3. Phases 10-13.
 
 **Acceptance**: tournament ingestion runs on schedule, including a paginated
 historical backfill (default 3 months); `/api/organizers/activity` returns
-correct weekly/monthly counts; `/api/organizers/wait-estimate` returns a
-projected active date and regression slope/R² for a given organizer ID;
-dashboard chart and wait-time estimator render, filterable by game.
+correct weekly/monthly counts, filterable by game; `/api/organizers/wait-estimate`
+returns a global Pareto-frontier regression (top-1,000 organizer IDs) with
+slope/R²/frontier_size and an optional projected active date for a supplied
+organizer ID; dashboard organizer-activity chart renders filterable by game;
+wait-time estimator renders the scatter + fitted line on load.
+
+**Verified — Phase 13 (2026-06-18)**: `docker compose up --build` brings up all
+six services cleanly; `celery-worker` registers all 3 tasks and connects to
+Redis; `celery-beat` starts. Full test suites pass in containers:
+`docker compose run --rm backend pytest` (121/121) and
+`docker compose run --rm frontend npm test -- --run` (30/30). Live checks:
+`GET /api/games` → 12 games; `GET /api/organizers/activity?interval=week` →
+weekly counts; `GET /api/organizers/wait-estimate?organizer_id=2720` →
+slope/R²/projected_date (sample_size=468, frontier_size=55).
 
 ### MVP3 — Documentation & Traceability
 Project hygiene / final NFR coverage. Phase 14.
@@ -103,8 +114,8 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 10 | Tournament ingestion Celery task + beat schedule, including paginated historical backfill (default 3 months) — **Done** | MVP2 | [#7](https://github.com/GenNetEng/limitless-organizer-tracker/issues/7) |
 | 11 | FastAPI routers: organizer activity, games, onboarding-rate regression/wait estimate (FR12) — **Done** | MVP2 | [#8](https://github.com/GenNetEng/limitless-organizer-tracker/issues/8) |
 | 12 | Frontend organizer-activity chart + wait-time estimator (FR11, FR13) — **Done** | MVP2 | [#9](https://github.com/GenNetEng/limitless-organizer-tracker/issues/9) |
-| 12.5 | Redesign wait-estimate: global top-1000 Pareto-frontier regression (FR12, FR13) | MVP2 | [#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41) |
-| 13 | MVP2 docker-compose verification (acceptance checkpoint) | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
+| 12.5 | Redesign wait-estimate: global top-1000 Pareto-frontier regression (FR12, FR13) — **Done** | MVP2 | [#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41) |
+| 13 | MVP2 docker-compose verification (acceptance checkpoint) — **Done** | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
 | 14 | README + traceability finalization | MVP3 | [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11) |
 | 15 | Organizer profile lookup: tournament stats + highest-ID stat card (FR15, FR16) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
 | 16 | Cyberpunk theme via DaisyUI | MVP3 | [#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46) |
