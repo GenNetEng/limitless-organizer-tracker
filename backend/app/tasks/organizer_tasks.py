@@ -13,16 +13,17 @@ from app.db.session import SessionLocal
 def run_organizer_scan(session: Session) -> int:
     """Scan public organizer profile pages for newly onboarded organizers (FR17).
 
-    Starts from MAX(organizer_id) + 1 across Organizer and OrganizerActivity,
-    fetches each page via httpx (no auth), records a row for each 200 response,
-    and stops at the first 404. Other status codes are skipped. Returns the
-    number of new Organizer rows created.
+    Starts from MAX(organizer_id) + 1, where the Organizer watermark counts only
+    rows with onboarded_at set (so ingestion-created stubs don't advance past
+    unscanned IDs). Fetches each page via httpx (no auth), records a row for each
+    200 response (backfilling onboarded_at if a stub exists), stops at the first
+    404 or unexpected status code. Returns the number of rows created or updated.
     """
-    max_known = max(
-        session.scalar(select(func.max(Organizer.organizer_id))) or 0,
-        session.scalar(select(func.max(OrganizerActivity.organizer_id))) or 0,
-    )
-    start_id = max_known + 1
+    max_organizer = session.scalar(
+        select(func.max(Organizer.organizer_id)).where(Organizer.onboarded_at.isnot(None))
+    ) or 0
+    max_activity = session.scalar(select(func.max(OrganizerActivity.organizer_id))) or 0
+    start_id = max(max_organizer, max_activity) + 1
 
     found = 0
     today = date.today()
@@ -30,18 +31,24 @@ def run_organizer_scan(session: Session) -> int:
 
     for organizer_id in range(start_id, start_id + settings.organizer_scan_limit):
         url = f"{settings.limitless_base_url}/organizer/{organizer_id}"
-        response = httpx.get(url, follow_redirects=True)
+        response = httpx.get(url, follow_redirects=True, timeout=30)
 
         if response.status_code == 404:
             break
         if response.status_code == 200:
-            if session.get(Organizer, organizer_id) is None:
+            existing = session.get(Organizer, organizer_id)
+            if existing is None:
                 session.add(Organizer(
                     organizer_id=organizer_id,
                     onboarded_at=today,
                     detected_at=now,
                 ))
-                found += 1
+            elif existing.onboarded_at is None:
+                existing.onboarded_at = today
+                existing.detected_at = now
+            found += 1
+        else:
+            break  # stop on unexpected status; next run retries from same watermark
 
     session.commit()
     return found
@@ -53,5 +60,8 @@ def scan_new_organizers_task() -> None:
     session = SessionLocal()
     try:
         run_organizer_scan(session)
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
