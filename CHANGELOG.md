@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   and displayed in `StatusTimeline` when non-null.
 - `app/analytics/frontier.py` (FR12, Phase 12.5): `compute_frontier` extracts the Pareto
   lower-envelope from a sequence of `(organizer_id, ordinal_date)` pairs — retaining only
-  points not dominated by any point with a higher-or-equal ID and an earlier-or-equal date.
+  points not dominated by any point with a higher-or-equal ID and a strictly earlier date
+  (tied dates are kept).
   Unit-tested in `backend/tests/unit/test_frontier.py` (9 tests).
 - `GET /api/organizers/wait-estimate` redesigned (FR12/FR13, Phase 12.5): now queries the
   global top-1,000 highest `organizer_id`s (one point per organizer,

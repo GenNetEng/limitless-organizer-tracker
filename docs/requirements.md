@@ -72,9 +72,20 @@ Serves BR3 / FR6-8, FR11-13, remaining NFR3. Phases 10-13.
 
 **Acceptance**: tournament ingestion runs on schedule, including a paginated
 historical backfill (default 3 months); `/api/organizers/activity` returns
-correct weekly/monthly counts; `/api/organizers/wait-estimate` returns a
-projected active date and regression slope/R² for a given organizer ID;
-dashboard chart and wait-time estimator render, filterable by game.
+correct weekly/monthly counts, filterable by game; `/api/organizers/wait-estimate`
+returns a global Pareto-frontier regression (top-1,000 organizer IDs) with
+slope/R²/frontier_size and an optional projected active date for a supplied
+organizer ID; dashboard organizer-activity chart renders filterable by game;
+wait-time estimator renders the scatter + fitted line on load.
+
+**Verified — Phase 13 (2026-06-18)**: `docker compose up --build` brings up all
+six services cleanly; `celery-worker` registers all 3 tasks and connects to
+Redis; `celery-beat` starts. Full test suites pass in containers:
+`docker compose run --rm backend pytest` (121/121) and
+`docker compose run --rm frontend npm test -- --run` (30/30). Live checks:
+`GET /api/games` → 12 games; `GET /api/organizers/activity?interval=week` →
+weekly counts; `GET /api/organizers/wait-estimate?organizer_id=2720` →
+slope/R²/projected_date (sample_size=468, frontier_size=55).
 
 ### MVP3 — Documentation & Traceability
 Project hygiene / final NFR coverage. Phase 14.
