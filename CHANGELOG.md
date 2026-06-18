@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-18
+
 ### Added
+- **MVP2 acceptance (Phase 13)**: verified via `docker compose up --build` — all 6 services
+  (postgres, redis, backend, celery-worker, celery-beat, frontend) start cleanly. `backend`
+  serves `/healthz` (200); `celery-worker` registers all 3 tasks and connects to Redis;
+  `celery-beat` starts. `docker compose run --rm backend pytest` (121/121) and
+  `docker compose run --rm frontend npm test -- --run` (30/30) both pass inside the
+  containers. Live checks: `GET /api/games` → 12 games; `GET /api/organizers/activity?
+  interval=week` → weekly counts; `GET /api/organizers/wait-estimate?organizer_id=2720` →
+  slope/R²/projected_date (sample_size=468, frontier_size=55). Closes the MVP2 acceptance
+  checkpoint in `docs/requirements.md`.
+- `review_note` on `ApplicationStatusCheck` (PR #49): the scraper now parses
+  `.organizer-application .response` and stores any reviewer note in a new nullable
+  `review_note` column (Alembic migration `ff32d370af50`). Surfaced in `StatusCheckOut`
+  and displayed in `StatusTimeline` when non-null.
+- `app/analytics/frontier.py` (FR12, Phase 12.5): `compute_frontier` extracts the Pareto
+  lower-envelope from a sequence of `(organizer_id, ordinal_date)` pairs — retaining only
+  points not dominated by any point with a higher-or-equal ID and an earlier-or-equal date.
+  Unit-tested in `backend/tests/unit/test_frontier.py` (9 tests).
+- `GET /api/organizers/wait-estimate` redesigned (FR12/FR13, Phase 12.5): now queries the
+  global top-1,000 highest `organizer_id`s (one point per organizer,
+  `MIN(first_tournament_date)` across all their games), computes the Pareto frontier, and
+  fits OLS regression on frontier points only (falls back to all top-N if frontier size
+  < 2). `game` parameter dropped; `organizer_id` is now optional (projection only shown
+  when supplied). Response gains `frontier_size` and a per-point `is_frontier` flag.
+  See `DECISIONS.md` for the design rationale.
+- `WaitTimeEstimator` redesigned (FR13, Phase 12.5): chart loads on mount without requiring
+  a form submission. Renders two scatter series (general population + Pareto frontier) with
+  the fitted regression line. Projected active date shown only after the user submits an
+  organizer ID.
 - Frontend (FR11, FR13, Phase 12): the dashboard now has "Organizer Activity"
   and "Wait Time Estimator" sections.
   - `OrganizerActivityChart` fetches `GET /api/organizers/activity` (weekly
@@ -77,8 +107,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   stack with `docker compose up --build` and walk through new/changed
   behavior (UI happy path + an edge case, or `curl` against new/changed
   endpoints) before merging.
+- Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):
+  `DISCORD_WEBHOOK_URL` points to a webhook on the user's own server, not the
+  Limitless organizer Discord. The tracker posts a notification there for the
+  user to manually copy/paste into the organizer Discord. No code change —
+  `app/notifications/discord.py` already just posts to whatever webhook URL
+  is configured. See `DECISIONS.md`.
 
 ### Fixed
+- `app/scraper/resubmit.py` (Phase 12.5): now waits for `.page2` to become visible after
+  clicking Continue (ensures the JavaScript transition completes) and waits for `.page3`
+  visibility instead of `networkidle`, so the resubmit wizard works reliably for
+  JS-driven page reveals. Returns `False` on `PlaywrightTimeoutError` so a server-side
+  rejection is treated as failure rather than raising.
+- `app/scraper/resubmit.py` (PR #49): the `.page2` `wait_for_selector` is now wrapped in
+  `try/except PlaywrightTimeoutError` so a JS failure preventing `.page2` from appearing
+  returns `False` (no `ResubmissionEvent` recorded) rather than raising through the Celery
+  task.
+- `frontend/src/components/StatusTimeline.tsx` (Phase 12.5): removed `raw_text` from the
+  rendered output; now shows only the capitalized status enum with a per-status color
+  indicator (green/yellow/red/gray by status value).
+- `frontend/src/components/StatusTimeline.tsx` (PR #49): `STATUS_COLORS` now includes
+  `expired` mapped to `text-orange-500`; previously `expired` rendered identically to
+  `unknown` (`text-gray-500`).
 - `app/main.py`: `CORSMiddleware` now allows `POST` (in addition to `GET`), so
   the new `POST /api/status-check` (FR14) can be called cross-origin from the
   dashboard's configured origin. Previously only `GET` was allowed, which
@@ -118,14 +169,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   failure path (an error in `.response`) is best-guess, per the same
   `UNKNOWN`-fallback philosophy as FR2 — see
   `tests/fixtures/html/application_resubmit_*.html`.
-
-### Changed
-- Clarified FR4/BR2 (`.env.example`, `README.md`, `docs/requirements.md`):
-  `DISCORD_WEBHOOK_URL` points to a webhook on the user's own server, not the
-  Limitless organizer Discord. The tracker posts a notification there for the
-  user to manually copy/paste into the organizer Discord. No code change —
-  `app/notifications/discord.py` already just posts to whatever webhook URL
-  is configured. See `DECISIONS.md`.
 
 ## [0.1.0] - 2026-06-13
 
