@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from app.analytics.buckets import bucket_activity, bucket_onboarding
 from app.analytics.frontier import compute_frontier
 from app.analytics.regression import fit_linear_regression
-from app.api.schemas import ActivityBucketOut, WaitEstimateOut, WaitEstimatePointOut
+from app.api.schemas import ActivityBucketOut, BackfillResultOut, WaitEstimateOut, WaitEstimatePointOut
 from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
+from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
 
 TOP_N_ORGANIZERS = 1000
 
@@ -84,6 +85,26 @@ def get_wait_estimate(
             for oid, ordinal in points
         ],
     )
+
+
+@router.post("/organizers/backfill-first-tournament-date", response_model=BackfillResultOut)
+def backfill_first_tournament_date(db: Session = Depends(get_db)) -> BackfillResultOut:
+    """Back-populate Organizer.first_tournament_date from OrganizerActivity for any row where it is NULL."""
+    null_ids = set(db.scalars(
+        select(Organizer.organizer_id).where(Organizer.first_tournament_date.is_(None))
+    ).all())
+
+    if not null_ids:
+        return BackfillResultOut(updated=0)
+
+    sync_organizer_first_tournament_dates(db, null_ids)
+
+    updated = db.scalar(
+        select(func.count()).select_from(Organizer)
+        .where(Organizer.organizer_id.in_(null_ids), Organizer.first_tournament_date.isnot(None))
+    )
+    db.commit()
+    return BackfillResultOut(updated=updated or 0)
 
 
 @router.get("/organizers/onboarding-history", response_model=list[ActivityBucketOut])
