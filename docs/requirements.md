@@ -16,7 +16,10 @@ Tracker, and maps them to the MVPs and build phases that implement them.
   new organizers (across all games) become active each week/month, based on
   each organizer's first tournament date — and estimate how long a new
   applicant should expect to wait before their organizer ID becomes active,
-  based on the current onboarding rate.
+  based on the current onboarding rate. Also capture actual organizer
+  onboarding dates (when the organizer profile page first goes live) for
+  forward-looking daily onboarding-rate analytics and delta measurement
+  (time from onboarding to first tournament).
 
 ## Functional Requirements (FR)
 
@@ -36,8 +39,10 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR12 | Identify the top 1000 highest `organizer_id`s globally (one point per organizer using `MIN(first_tournament_date)` across games), compute the Pareto frontier (lower-envelope — points not dominated by any other point with a higher ID and earlier date), fit OLS regression on the frontier to estimate the onboarding rate (slope), and optionally project when a target organizer ID will become active | BR3 | **Done — Phase 12.5** ([#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41), `GET /api/organizers/wait-estimate`, `app/analytics/frontier.py`, `app/analytics/regression.py`) |
 | FR13 | Dashboard displays the onboarding-rate scatter (general + frontier series) with fitted line and R²; optionally shows a projected active date for a user-supplied target organizer ID | BR3 | **Done — Phase 12.5** ([#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41), `frontend/src/components/WaitTimeEstimator.tsx`) |
 | FR14 | Provide an API endpoint to trigger an on-demand application-status check (extends FR2), running synchronously and returning the recorded result | BR1 | **Done** — [#23](https://github.com/GenNetEng/limitless-organizer-tracker/issues/23) (`POST /api/status-check`, `app/api/routers/status.py`) |
-| FR15 | Given an organizer ID, query the local tournament table to return tournament count, games hosted, total/avg player count, and most-recent tournament name+date for a configurable trailing window (default 30 days) | BR3 | Phase 15 — [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
-| FR16 | Dashboard displays organizer profile stats (FR15 output) and a stat card showing the highest organizer ID currently in the database | BR3 | Phase 15 — [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| FR15 | Given an organizer ID, scrape `play.limitlesstcg.com/organizer/{id}` via the FR18 endpoint and display the organizer's name, upcoming/recent tournaments, and highest known organizer ID stat card on the dashboard | BR3 | Phase 15 — [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| FR16 | Dashboard stat card showing the highest organizer ID currently in the `Organizer` table (populated by FR17 scanner) | BR3 | Phase 15 — [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| FR17 | Detect and record actual organizer onboarding dates: daily Celery task scans `play.limitlesstcg.com/organizer/{id}` (public page, httpx, no auth) starting from `MAX(organizer_id) + 1` across `Organizer` + `OrganizerActivity` tables, increments until the first 404; each 200 records the organizer in the new `Organizer` table with `onboarded_at = today`. Tournament ingestion also upserts `Organizer.first_tournament_date` (MIN across games) so the onboarding-to-first-tournament delta is always fresh | BR3 | Phase 18 — [#51](https://github.com/GenNetEng/limitless-organizer-tracker/issues/51) |
+| FR18 | `GET /api/organizers/{id}/scrape` — httpx fetch of the public `play.limitlesstcg.com/organizer/{id}` page, parsed via BeautifulSoup 4, returning organizer name and tournament list as JSON; no DB storage (data lives on the source page). Tested against fixture HTML | BR3 | Phase 18 — [#51](https://github.com/GenNetEng/limitless-organizer-tracker/issues/51) |
 
 ## Non-Functional Requirements (NFR)
 
@@ -68,7 +73,7 @@ containers: `docker compose run --rm backend pytest` (68/68) and
 `docker compose run --rm frontend npm test -- --run` (5/5).
 
 ### MVP2 — Organizer Activity Analytics
-Serves BR3 / FR6-8, FR11-13, remaining NFR3. Phases 10-13.
+Serves BR3 / FR6-8, FR11-18, remaining NFR3. Phases 10-13, 15, 18.
 
 **Acceptance**: tournament ingestion runs on schedule, including a paginated
 historical backfill (default 3 months); `/api/organizers/activity` returns
@@ -117,6 +122,7 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 12.5 | Redesign wait-estimate: global top-1000 Pareto-frontier regression (FR12, FR13) — **Done** | MVP2 | [#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41) |
 | 13 | MVP2 docker-compose verification (acceptance checkpoint) — **Done** | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
 | 14 | README + traceability finalization | MVP3 | [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11) |
-| 15 | Organizer profile lookup: tournament stats + highest-ID stat card (FR15, FR16) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| 15 | Organizer profile dashboard: live-scrape `GET /api/organizers/{id}/scrape` (FR18) + frontend profile display + highest-ID stat card (FR15, FR16) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
 | 16 | Cyberpunk theme via DaisyUI | MVP3 | [#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46) |
 | 17 | Helm chart + Rancher Fleet GitOps deployment to local k3s/MicroOS cluster | MVP3 | [#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47) |
+| 18 | Organizer onboarding scanner: `Organizer` table (organizer_id, onboarded_at, first_tournament_date, detected_at), daily `scan_new_organizers_task` Celery task, `first_tournament_date` sync in tournament ingestion (FR17, FR18 scrape endpoint) | MVP2 | [#51](https://github.com/GenNetEng/limitless-organizer-tracker/issues/51) |

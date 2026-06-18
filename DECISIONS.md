@@ -7,6 +7,30 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-18: Organizer onboarding scraper — httpx + BeautifulSoup 4, no auth (Phase 18)
+
+**Decision**: Use plain **httpx** (no Playwright) + **BeautifulSoup 4** (`beautifulsoup4`) to fetch and parse `play.limitlesstcg.com/organizer/{id}` pages for the `scan_new_organizers_task` and the `GET /api/organizers/{id}/scrape` endpoint.
+
+**Rationale**: The organizer profile page is publicly accessible (HTTP 200 without credentials, confirmed via `curl -v` against `/organizer/2720`). Content is server-rendered HTML — organizer name and tournament data are present in the initial response without executing JavaScript. Playwright is only needed for auth-gated pages. `httpx` is already a project dependency; `beautifulsoup4` is the standard Python HTML-parsing library.
+
+**Alternatives considered**:
+- Playwright (already in deps) — no benefit for public pages; adds browser-launch overhead on every scan tick and every API call
+- stdlib `html.parser` directly — no new dependency, but more verbose and error-prone for navigating nested HTML than BS4
+
+**Scanner task note**: The `scan_new_organizers_task` itself only needs the HTTP status code (200 vs 404) and does not parse HTML — BS4 is used only by the scrape endpoint and its fixture-based tests.
+
+## 2026-06-18: Organizer table design — separate `Organizer` table, not `OrganizerActivity` amendment (Phase 18)
+
+**Decision**: Create a new **`Organizer`** table (`organizer_id PK, onboarded_at DATE NULL, first_tournament_date DATE NULL, detected_at TIMESTAMP`) rather than adding `onboarded_at` as a column to the existing `OrganizerActivity` table.
+
+**Rationale**: `OrganizerActivity` has a `(organizer_id, game)` composite primary key — it is per-organizer-per-game. `onboarded_at` is a per-organizer signal (the organizer profile page is not game-specific). Placing it in `OrganizerActivity` would require a game to be chosen or the row to be duplicated per game, both of which are wrong. A separate `Organizer` table keeps the onboarding signal at the correct grain and pairs naturally with the `first_tournament_date` (MIN across games) for delta analytics.
+
+**`first_tournament_date` maintenance**: The tournament ingestion task (`ingest_tournaments_task`) will upsert `Organizer.first_tournament_date = MIN(OrganizerActivity.first_tournament_date)` for each organizer after each ingest run, keeping the delta fresh without a JOIN at query time.
+
+**Alternatives considered**:
+- Adding `onboarded_at` to `OrganizerActivity` — wrong grain (per-game vs per-organizer)
+- Computing `first_tournament_date` via JOIN at query time rather than materializing — cleaner but slower; the delta query benefits from having both columns in a single row
+
 ## 2026-06-18: Kubernetes database: Percona Distribution for PostgreSQL (Phase 17)
 
 **Decision**: Use **Percona Distribution for PostgreSQL** (via the Percona Operator for PostgreSQL, `percona/pg-operator` Helm chart) instead of the Bitnami PostgreSQL subchart for the k3s deployment.
