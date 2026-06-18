@@ -5,6 +5,7 @@ const STATUS_COLORS: Record<string, string> = {
   approved: "text-green-600",
   rejected: "text-red-600",
   pending: "text-yellow-600",
+  expired: "text-orange-500",
   unknown: "text-gray-500",
 };
 

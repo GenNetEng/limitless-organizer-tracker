@@ -27,12 +27,25 @@ def test_resubmit_application_returns_true_on_success():
     page.click.assert_has_calls(
         [call(RESUBMIT_CONTINUE_BUTTON_SELECTOR), call(RESUBMIT_BUTTON_SELECTOR)]
     )
-    page.wait_for_selector.assert_any_call(RESUBMIT_PAGE2_SELECTOR, state="visible")
+    page.wait_for_selector.assert_any_call(
+        RESUBMIT_PAGE2_SELECTOR, state="visible", timeout=10000
+    )
     page.wait_for_selector.assert_any_call(
         RESUBMIT_RESULT_SELECTOR, state="visible", timeout=10000
     )
     page.wait_for_load_state.assert_not_called()
     assert result is True
+
+
+def test_resubmit_application_returns_false_when_page2_never_appears():
+    page = MagicMock()
+    page.wait_for_selector.side_effect = [PlaywrightTimeoutError("timeout")]
+
+    result = resubmit_application(page)
+
+    assert result is False
+    page.click.assert_called_once_with(RESUBMIT_CONTINUE_BUTTON_SELECTOR)
+    page.content.assert_not_called()
 
 
 def test_resubmit_application_returns_false_when_page3_never_appears():

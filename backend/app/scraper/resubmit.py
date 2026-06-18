@@ -29,7 +29,10 @@ def resubmit_application(page: Page) -> bool:
     path = APPLICATION_PATH_TEMPLATE.format(application_id=settings.limitless_application_id)
     page.goto(f"{settings.limitless_base_url}{path}")
     page.click(RESUBMIT_CONTINUE_BUTTON_SELECTOR)
-    page.wait_for_selector(RESUBMIT_PAGE2_SELECTOR, state="visible")
+    try:
+        page.wait_for_selector(RESUBMIT_PAGE2_SELECTOR, state="visible", timeout=10000)
+    except PlaywrightTimeoutError:
+        return False
     page.click(RESUBMIT_BUTTON_SELECTOR)
     try:
         page.wait_for_selector(RESUBMIT_RESULT_SELECTOR, state="visible", timeout=10000)

@@ -28,4 +28,11 @@ describe("StatusTimeline", () => {
     // Pending and Approved items have null review_note — no note text visible
     expect(screen.queryByText("check 2")).not.toBeInTheDocument();
   });
+
+  it("renders 'Rejected' label with red color class", async () => {
+    renderWithQueryClient(<StatusTimeline />);
+
+    const label = await screen.findByText("Rejected");
+    expect(label).toHaveClass("text-red-600");
+  });
 });
