@@ -54,10 +54,8 @@ def get_wait_estimate(
     if len(rows) < 2:
         raise HTTPException(status_code=404, detail="not enough activity data to estimate")
 
-    points = sorted(
-        [(float(oid), float(first_date.date().toordinal())) for oid, first_date in rows],
-        key=lambda p: p[0],
-    )
+    # rows is DESC by organizer_id from the query; reverse to get ascending for frontier scan
+    points = [(float(oid), float(first_date.date().toordinal())) for oid, first_date in reversed(rows)]
     frontier_points = compute_frontier(points)
     frontier_ids = {p[0] for p in frontier_points}
     regression_points = frontier_points if len(frontier_points) >= 2 else points
@@ -76,7 +74,7 @@ def get_wait_estimate(
         r_squared=result.r_squared,
         projected_active_date=projected_date,
         sample_size=len(points),
-        frontier_size=len(regression_points),
+        frontier_size=len(frontier_points),
         points=[
             WaitEstimatePointOut(
                 organizer_id=int(oid),

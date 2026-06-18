@@ -24,8 +24,13 @@ export function WaitTimeEstimator() {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const parsed = Number(organizerIdInput.trim());
-    if (organizerIdInput.trim() === "" || !Number.isFinite(parsed)) {
+    const trimmed = organizerIdInput.trim();
+    if (trimmed === "") {
+      setTargetOrganizerId(undefined);
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
       return;
     }
     setTargetOrganizerId(parsed);

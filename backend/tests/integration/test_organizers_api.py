@@ -319,15 +319,16 @@ def test_get_wait_estimate_returns_404_with_empty_db(client):
 
 
 def test_get_wait_estimate_falls_back_to_all_points_when_frontier_size_one(client):
-    # When only one point is on the frontier, fall back to all points for regression
-    # All dates increase as id increases — only the highest id (300) is on the frontier
+    # frontier_size == 1 when dates decrease as IDs increase: the highest-ID organizer
+    # (300) dominates all lower-ID ones (200 and 100), which have later first_tournament_dates.
+    # A point is on the frontier iff no higher-ID organizer has an earlier date.
     test_client, session_factory = client
     with session_factory() as session:
         session.add_all(
             [
-                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 3, 1))),
                 OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
-                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 3, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 1, 1))),
             ]
         )
         session.commit()
@@ -336,6 +337,7 @@ def test_get_wait_estimate_falls_back_to_all_points_when_frontier_size_one(clien
 
     assert response.status_code == 200
     body = response.json()
-    # frontier has 1 point, fell back to all 3 for regression
-    assert body["frontier_size"] == 3
+    # frontier has 1 point (organizer 300 dominates all lower IDs); fallback uses all 3 for regression
+    # frontier_size always reports the true frontier count, not the regression set size
+    assert body["frontier_size"] == 1
     assert body["sample_size"] == 3

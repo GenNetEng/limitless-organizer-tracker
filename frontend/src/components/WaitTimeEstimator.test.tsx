@@ -36,6 +36,21 @@ describe("WaitTimeEstimator", () => {
     expect(screen.queryByText(/projected active date/i)).not.toBeInTheDocument();
   });
 
+  it("clears the projected date when the input is cleared and re-submitted", async () => {
+    renderWithQueryClient(<WaitTimeEstimator />);
+
+    // Submit an organizer ID to show the projection
+    fireEvent.change(screen.getByLabelText(/organizer id/i), { target: { value: "400" } });
+    fireEvent.click(screen.getByRole("button", { name: /estimate/i }));
+    expect(await screen.findByText(/projected active date/i)).toBeInTheDocument();
+
+    // Clear the input and re-submit — projection should disappear
+    fireEvent.change(screen.getByLabelText(/organizer id/i), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: /estimate/i }));
+    expect(await screen.findByText(/0\.5000/)).toBeInTheDocument();
+    expect(screen.queryByText(/projected active date/i)).not.toBeInTheDocument();
+  });
+
   it("shows projected active date after submitting an organizer ID", async () => {
     renderWithQueryClient(<WaitTimeEstimator />);
 
