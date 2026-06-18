@@ -5,11 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.analytics.buckets import bucket_activity
+from app.analytics.buckets import bucket_activity, bucket_onboarding
 from app.analytics.frontier import compute_frontier
 from app.analytics.regression import fit_linear_regression
 from app.api.schemas import ActivityBucketOut, WaitEstimateOut, WaitEstimatePointOut
-from app.db.models import OrganizerActivity
+from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
 
 TOP_N_ORGANIZERS = 1000
@@ -84,3 +84,15 @@ def get_wait_estimate(
             for oid, ordinal in points
         ],
     )
+
+
+@router.get("/organizers/onboarding-history", response_model=list[ActivityBucketOut])
+def get_onboarding_history(
+    interval: Literal["day", "week"] = Query("day"),
+    db: Session = Depends(get_db),
+) -> list[ActivityBucketOut]:
+    dates = db.scalars(
+        select(Organizer.onboarded_at).where(Organizer.onboarded_at.isnot(None))
+    ).all()
+    buckets = bucket_onboarding(list(dates), interval)
+    return [ActivityBucketOut(period=period, count=count) for period, count in buckets]

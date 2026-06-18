@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.db.models import OrganizerActivity
+from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
 from app.main import app
 
@@ -341,3 +341,90 @@ def test_get_wait_estimate_falls_back_to_all_points_when_frontier_size_one(clien
     # frontier_size always reports the true frontier count, not the regression set size
     assert body["frontier_size"] == 1
     assert body["sample_size"] == 3
+
+
+# ---------------------------------------------------------------------------
+# GET /api/organizers/onboarding-history
+# ---------------------------------------------------------------------------
+
+
+def test_get_onboarding_history_by_day(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)),
+            Organizer(organizer_id=2, onboarded_at=date(2026, 6, 1)),
+            Organizer(organizer_id=3, onboarded_at=date(2026, 6, 2)),
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "day"})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"period": "2026-06-01", "count": 2},
+        {"period": "2026-06-02", "count": 1},
+    ]
+
+
+def test_get_onboarding_history_by_week(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)),   # Monday
+            Organizer(organizer_id=2, onboarded_at=date(2026, 6, 3)),   # same week
+            Organizer(organizer_id=3, onboarded_at=date(2026, 6, 8)),   # next Monday
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "week"})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"period": "2026-06-01", "count": 2},
+        {"period": "2026-06-08", "count": 1},
+    ]
+
+
+def test_get_onboarding_history_excludes_null_onboarded_at(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)),
+            Organizer(organizer_id=2, onboarded_at=None),  # historical — no onboarded_at
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "day"})
+
+    assert response.status_code == 200
+    assert response.json() == [{"period": "2026-06-01", "count": 1}]
+
+
+def test_get_onboarding_history_defaults_to_day(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)))
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history")
+
+    assert response.status_code == 200
+    assert response.json() == [{"period": "2026-06-01", "count": 1}]
+
+
+def test_get_onboarding_history_rejects_invalid_interval(client):
+    test_client, _ = client
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "month"})
+
+    assert response.status_code == 422
+
+
+def test_get_onboarding_history_empty_db(client):
+    test_client, _ = client
+
+    response = test_client.get("/api/organizers/onboarding-history")
+
+    assert response.status_code == 200
+    assert response.json() == []
