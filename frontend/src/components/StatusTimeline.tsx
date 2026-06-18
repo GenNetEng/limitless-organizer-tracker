@@ -31,13 +31,18 @@ export function StatusTimeline() {
   return (
     <ul className="divide-y divide-gray-200">
       {items.map((item) => (
-        <li key={item.id} className="flex items-center justify-between gap-4 py-2">
-          <span className={`font-medium ${STATUS_COLORS[item.status] ?? "text-gray-500"}`}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </span>
-          <time className="text-sm text-gray-400" dateTime={item.checked_at}>
-            {new Date(item.checked_at).toLocaleString()}
-          </time>
+        <li key={item.id} className="py-2">
+          <div className="flex items-center justify-between gap-4">
+            <span className={`font-medium ${STATUS_COLORS[item.status] ?? "text-gray-500"}`}>
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </span>
+            <time className="text-sm text-gray-400" dateTime={item.checked_at}>
+              {new Date(item.checked_at).toLocaleString()}
+            </time>
+          </div>
+          {item.review_note && (
+            <p className="mt-1 text-sm text-gray-600">{item.review_note}</p>
+          )}
         </li>
       ))}
     </ul>

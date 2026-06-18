@@ -29,7 +29,10 @@ def record_status_check(
     changed = previous is not None and previous.status != result.status
 
     check = ApplicationStatusCheck(
-        checked_at=checked_at, status=result.status, raw_text=result.raw_text
+        checked_at=checked_at,
+        status=result.status,
+        raw_text=result.raw_text,
+        review_note=result.review_note,
     )
     session.add(check)
     session.commit()

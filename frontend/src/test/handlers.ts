@@ -2,10 +2,17 @@ import { http, HttpResponse } from "msw";
 
 export const statusHistoryPage = {
   items: [
-    { id: 2, checked_at: "2026-06-12T10:00:00Z", status: "pending", raw_text: "check 2" },
-    { id: 1, checked_at: "2026-06-12T06:00:00Z", status: "approved", raw_text: "check 1" },
+    {
+      id: 3,
+      checked_at: "2026-06-12T12:00:00Z",
+      status: "rejected",
+      raw_text: "check 3",
+      review_note: "Your application was rejected. Please join the Discord.",
+    },
+    { id: 2, checked_at: "2026-06-12T10:00:00Z", status: "pending", raw_text: "check 2", review_note: null },
+    { id: 1, checked_at: "2026-06-12T06:00:00Z", status: "approved", raw_text: "check 1", review_note: null },
   ],
-  total: 2,
+  total: 3,
   limit: 50,
   offset: 0,
 };

@@ -22,6 +22,7 @@ class StatusCheckOut(BaseModel):
     checked_at: datetime
     status: ApplicationStatus
     raw_text: str | None
+    review_note: str | None
 
 
 class ResubmissionEventOut(BaseModel):

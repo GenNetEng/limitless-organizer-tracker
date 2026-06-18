@@ -12,6 +12,7 @@ export interface StatusCheck {
   checked_at: string;
   status: ApplicationStatus;
   raw_text: string | null;
+  review_note: string | null;
 }
 
 export interface ResubmissionEvent {

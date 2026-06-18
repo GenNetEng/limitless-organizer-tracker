@@ -33,3 +33,20 @@ def test_parse_status_html_returns_unknown_when_no_application_exists():
 
     assert result.status == ApplicationStatus.UNKNOWN
     assert result.raw_text == ""
+
+
+def test_parse_status_html_captures_review_note_when_present():
+    html = (FIXTURE_DIR / "application_rejected.html").read_text()
+
+    result = parse_status_html(html)
+
+    assert result.review_note is not None
+    assert "rejected" in result.review_note.lower()
+
+
+def test_parse_status_html_review_note_is_none_when_response_empty():
+    html = (FIXTURE_DIR / "application_pending.html").read_text()
+
+    result = parse_status_html(html)
+
+    assert result.review_note is None

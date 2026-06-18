@@ -18,4 +18,14 @@ describe("StatusTimeline", () => {
     expect(screen.queryByText("check 1")).not.toBeInTheDocument();
     expect(screen.queryByText("check 2")).not.toBeInTheDocument();
   });
+
+  it("displays review_note when present and omits it when null", async () => {
+    renderWithQueryClient(<StatusTimeline />);
+
+    expect(
+      await screen.findByText("Your application was rejected. Please join the Discord.")
+    ).toBeInTheDocument();
+    // Pending and Approved items have null review_note — no note text visible
+    expect(screen.queryByText("check 2")).not.toBeInTheDocument();
+  });
 });
