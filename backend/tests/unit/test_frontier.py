@@ -1,5 +1,3 @@
-import pytest
-
 from app.analytics.frontier import compute_frontier
 
 
