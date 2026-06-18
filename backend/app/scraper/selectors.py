@@ -42,6 +42,10 @@ LOGIN_SUBMIT_SELECTOR = ".login-form button[type='submit']"
 # client-side toggle, no server-side effect.
 RESUBMIT_CONTINUE_BUTTON_SELECTOR = ".page1 button.continue"
 
+# Container revealed by Continue; waited on to confirm the JS transition
+# completed before clicking the actual resubmit button.
+RESUBMIT_PAGE2_SELECTOR = ".page2"
+
 # Button that actually resubmits the organization application.
 RESUBMIT_BUTTON_SELECTOR = ".page2 button.submit"
 

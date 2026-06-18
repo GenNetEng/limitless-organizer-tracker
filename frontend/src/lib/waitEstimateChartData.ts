@@ -16,17 +16,32 @@ export interface ScatterPoint {
   timestamp: number;
 }
 
+/** Non-frontier organizers — the general population scatter series. */
 export function toScatterData(estimate: WaitEstimate): ScatterPoint[] {
-  return estimate.points.map((point) => ({
-    organizerId: point.organizer_id,
-    timestamp: Date.parse(`${point.first_tournament_date}T00:00:00Z`),
-  }));
+  return estimate.points
+    .filter((p) => !p.is_frontier)
+    .map((p) => ({
+      organizerId: p.organizer_id,
+      timestamp: Date.parse(`${p.first_tournament_date}T00:00:00Z`),
+    }));
+}
+
+/** Frontier organizers — the fastest-observed onboarding lower-envelope series. */
+export function toFrontierScatterData(estimate: WaitEstimate): ScatterPoint[] {
+  return estimate.points
+    .filter((p) => p.is_frontier)
+    .map((p) => ({
+      organizerId: p.organizer_id,
+      timestamp: Date.parse(`${p.first_tournament_date}T00:00:00Z`),
+    }));
 }
 
 export function toFittedLineData(estimate: WaitEstimate): ScatterPoint[] {
-  const organizerIds = [estimate.organizer_id, ...estimate.points.map((point) => point.organizer_id)];
-  const minId = Math.min(...organizerIds);
-  const maxId = Math.max(...organizerIds);
+  const pointIds = estimate.points.map((p) => p.organizer_id);
+  const targetIds = estimate.organizer_id !== null ? [estimate.organizer_id] : [];
+  const allIds = [...pointIds, ...targetIds];
+  const minId = Math.min(...allIds);
+  const maxId = Math.max(...allIds);
 
   const ordinalToTimestamp = (ordinal: number) => {
     const clamped = Math.max(MIN_ORDINAL, Math.min(MAX_ORDINAL, ordinal));

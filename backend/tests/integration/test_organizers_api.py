@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -159,7 +159,106 @@ def test_get_organizer_activity_rejects_invalid_interval(client):
     assert response.status_code == 422
 
 
-def test_get_wait_estimate_returns_projection(client):
+def test_get_wait_estimate_global_aggregates_across_games(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                # organizer 100 runs PTCG (earlier) and POCKET (later) — MIN picks PTCG date
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(100, "POCKET", _dt(2026, 3, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    # each organizer appears exactly once (global dedup via MIN)
+    assert body["sample_size"] == 2
+    organizer_ids = [p["organizer_id"] for p in body["points"]]
+    assert sorted(organizer_ids) == [100, 200]
+    # organizer 100's date is its earliest (PTCG, 2026-01-01), not the POCKET date
+    pt = next(p for p in body["points"] if p["organizer_id"] == 100)
+    assert pt["first_tournament_date"] == "2026-01-01"
+
+
+def test_get_wait_estimate_limits_to_top_n_by_organizer_id(client, monkeypatch):
+    import app.api.routers.organizers as organizers_module
+
+    monkeypatch.setattr(organizers_module, "TOP_N_ORGANIZERS", 2)
+
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 3, 1))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    # TOP_N_ORGANIZERS=2 and ordered DESC, so organizers 300 and 200 are kept
+    assert body["sample_size"] == 2
+    ids = {p["organizer_id"] for p in body["points"]}
+    assert 300 in ids
+    assert 200 in ids
+    assert 100 not in ids
+
+
+def test_get_wait_estimate_marks_frontier_points(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        # (200, 2026-03-01) is dominated by (300, 2026-01-01): higher id, earlier date
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 3, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 1, 15))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    pts = {p["organizer_id"]: p for p in body["points"]}
+    assert pts[300]["is_frontier"] is True
+    assert pts[200]["is_frontier"] is False
+    assert pts[100]["is_frontier"] is True
+    assert body["frontier_size"] == 2
+
+
+def test_get_wait_estimate_without_organizer_id_returns_null_projection(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["organizer_id"] is None
+    assert body["projected_active_date"] is None
+    assert body["slope"] != 0
+    assert 0.0 <= body["r_squared"] <= 1.0
+
+
+def test_get_wait_estimate_with_organizer_id_returns_projection(client):
     test_client, session_factory = client
     with session_factory() as session:
         session.add_all(
@@ -171,26 +270,14 @@ def test_get_wait_estimate_returns_projection(client):
         )
         session.commit()
 
-    response = test_client.get(
-        "/api/organizers/wait-estimate", params={"organizer_id": 400, "game": "PTCG"}
-    )
+    response = test_client.get("/api/organizers/wait-estimate", params={"organizer_id": 400})
 
     assert response.status_code == 200
     body = response.json()
     assert body["organizer_id"] == 400
-    assert body["game"] == "PTCG"
-    assert body["sample_size"] == 3
-    assert body["slope"] > 0
-    assert 0.0 <= body["r_squared"] <= 1.0
+    assert body["projected_active_date"] is not None
     assert body["projected_active_date"] > "2026-03-03"
-    assert body["points"] == [
-        {"organizer_id": 100, "first_tournament_date": "2026-01-01"},
-        {"organizer_id": 200, "first_tournament_date": "2026-02-01"},
-        {"organizer_id": 300, "first_tournament_date": "2026-03-03"},
-    ]
-    assert body["slope"] * 100 + body["intercept"] == pytest.approx(
-        date(2026, 1, 1).toordinal()
-    )
+    assert body["sample_size"] == 3
 
 
 def test_get_wait_estimate_clamps_out_of_range_projection(client):
@@ -205,7 +292,7 @@ def test_get_wait_estimate_clamps_out_of_range_projection(client):
         session.commit()
 
     response = test_client.get(
-        "/api/organizers/wait-estimate", params={"organizer_id": 10**12, "game": "PTCG"}
+        "/api/organizers/wait-estimate", params={"organizer_id": 10**12}
     )
 
     assert response.status_code == 200
@@ -218,18 +305,39 @@ def test_get_wait_estimate_returns_404_with_insufficient_data(client):
         session.add(OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))))
         session.commit()
 
-    response = test_client.get(
-        "/api/organizers/wait-estimate", params={"organizer_id": 400, "game": "PTCG"}
-    )
+    response = test_client.get("/api/organizers/wait-estimate")
 
     assert response.status_code == 404
 
 
-def test_get_wait_estimate_returns_404_for_unknown_game(client):
+def test_get_wait_estimate_returns_404_with_empty_db(client):
     test_client, _ = client
 
-    response = test_client.get(
-        "/api/organizers/wait-estimate", params={"organizer_id": 400, "game": "NOPE"}
-    )
+    response = test_client.get("/api/organizers/wait-estimate")
 
     assert response.status_code == 404
+
+
+def test_get_wait_estimate_falls_back_to_all_points_when_frontier_size_one(client):
+    # frontier_size == 1 when dates decrease as IDs increase: the highest-ID organizer
+    # (300) dominates all lower-ID ones (200 and 100), which have later first_tournament_dates.
+    # A point is on the frontier iff no higher-ID organizer has an earlier date.
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 3, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 1, 1))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    # frontier has 1 point (organizer 300 dominates all lower IDs); fallback uses all 3 for regression
+    # frontier_size always reports the true frontier count, not the regression set size
+    assert body["frontier_size"] == 1
+    assert body["sample_size"] == 3

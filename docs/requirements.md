@@ -33,8 +33,8 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR9 | Dashboard displays application status-check history (timeline) | BR1 | **Done — Phase 7/8** (`GET /api/status-history`; `frontend/src/components/StatusTimeline.tsx`) |
 | FR10 | Dashboard displays resubmission log | BR1, BR2 | **Done — Phase 7/8** (`GET /api/resubmissions`; `frontend/src/components/ResubmissionLog.tsx`) |
 | FR11 | Dashboard displays newly-active-organizer counts per week/month, filterable by game | BR3 | **Done — Phase 12** (`frontend/src/components/OrganizerActivityChart.tsx`) |
-| FR12 | Fit a linear regression of `organizer_id` vs. `first_tournament_date` (per game) to estimate the onboarding rate (slope) and project the date a target organizer ID will become active | BR3 | **Done — Phase 11** (`GET /api/organizers/wait-estimate`, `app/analytics/regression.py`) |
-| FR13 | Dashboard displays the onboarding-rate regression (scatter + fitted line, R²) and a wait-time estimator for a user-supplied target organizer ID | BR3 | **Done — Phase 12** (`frontend/src/components/WaitTimeEstimator.tsx`) |
+| FR12 | Identify the top 1000 highest `organizer_id`s globally (one point per organizer using `MIN(first_tournament_date)` across games), compute the Pareto frontier (lower-envelope — points not dominated by any other point with a higher ID and earlier date), fit OLS regression on the frontier to estimate the onboarding rate (slope), and optionally project when a target organizer ID will become active | BR3 | **Done — Phase 12.5** ([#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41), `GET /api/organizers/wait-estimate`, `app/analytics/frontier.py`, `app/analytics/regression.py`) |
+| FR13 | Dashboard displays the onboarding-rate scatter (general + frontier series) with fitted line and R²; optionally shows a projected active date for a user-supplied target organizer ID | BR3 | **Done — Phase 12.5** ([#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41), `frontend/src/components/WaitTimeEstimator.tsx`) |
 | FR14 | Provide an API endpoint to trigger an on-demand application-status check (extends FR2), running synchronously and returning the recorded result | BR1 | **Done** — [#23](https://github.com/GenNetEng/limitless-organizer-tracker/issues/23) (`POST /api/status-check`, `app/api/routers/status.py`) |
 
 ## Non-Functional Requirements (NFR)
@@ -101,5 +101,6 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 10 | Tournament ingestion Celery task + beat schedule, including paginated historical backfill (default 3 months) — **Done** | MVP2 | [#7](https://github.com/GenNetEng/limitless-organizer-tracker/issues/7) |
 | 11 | FastAPI routers: organizer activity, games, onboarding-rate regression/wait estimate (FR12) — **Done** | MVP2 | [#8](https://github.com/GenNetEng/limitless-organizer-tracker/issues/8) |
 | 12 | Frontend organizer-activity chart + wait-time estimator (FR11, FR13) — **Done** | MVP2 | [#9](https://github.com/GenNetEng/limitless-organizer-tracker/issues/9) |
+| 12.5 | Redesign wait-estimate: global top-1000 Pareto-frontier regression (FR12, FR13) | MVP2 | [#41](https://github.com/GenNetEng/limitless-organizer-tracker/issues/41) |
 | 13 | MVP2 docker-compose verification (acceptance checkpoint) | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
 | 14 | README + traceability finalization | MVP3 | [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11) |

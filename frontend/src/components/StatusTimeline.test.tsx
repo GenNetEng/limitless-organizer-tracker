@@ -10,12 +10,12 @@ describe("StatusTimeline", () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
-  it("renders status checks ordered as returned by the API", async () => {
+  it("renders status checks with capitalized status and no raw_text", async () => {
     renderWithQueryClient(<StatusTimeline />);
 
-    expect(await screen.findByText("check 2")).toBeInTheDocument();
-    expect(screen.getByText("check 1")).toBeInTheDocument();
-    expect(screen.getByText("pending")).toBeInTheDocument();
-    expect(screen.getByText("approved")).toBeInTheDocument();
+    expect(await screen.findByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.queryByText("check 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("check 2")).not.toBeInTheDocument();
   });
 });
