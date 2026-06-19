@@ -1,4 +1,4 @@
-defaultNamespace: limitless
+defaultNamespace: limitless-production
 
 helm:
   chart: charts/limitless-organizer-tracker
