@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Added
+- **Phase 14 — Organizer onboarding scanner (FR17)**: new `Organizer` table
+  (`organizer_id`, `onboarded_at`, `first_tournament_date`, `detected_at`) with Alembic
+  migration. Daily `scan_new_organizers_task` Celery beat task scans public
+  `play.limitlesstcg.com/organizer/{id}` pages (httpx, no auth) starting from
+  `MAX(organizer_id) + 1` across `Organizer` + `OrganizerActivity`, records a row for each
+  200 response (`onboarded_at = today`), and stops at the first 404. Configurable via
+  `ORGANIZER_SCAN_INTERVAL_HOURS` (default 24) and `ORGANIZER_SCAN_LIMIT` (default 50).
+  Tournament ingestion (`ingest_tournaments`) now also upserts
+  `Organizer.first_tournament_date` = MIN across games from `OrganizerActivity`, keeping
+  the onboarding-to-first-tournament delta always fresh. New `GET /api/organizers/onboarding-
+  history?interval=day|week` endpoint returns `[{period, count}]` bucketed from
+  `Organizer.onboarded_at` (null rows excluded). Closes [#51](https://github.com/GenNetEng/limitless-organizer-tracker/issues/51).
+- Phase numbering shift: organizer onboarding scanner is now Phase 14; former phases 14→18
+  shift to 15→18 (`docs/requirements.md` and GitHub issues updated).
+
 ## [0.2.0] - 2026-06-18
 
 ### Added

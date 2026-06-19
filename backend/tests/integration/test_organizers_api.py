@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.db.models import OrganizerActivity
+from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
 from app.main import app
 
@@ -341,3 +341,178 @@ def test_get_wait_estimate_falls_back_to_all_points_when_frontier_size_one(clien
     # frontier_size always reports the true frontier count, not the regression set size
     assert body["frontier_size"] == 1
     assert body["sample_size"] == 3
+
+
+# ---------------------------------------------------------------------------
+# GET /api/organizers/onboarding-history
+# ---------------------------------------------------------------------------
+
+
+def test_get_onboarding_history_by_day(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)),
+            Organizer(organizer_id=2, onboarded_at=date(2026, 6, 1)),
+            Organizer(organizer_id=3, onboarded_at=date(2026, 6, 2)),
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "day"})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"period": "2026-06-01", "count": 2},
+        {"period": "2026-06-02", "count": 1},
+    ]
+
+
+def test_get_onboarding_history_by_week(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)),   # Monday
+            Organizer(organizer_id=2, onboarded_at=date(2026, 6, 3)),   # same week
+            Organizer(organizer_id=3, onboarded_at=date(2026, 6, 8)),   # next Monday
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "week"})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {"period": "2026-06-01", "count": 2},
+        {"period": "2026-06-08", "count": 1},
+    ]
+
+
+def test_get_onboarding_history_excludes_null_onboarded_at(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)),
+            Organizer(organizer_id=2, onboarded_at=None),  # historical — no onboarded_at
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "day"})
+
+    assert response.status_code == 200
+    assert response.json() == [{"period": "2026-06-01", "count": 1}]
+
+
+def test_get_onboarding_history_defaults_to_day(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)))
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-history")
+
+    assert response.status_code == 200
+    assert response.json() == [{"period": "2026-06-01", "count": 1}]
+
+
+def test_get_onboarding_history_rejects_invalid_interval(client):
+    test_client, _ = client
+
+    response = test_client.get("/api/organizers/onboarding-history", params={"interval": "month"})
+
+    assert response.status_code == 422
+
+
+def test_get_onboarding_history_empty_db(client):
+    test_client, _ = client
+
+    response = test_client.get("/api/organizers/onboarding-history")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+# ---------------------------------------------------------------------------
+# POST /api/organizers/backfill-first-tournament-date
+# ---------------------------------------------------------------------------
+
+
+def test_backfill_sets_first_tournament_date_from_activity(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        # Organizer exists (scanner found it) but no tournament yet → first_tournament_date=None
+        session.add(Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)))
+        # Activity exists for organizer 1 across two games
+        session.add_all([
+            OrganizerActivity(**_activity(1, "PTCG", _dt(2026, 5, 1))),
+            OrganizerActivity(**_activity(1, "VGC", _dt(2026, 3, 1))),
+        ])
+        session.commit()
+
+    response = test_client.post("/api/organizers/backfill-first-tournament-date")
+
+    assert response.status_code == 200
+    assert response.json() == {"updated": 1}
+    with session_factory() as session:
+        org = session.get(Organizer, 1)
+        assert org.first_tournament_date == date(2026, 3, 1)  # MIN across games
+
+
+def test_backfill_skips_organizers_already_having_first_tournament_date(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(organizer_id=1, first_tournament_date=date(2026, 1, 1)))
+        session.add(OrganizerActivity(**_activity(1, "PTCG", _dt(2026, 1, 1))))
+        session.commit()
+
+    response = test_client.post("/api/organizers/backfill-first-tournament-date")
+
+    assert response.status_code == 200
+    assert response.json() == {"updated": 0}
+
+
+def test_backfill_skips_organizers_with_no_activity(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        # Organizer in table but no activity data to draw from
+        session.add(Organizer(organizer_id=1, onboarded_at=date(2026, 6, 1)))
+        session.commit()
+
+    response = test_client.post("/api/organizers/backfill-first-tournament-date")
+
+    assert response.status_code == 200
+    assert response.json() == {"updated": 0}
+    with session_factory() as session:
+        assert session.get(Organizer, 1).first_tournament_date is None
+
+
+def test_backfill_empty_organizer_table(client):
+    test_client, _ = client
+
+    response = test_client.post("/api/organizers/backfill-first-tournament-date")
+
+    assert response.status_code == 200
+    assert response.json() == {"updated": 0}
+
+
+def test_backfill_updates_multiple_organizers(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=1),
+            Organizer(organizer_id=2),
+            Organizer(organizer_id=3, first_tournament_date=date(2026, 1, 1)),  # already set
+        ])
+        session.add_all([
+            OrganizerActivity(**_activity(1, "PTCG", _dt(2026, 4, 1))),
+            OrganizerActivity(**_activity(2, "PTCG", _dt(2026, 5, 1))),
+            OrganizerActivity(**_activity(3, "PTCG", _dt(2026, 1, 1))),
+        ])
+        session.commit()
+
+    response = test_client.post("/api/organizers/backfill-first-tournament-date")
+
+    assert response.status_code == 200
+    assert response.json() == {"updated": 2}
+    with session_factory() as session:
+        assert session.get(Organizer, 1).first_tournament_date == date(2026, 4, 1)
+        assert session.get(Organizer, 2).first_tournament_date == date(2026, 5, 1)
+        assert session.get(Organizer, 3).first_tournament_date == date(2026, 1, 1)  # unchanged

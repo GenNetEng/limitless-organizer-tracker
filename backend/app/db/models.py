@@ -1,7 +1,7 @@
 import enum
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Enum as SAEnum, Integer, String, Text
+from sqlalchemy import Date, Enum as SAEnum, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -57,3 +57,12 @@ class OrganizerActivity(Base):
     first_tournament_id: Mapped[str] = mapped_column(String)
     last_seen_date: Mapped[datetime] = mapped_column(UTCDateTime)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class Organizer(Base):
+    __tablename__ = "organizers"
+
+    organizer_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    onboarded_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    first_tournament_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    detected_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

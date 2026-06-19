@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from celery import Celery
 from celery.schedules import crontab
 
@@ -7,7 +9,12 @@ celery_app = Celery(
     "limitless_organizer_tracker",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.status_tasks", "app.tasks.resubmit_tasks", "app.tasks.tournament_tasks"],
+    include=[
+        "app.tasks.status_tasks",
+        "app.tasks.resubmit_tasks",
+        "app.tasks.tournament_tasks",
+        "app.tasks.organizer_tasks",
+    ],
 )
 
 
@@ -45,6 +52,10 @@ celery_app.conf.beat_schedule = {
     "ingest-tournaments": {
         "task": "app.tasks.tournament_tasks.ingest_tournaments_task",
         "schedule": _hourly_schedule(settings.tournament_ingest_interval_hours),
+    },
+    "scan-new-organizers": {
+        "task": "app.tasks.organizer_tasks.scan_new_organizers_task",
+        "schedule": timedelta(hours=settings.organizer_scan_interval_hours),
     },
     **{
         f"resubmit-application-{hour:02d}{minute:02d}": {

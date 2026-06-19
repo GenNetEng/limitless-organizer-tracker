@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import OrganizerActivity, Tournament
+from app.db.models import Organizer, OrganizerActivity, Tournament
 from app.limitless_client.schemas import TournamentDTO
 
 
@@ -59,8 +59,29 @@ def recompute_organizer_activity(session: Session, pairs: set[tuple[int, str]]) 
     session.flush()
 
 
+def sync_organizer_first_tournament_dates(session: Session, organizer_ids: set[int]) -> None:
+    """Upsert Organizer.first_tournament_date = MIN(OrganizerActivity.first_tournament_date) across games."""
+    for organizer_id in organizer_ids:
+        min_dt = session.scalar(
+            select(func.min(OrganizerActivity.first_tournament_date))
+            .where(OrganizerActivity.organizer_id == organizer_id)
+        )
+        if min_dt is None:
+            continue
+
+        organizer = session.get(Organizer, organizer_id)
+        if organizer is None:
+            organizer = Organizer(organizer_id=organizer_id)
+            session.add(organizer)
+
+        organizer.first_tournament_date = min_dt.date()
+
+    session.flush()
+
+
 def ingest_tournaments(session: Session, tournaments: list[TournamentDTO]) -> None:
-    """Upsert tournaments and recompute affected organizer activity, then commit."""
+    """Upsert tournaments, recompute affected organizer activity, sync Organizer dates, then commit."""
     pairs = upsert_tournaments(session, tournaments)
     recompute_organizer_activity(session, pairs)
+    sync_organizer_first_tournament_dates(session, {oid for oid, _ in pairs})
     session.commit()

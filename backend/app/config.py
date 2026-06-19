@@ -24,5 +24,8 @@ class Settings(BaseSettings):
     tournament_ingest_limit: int = 1000
     tournament_backfill_months: int = 3
 
+    organizer_scan_interval_hours: int = 24
+    organizer_scan_limit: int = 50
+
 
 settings = Settings()

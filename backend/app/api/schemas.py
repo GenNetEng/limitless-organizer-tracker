@@ -54,3 +54,7 @@ class WaitEstimateOut(BaseModel):
     sample_size: int
     frontier_size: int
     points: list[WaitEstimatePointOut]
+
+
+class BackfillResultOut(BaseModel):
+    updated: int
