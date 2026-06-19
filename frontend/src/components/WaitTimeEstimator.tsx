@@ -98,7 +98,7 @@ export function WaitTimeEstimator() {
 
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart>
-              <CartesianGrid strokeDasharray="3 3" stroke="#4a3f5c" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#3b2d6b" />
               <XAxis
                 dataKey="timestamp"
                 type="number"
