@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 19 — Helm chart + Rancher Fleet GitOps
+  ([#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47))**:
+  production Dockerfiles (`Dockerfile.prod` for backend + frontend with nginx),
+  GitHub Actions workflow to build + push images to GHCR on main push.
+  Helm chart (`charts/limitless-organizer-tracker/`) with deployments for
+  backend, frontend, celery-worker, celery-beat; services; NGINX ingress for
+  `limitless-org-dashboard.badconfig.com`; Percona PG Operator CRD for
+  PostgreSQL; Bitnami Redis subchart. `fleet.yaml` targets the Rancher `local`
+  cluster for GitOps deployment.
 - **Phase 18 — Dark theme via DaisyUI
   ([#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46))**:
   installed DaisyUI v5 plugin with `dark` theme. All components migrated from

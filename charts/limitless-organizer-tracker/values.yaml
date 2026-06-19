@@ -1,0 +1,58 @@
+namespace: limitless
+
+backend:
+  image:
+    repository: ghcr.io/genneteng/limitless-organizer-tracker/backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 8000
+  env:
+    CORS_ALLOWED_ORIGINS: "https://limitless-org-dashboard.badconfig.com"
+    LIMITLESS_BASE_URL: "https://play.limitlesstcg.com"
+
+frontend:
+  image:
+    repository: ghcr.io/genneteng/limitless-organizer-tracker/frontend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 80
+
+celery:
+  worker:
+    replicas: 1
+  beat:
+    replicas: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  host: limitless-org-dashboard.badconfig.com
+  tls: false
+
+# Secrets — override in values.production.yaml or via --set
+secrets:
+  databaseUrl: ""
+  celeryBrokerUrl: ""
+  celeryResultBackend: ""
+  discordWebhookUrl: ""
+  limitlessUsername: ""
+  limitlessPassword: ""
+
+# Percona PostgreSQL Operator CRD
+percona:
+  enabled: true
+  clusterName: limitless-pg
+  pgVersion: "16"
+  storageSize: 5Gi
+
+# Bitnami Redis subchart
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 1Gi
