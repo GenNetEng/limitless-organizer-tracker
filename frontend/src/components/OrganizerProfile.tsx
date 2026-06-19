@@ -5,18 +5,18 @@ import { ApiError, scrapeOrganizerProfile, type TournamentEntry } from "../api/c
 function TournamentList({ tournaments, label }: { tournaments: TournamentEntry[]; label: string }) {
   return (
     <div>
-      <h4 className="mb-1 text-sm font-medium text-gray-700">{label}</h4>
+      <h4 className="mb-1 text-sm font-medium opacity-70">{label}</h4>
       {tournaments.length === 0 ? (
-        <p className="text-sm text-gray-500">No {label.toLowerCase()}.</p>
+        <p className="text-sm opacity-50">No {label.toLowerCase()}.</p>
       ) : (
-        <ul className="divide-y divide-gray-200">
+        <ul className="divide-y divide-base-300">
           {tournaments.map((t) => (
             <li key={t.tournament_id} className="py-2">
               <div className="flex items-center justify-between gap-4">
                 <span className="font-medium">{t.name}</span>
-                <span className="text-sm text-gray-400">{t.date}</span>
+                <span className="text-sm opacity-60">{t.date}</span>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm opacity-50">
                 {t.game} · {t.players} players
               </p>
             </li>
@@ -50,9 +50,9 @@ export function OrganizerProfile() {
   return (
     <div>
       <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-2">
-        <div>
-          <label htmlFor="organizer-profile-id" className="block text-sm font-medium">
-            Organizer ID
+        <div className="form-control">
+          <label htmlFor="organizer-profile-id" className="label">
+            <span className="label-text">Organizer ID</span>
           </label>
           <input
             id="organizer-profile-id"
@@ -60,10 +60,10 @@ export function OrganizerProfile() {
             min="1"
             value={idInput}
             onChange={(e) => setIdInput(e.target.value)}
-            className="rounded border border-gray-300 px-2 py-1"
+            className="input input-bordered input-sm w-32"
           />
         </div>
-        <button type="submit" className="rounded bg-blue-600 px-3 py-1 text-white">
+        <button type="submit" className="btn btn-primary btn-sm">
           Look Up
         </button>
       </form>
@@ -80,23 +80,23 @@ export function OrganizerProfile() {
 
       {data && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">{data.name}</h3>
+          <h3 className="text-lg font-semibold text-secondary">{data.name}</h3>
 
           {(data.onboarded_at || data.first_tournament_date) && (
-            <dl className="grid grid-cols-2 gap-2">
+            <div className="stats stats-horizontal shadow">
               {data.onboarded_at && (
-                <div>
-                  <dt className="text-sm text-gray-500">Onboarded</dt>
-                  <dd className="font-semibold">{data.onboarded_at}</dd>
+                <div className="stat">
+                  <div className="stat-title">Onboarded</div>
+                  <div className="stat-value text-sm">{data.onboarded_at}</div>
                 </div>
               )}
               {data.first_tournament_date && (
-                <div>
-                  <dt className="text-sm text-gray-500">First Tournament</dt>
-                  <dd className="font-semibold">{data.first_tournament_date}</dd>
+                <div className="stat">
+                  <div className="stat-title">First Tournament</div>
+                  <div className="stat-value text-sm">{data.first_tournament_date}</div>
                 </div>
               )}
-            </dl>
+            </div>
           )}
 
           <TournamentList tournaments={data.upcoming_tournaments} label="Upcoming Tournaments" />

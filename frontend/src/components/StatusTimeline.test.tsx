@@ -31,11 +31,11 @@ describe("StatusTimeline", () => {
     expect(screen.queryByText("check 2")).not.toBeInTheDocument();
   });
 
-  it("renders 'Rejected' label with red color class", async () => {
+  it("renders 'Rejected' label with error badge", async () => {
     renderWithQueryClient(<StatusTimeline />);
 
     const label = await screen.findByText("Rejected");
-    expect(label).toHaveClass("text-red-600");
+    expect(label).toHaveClass("badge-error");
   });
 
   it("shows pagination controls when total exceeds page size", async () => {

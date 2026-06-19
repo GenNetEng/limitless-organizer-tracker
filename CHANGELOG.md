@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 18 — Cyberpunk theme via DaisyUI
+  ([#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46))**:
+  installed DaisyUI plugin with `cyberpunk` theme. All components migrated from
+  hardcoded Tailwind color utilities to DaisyUI semantic classes (`btn`,
+  `badge`, `stats`, `tabs`, `input`, `select`, `form-control`). Recharts colors
+  updated to cyberpunk palette (neon pink, cyan, acid yellow-green). 51/51
+  frontend tests pass.
 - **Phase 17 — Organizer profile frontend + dashboard overhaul (FR15, FR16 UI,
   [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45))**:
   `OrganizerProfile` component — form to look up an organizer by ID via

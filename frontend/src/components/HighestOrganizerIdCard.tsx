@@ -19,9 +19,11 @@ export function HighestOrganizerIdCard() {
   }
 
   return (
-    <dl className="rounded-lg border border-gray-200 p-4">
-      <dt className="text-sm text-gray-500">Highest Organizer ID</dt>
-      <dd className="text-3xl font-bold">{data?.organizer_id}</dd>
-    </dl>
+    <div className="stats shadow">
+      <div className="stat">
+        <div className="stat-title">Highest Organizer ID</div>
+        <div className="stat-value text-primary">{data?.organizer_id}</div>
+      </div>
+    </div>
   );
 }

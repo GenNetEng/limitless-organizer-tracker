@@ -18,7 +18,7 @@ export function Dashboard() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold">Limitless Organizer Tracker</h1>
+      <h1 className="text-3xl font-bold text-primary">Limitless Organizer Tracker</h1>
       <TabNavigation tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {activeTab === "application" && (

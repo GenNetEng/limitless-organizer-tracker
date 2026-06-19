@@ -22,13 +22,13 @@ export function ResubmissionLog() {
   }
 
   return (
-    <ul className="divide-y divide-gray-200">
+    <ul className="divide-y divide-base-300">
       {items.map((item) => (
         <li key={item.id} className="flex items-center justify-between gap-4 py-2">
-          <span className={item.success ? "font-medium text-green-600" : "font-medium text-red-600"}>
+          <span className={`badge ${item.success ? "badge-success" : "badge-error"}`}>
             {item.success ? "Success" : "Failed"}
           </span>
-          <time className="text-sm text-gray-400" dateTime={item.submitted_at}>
+          <time className="text-sm opacity-60" dateTime={item.submitted_at}>
             {new Date(item.submitted_at).toLocaleString()}
           </time>
         </li>

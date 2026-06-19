@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { getStatusHistory } from "../api/client";
 
 const STATUS_COLORS: Record<string, string> = {
-  approved: "text-green-600",
-  rejected: "text-red-600",
-  pending: "text-yellow-600",
-  expired: "text-orange-500",
-  unknown: "text-gray-500",
+  approved: "badge-success",
+  rejected: "badge-error",
+  pending: "badge-warning",
+  expired: "badge-ghost",
+  unknown: "badge-ghost",
 };
 
 const PAGE_SIZE = 20;
@@ -39,19 +39,19 @@ export function StatusTimeline() {
   return (
     <div>
       <div className="max-h-96 overflow-y-auto">
-        <ul className="divide-y divide-gray-200">
+        <ul className="divide-y divide-base-300">
           {items.map((item) => (
             <li key={item.id} className="py-2">
               <div className="flex items-center justify-between gap-4">
-                <span className={`font-medium ${STATUS_COLORS[item.status] ?? "text-gray-500"}`}>
+                <span className={`badge ${STATUS_COLORS[item.status] ?? "badge-ghost"}`}>
                   {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                 </span>
-                <time className="text-sm text-gray-400" dateTime={item.checked_at}>
+                <time className="text-sm opacity-60" dateTime={item.checked_at}>
                   {new Date(item.checked_at).toLocaleString()}
                 </time>
               </div>
               {item.review_note && (
-                <p className="mt-1 text-sm text-gray-600">{item.review_note}</p>
+                <p className="mt-1 text-sm opacity-70">{item.review_note}</p>
               )}
             </li>
           ))}
@@ -64,18 +64,18 @@ export function StatusTimeline() {
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="rounded bg-gray-200 px-3 py-1 disabled:opacity-50"
+            className="btn btn-sm btn-ghost"
           >
             Previous
           </button>
-          <span className="text-gray-500">
+          <span className="opacity-60">
             Page {page + 1} of {totalPages} ({total} total)
           </span>
           <button
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="rounded bg-gray-200 px-3 py-1 disabled:opacity-50"
+            className="btn btn-sm btn-ghost"
           >
             Next
           </button>
