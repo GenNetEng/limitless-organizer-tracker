@@ -1,11 +1,11 @@
 defaultNamespace: limitless-staging
 
 helm:
-  chart: ../../charts/limitless-organizer-tracker
+  chart: charts/limitless-organizer-tracker
   releaseName: limitless-staging
   valuesFiles:
-    - ../../charts/limitless-organizer-tracker/values.yaml
-    - ../../charts/limitless-organizer-tracker/values.staging.yaml
+    - charts/limitless-organizer-tracker/values.yaml
+    - charts/limitless-organizer-tracker/values.staging.yaml
 
 targetCustomizations:
   - name: local
