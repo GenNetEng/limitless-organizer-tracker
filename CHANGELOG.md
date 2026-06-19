@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 15 — README + traceability finalization (MVP3, closes [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11))**:
+  expanded `docs/dev_guide.md` env-var table to cover all settings added since
+  Phase 8 (`LIMITLESS_APPLICATION_ID`, `CORS_ALLOWED_ORIGINS`,
+  `TOURNAMENT_BACKFILL_MONTHS`, `ORGANIZER_SCAN_INTERVAL_HOURS`,
+  `ORGANIZER_SCAN_LIMIT`); added a "Scraper selectors" subsection explaining
+  the `@pytest.mark.live` gate and the httpx-only nature of the onboarding
+  scanner. `docs/requirements.md` FR17 status updated to Done (Phase 14);
+  Phase 14 and 15 rows in the build-order table marked Done; MVP2 extended
+  with a Phase 14 verification note; MVP3 marked Verified. README placeholder
+  stub removed.
 - **Phase 14 — Organizer onboarding scanner (FR17)**: new `Organizer` table
   (`organizer_id`, `onboarded_at`, `first_tournament_date`, `detected_at`) with Alembic
   migration. Daily `scan_new_organizers_task` Celery beat task scans public

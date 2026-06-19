@@ -66,12 +66,33 @@ never commit real credentials or webhook URLs.
 | `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` | Redis URLs for Celery |
 | `LIMITLESS_BASE_URL` | Base URL for play.limitlesstcg.com |
 | `LIMITLESS_USERNAME` / `LIMITLESS_PASSWORD` | Scraper login credentials |
-| `DISCORD_WEBHOOK_URL` | Webhook for resubmission notifications |
-| `APPLICATION_STATUS_CHECK_INTERVAL_HOURS` | How often to check application status |
-| `RESUBMIT_TIMES_UTC` | Comma-separated `HH:MM` UTC times for resubmission (1-2 per day) |
-| `TOURNAMENT_INGEST_INTERVAL_HOURS` | How often to ingest tournament data |
-| `TOURNAMENT_INGEST_LIMIT` | Number of most-recent tournaments pulled per ingestion run |
+| `LIMITLESS_APPLICATION_ID` | Your organizer application's numeric ID — from the URL `…/user/application/<id>` |
+| `DISCORD_WEBHOOK_URL` | Webhook for a channel on **your own** Discord server; the tracker posts a notice here that you copy/paste into the organizer Discord |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated origins allowed to call the API (default: `http://localhost:5173`) |
+| `APPLICATION_STATUS_CHECK_INTERVAL_HOURS` | How often to run the application-status check, in hours (default: 4) |
+| `RESUBMIT_TIMES_UTC` | Comma-separated `HH:MM` UTC times for resubmission; provide 1 or 2 (e.g. `09:00,21:00`) |
+| `TOURNAMENT_INGEST_INTERVAL_HOURS` | How often to ingest tournament data, in hours (default: 1) |
+| `TOURNAMENT_INGEST_LIMIT` | Number of most-recent tournaments pulled per ingestion run (default: 1000) |
+| `TOURNAMENT_BACKFILL_MONTHS` | Months of historical tournament data to keep backfilled per run (default: 3) |
+| `ORGANIZER_SCAN_INTERVAL_HOURS` | How often the organizer onboarding scanner runs, in hours (default: 24) |
+| `ORGANIZER_SCAN_LIMIT` | Max new organizer IDs probed per scan run (default: 50) |
 | `VITE_API_BASE_URL` | Frontend's base URL for the backend API |
+
+### Scraper selectors
+
+The Playwright-based scraper (login, status check, resubmit) targets
+`play.limitlesstcg.com` CSS selectors defined in `app/scraper/selectors.py`.
+These selectors were validated against the live site during development but
+may drift if Limitless updates their front end. To verify them against the
+live site, set real credentials in `.env` and run:
+
+```bash
+pytest -m live
+```
+
+Live tests are skipped by default in CI (`addopts = "-m 'not live'"` in
+`pyproject.toml`). The organizer onboarding scanner (`scan_new_organizers_task`)
+uses plain `httpx` against public profile pages — no selectors, no login.
 
 ## Running the full stack
 
