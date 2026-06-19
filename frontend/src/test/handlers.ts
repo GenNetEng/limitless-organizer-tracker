@@ -51,6 +51,20 @@ export const waitEstimate = {
   ],
 };
 
+export const organizerProfile = {
+  organizer_id: 42,
+  name: "Test Organizer",
+  upcoming_tournaments: [
+    { tournament_id: "t1", name: "Upcoming Cup", date: "2026-07-01", game: "POCKET", players: 0 },
+  ],
+  recent_tournaments: [
+    { tournament_id: "t2", name: "Recent League", date: "2026-06-01", game: "PTCG", players: 16 },
+    { tournament_id: "t3", name: "Spring Open", date: "2026-05-15", game: "POCKET", players: 32 },
+  ],
+};
+
+export const highestOrganizerId = { organizer_id: 2720 };
+
 export const handlers = [
   http.get("*/api/status-history", () => HttpResponse.json(statusHistoryPage)),
   http.get("*/api/resubmissions", () => HttpResponse.json(resubmissionsPage)),
@@ -65,5 +79,13 @@ export const handlers = [
       ? waitEstimate
       : { ...waitEstimate, organizer_id: null, projected_active_date: null };
     return HttpResponse.json(response);
+  }),
+  http.get("*/api/organizers/highest-id", () => HttpResponse.json(highestOrganizerId)),
+  http.get("*/api/organizers/:organizerId/scrape", ({ params }) => {
+    const id = Number(params.organizerId);
+    if (id === 9999) {
+      return HttpResponse.json({ detail: "organizer not found on Limitless" }, { status: 404 });
+    }
+    return HttpResponse.json({ ...organizerProfile, organizer_id: id });
   }),
 ];

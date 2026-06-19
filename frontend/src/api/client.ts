@@ -91,3 +91,30 @@ export function getWaitEstimate(organizerId?: number): Promise<WaitEstimate> {
     organizerId !== undefined ? `?organizer_id=${encodeURIComponent(organizerId)}` : "";
   return getJson<WaitEstimate>(`/api/organizers/wait-estimate${query}`);
 }
+
+export interface TournamentEntry {
+  tournament_id: string;
+  name: string;
+  date: string;
+  game: string;
+  players: number;
+}
+
+export interface OrganizerProfile {
+  organizer_id: number;
+  name: string;
+  upcoming_tournaments: TournamentEntry[];
+  recent_tournaments: TournamentEntry[];
+}
+
+export interface HighestOrganizerId {
+  organizer_id: number;
+}
+
+export function scrapeOrganizerProfile(organizerId: number): Promise<OrganizerProfile> {
+  return getJson<OrganizerProfile>(`/api/organizers/${encodeURIComponent(organizerId)}/scrape`);
+}
+
+export function getHighestOrganizerId(): Promise<HighestOrganizerId> {
+  return getJson<HighestOrganizerId>("/api/organizers/highest-id");
+}

@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 17 — Organizer profile frontend (FR15, FR16 UI,
+  [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45))**:
+  `OrganizerProfile` component — form to look up an organizer by ID via
+  `GET /api/organizers/{id}/scrape`, displays organizer name + upcoming/recent
+  tournament lists with game and player count; handles 404 and empty-list states.
+  `HighestOrganizerIdCard` stat card — renders the highest known organizer ID
+  from `GET /api/organizers/highest-id` with loading and 404 error states.
+  Both wired into Dashboard. API client extended with `scrapeOrganizerProfile`
+  and `getHighestOrganizerId` functions. MSW handlers + 10 new Vitest/RTL tests
+  (41/41 frontend, 169/169 backend).
 - **Phase 16 — Organizer profile backend (FR16 API, FR18)**:
   `GET /api/organizers/{id}/scrape` — httpx-fetches the public
   `play.limitlesstcg.com/organizer/{id}` page, parses with BeautifulSoup 4,

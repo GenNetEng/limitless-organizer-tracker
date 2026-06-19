@@ -1,4 +1,6 @@
+import { HighestOrganizerIdCard } from "../components/HighestOrganizerIdCard";
 import { OrganizerActivityChart } from "../components/OrganizerActivityChart";
+import { OrganizerProfile } from "../components/OrganizerProfile";
 import { ResubmissionLog } from "../components/ResubmissionLog";
 import { StatusTimeline } from "../components/StatusTimeline";
 import { WaitTimeEstimator } from "../components/WaitTimeEstimator";
@@ -22,6 +24,14 @@ export function Dashboard() {
       <section>
         <h2 className="mb-2 text-lg font-semibold">Wait Time Estimator</h2>
         <WaitTimeEstimator />
+      </section>
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Highest Organizer ID</h2>
+        <HighestOrganizerIdCard />
+      </section>
+      <section>
+        <h2 className="mb-2 text-lg font-semibold">Organizer Profile</h2>
+        <OrganizerProfile />
       </section>
     </main>
   );

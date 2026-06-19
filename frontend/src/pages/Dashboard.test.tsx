@@ -22,4 +22,13 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText("Jun 1: 2")).toBeInTheDocument();
   });
+
+  it("renders the highest organizer ID card and organizer profile sections", async () => {
+    renderWithQueryClient(<Dashboard />);
+
+    expect(screen.getByRole("heading", { name: /highest organizer id/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /organizer profile/i })).toBeInTheDocument();
+
+    expect(await screen.findByText("2720")).toBeInTheDocument();
+  });
 });
