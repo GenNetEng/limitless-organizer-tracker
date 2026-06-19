@@ -53,7 +53,7 @@ export function OrganizerActivityChart() {
         <>
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#3b2d6b" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="label" />
               <YAxis allowDecimals={false} />
               <Tooltip />

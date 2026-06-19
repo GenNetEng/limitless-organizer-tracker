@@ -10,13 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
-- **Phase 18 — Synthwave dark theme via DaisyUI
+- **Phase 18 — Dark theme via DaisyUI
   ([#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46))**:
-  installed DaisyUI v5 plugin with `synthwave` theme (dark purple background,
-  neon pink/cyan/yellow-green highlights). All components migrated from
+  installed DaisyUI v5 plugin with `dark` theme. All components migrated from
   hardcoded Tailwind color utilities to DaisyUI semantic classes (`btn`,
   `badge`, `stats`, `tabs`, `input`, `select`, `form-control`). Recharts chart
-  colors updated to match palette. 51/51 frontend tests pass.
+  colors updated for dark background readability. 51/51 frontend tests pass.
 - **Phase 17 — Organizer profile frontend + dashboard overhaul (FR15, FR16 UI,
   [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45))**:
   `OrganizerProfile` component — form to look up an organizer by ID via

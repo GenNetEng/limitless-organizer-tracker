@@ -6,7 +6,7 @@ export default {
   },
   plugins: [
     require("daisyui")({
-      themes: ["synthwave"],
+      themes: ["dark"],
     }),
   ],
 };
