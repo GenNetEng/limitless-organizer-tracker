@@ -1,7 +1,21 @@
 from datetime import date, datetime, timedelta
+from typing import Iterable
 
 VALID_INTERVALS = ("week", "month")
 VALID_ONBOARDING_INTERVALS = ("day", "week")
+
+
+def _bucket_dates(dates: Iterable[date], interval: str) -> list[tuple[date, int]]:
+    counts: dict[date, int] = {}
+    for d in dates:
+        if interval == "day":
+            period = d
+        elif interval == "week":
+            period = d - timedelta(days=d.weekday())
+        else:  # month
+            period = d.replace(day=1)
+        counts[period] = counts.get(period, 0) + 1
+    return sorted(counts.items())
 
 
 def bucket_activity(dates: list[datetime], interval: str) -> list[tuple[date, int]]:
@@ -11,17 +25,7 @@ def bucket_activity(dates: list[datetime], interval: str) -> list[tuple[date, in
     """
     if interval not in VALID_INTERVALS:
         raise ValueError(f"invalid interval: {interval!r}, expected one of {VALID_INTERVALS}")
-
-    counts: dict[date, int] = {}
-    for dt in dates:
-        day = dt.date()
-        if interval == "week":
-            period = day - timedelta(days=day.weekday())
-        else:
-            period = day.replace(day=1)
-        counts[period] = counts.get(period, 0) + 1
-
-    return sorted(counts.items())
+    return _bucket_dates((dt.date() for dt in dates), interval)
 
 
 def bucket_onboarding(dates: list[date], interval: str) -> list[tuple[date, int]]:
@@ -31,10 +35,4 @@ def bucket_onboarding(dates: list[date], interval: str) -> list[tuple[date, int]
     """
     if interval not in VALID_ONBOARDING_INTERVALS:
         raise ValueError(f"invalid interval: {interval!r}, expected one of {VALID_ONBOARDING_INTERVALS}")
-
-    counts: dict[date, int] = {}
-    for d in dates:
-        period = d if interval == "day" else d - timedelta(days=d.weekday())
-        counts[period] = counts.get(period, 0) + 1
-
-    return sorted(counts.items())
+    return _bucket_dates(dates, interval)

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from celery import Celery
 from celery.schedules import crontab
 
@@ -53,7 +55,7 @@ celery_app.conf.beat_schedule = {
     },
     "scan-new-organizers": {
         "task": "app.tasks.organizer_tasks.scan_new_organizers_task",
-        "schedule": _hourly_schedule(settings.organizer_scan_interval_hours),
+        "schedule": timedelta(hours=settings.organizer_scan_interval_hours),
     },
     **{
         f"resubmit-application-{hour:02d}{minute:02d}": {

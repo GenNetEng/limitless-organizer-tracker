@@ -9,18 +9,7 @@ import app.tasks.organizer_tasks as organizer_tasks
 from app.celery_app import celery_app
 from app.config import settings
 from app.db.base import Base
-from app.db.models import Organizer, OrganizerActivity
-
-
-def _activity(organizer_id, game="PTCG"):
-    return OrganizerActivity(
-        organizer_id=organizer_id,
-        game=game,
-        first_tournament_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        first_tournament_id="t1",
-        last_seen_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-    )
+from app.db.models import Organizer
 
 
 @respx.mock
@@ -33,7 +22,7 @@ def test_scan_new_organizers_task_inserts_row_and_commits(monkeypatch):
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
 
     with test_session_factory() as session:
-        session.add(_activity(100))
+        session.add(Organizer(organizer_id=100, onboarded_at=date(2026, 1, 1), detected_at=datetime(2026, 1, 1, tzinfo=timezone.utc)))
         session.commit()
 
     respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
@@ -51,5 +40,5 @@ def test_scan_new_organizers_task_inserts_row_and_commits(monkeypatch):
     with test_session_factory() as session:
         organizer = session.get(Organizer, 101)
         assert organizer is not None
-        assert organizer.onboarded_at == date.today()
+        assert organizer.onboarded_at == datetime.now(timezone.utc).date()
         assert organizer.detected_at is not None
