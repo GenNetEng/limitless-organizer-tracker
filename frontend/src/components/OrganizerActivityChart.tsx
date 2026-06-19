@@ -26,22 +26,24 @@ export function OrganizerActivityChart() {
 
   return (
     <div>
-      <label htmlFor="activity-game-filter" className="mr-2 text-sm font-medium">
-        Game
-      </label>
-      <select
-        id="activity-game-filter"
-        value={game ?? ""}
-        onChange={(event) => setGame(event.target.value || null)}
-        className="mb-4 rounded border border-gray-300 px-2 py-1"
-      >
-        <option value="">All</option>
-        {(gamesQuery.data ?? []).map((g) => (
-          <option key={g} value={g}>
-            {g}
-          </option>
-        ))}
-      </select>
+      <div className="form-control mb-4 w-fit">
+        <label htmlFor="activity-game-filter" className="label">
+          <span className="label-text">Game</span>
+        </label>
+        <select
+          id="activity-game-filter"
+          value={game ?? ""}
+          onChange={(event) => setGame(event.target.value || null)}
+          className="select select-bordered select-sm"
+        >
+          <option value="">All</option>
+          {(gamesQuery.data ?? []).map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {activityQuery.isLoading && <p>Loading organizer activity…</p>}
       {activityQuery.isError && <p>Failed to load organizer activity.</p>}
@@ -51,15 +53,14 @@ export function OrganizerActivityChart() {
         <>
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="label" />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="count" name="New organizers" fill="#60a5fa" />
-              <Line dataKey="count" name="Trend" type="monotone" stroke="#1d4ed8" dot={false} />
+              <Bar dataKey="count" name="New organizers" fill="#75d1f0" />
+              <Line dataKey="count" name="Trend" type="monotone" stroke="#ff7598" dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
-          {/* Accessible text alternative to the chart, also used to drive tests. */}
           <ul className="sr-only">
             {chartData.map((datum) => (
               <li key={datum.period}>

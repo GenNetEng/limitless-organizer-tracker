@@ -20,9 +20,9 @@ describe("TabNavigation", () => {
   it("marks the active tab with aria-selected", () => {
     render(<TabNavigation tabs={tabs} activeTab="two" onTabChange={() => {}} />);
 
-    expect(screen.getByRole("tab", { name: "Tab One" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tab", { name: "Tab One" })).not.toHaveAttribute("aria-selected");
     expect(screen.getByRole("tab", { name: "Tab Two" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Tab Three" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tab", { name: "Tab Three" })).not.toHaveAttribute("aria-selected");
   });
 
   it("calls onTabChange with the tab id when clicked", () => {

@@ -39,19 +39,19 @@ export function WaitTimeEstimator() {
   return (
     <div>
       <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-2">
-        <div>
-          <label htmlFor="wait-estimate-organizer-id" className="block text-sm font-medium">
-            Organizer ID (optional — enter yours for a projected date)
+        <div className="form-control">
+          <label htmlFor="wait-estimate-organizer-id" className="label">
+            <span className="label-text">Organizer ID (optional — enter yours for a projected date)</span>
           </label>
           <input
             id="wait-estimate-organizer-id"
             type="number"
             value={organizerIdInput}
             onChange={(event) => setOrganizerIdInput(event.target.value)}
-            className="rounded border border-gray-300 px-2 py-1"
+            className="input input-bordered input-sm w-32"
           />
         </div>
-        <button type="submit" className="rounded bg-blue-600 px-3 py-1 text-white">
+        <button type="submit" className="btn btn-primary btn-sm">
           Estimate
         </button>
       </form>
@@ -67,38 +67,38 @@ export function WaitTimeEstimator() {
 
       {estimateQuery.data && (
         <div>
-          <dl className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div>
-              <dt className="text-sm text-gray-500">Slope (days / organizer ID)</dt>
-              <dd className="font-semibold">{estimateQuery.data.slope.toFixed(4)}</dd>
+          <div className="stats stats-horizontal mb-4 shadow">
+            <div className="stat">
+              <div className="stat-title">Slope (days / ID)</div>
+              <div className="stat-value text-sm">{estimateQuery.data.slope.toFixed(4)}</div>
             </div>
-            <div>
-              <dt className="text-sm text-gray-500">R²</dt>
-              <dd className="font-semibold">{estimateQuery.data.r_squared.toFixed(3)}</dd>
+            <div className="stat">
+              <div className="stat-title">R²</div>
+              <div className="stat-value text-sm">{estimateQuery.data.r_squared.toFixed(3)}</div>
             </div>
-            <div>
-              <dt className="text-sm text-gray-500">Sample size</dt>
-              <dd className="font-semibold">{estimateQuery.data.sample_size}</dd>
+            <div className="stat">
+              <div className="stat-title">Sample size</div>
+              <div className="stat-value text-sm">{estimateQuery.data.sample_size}</div>
             </div>
-            <div>
-              <dt className="text-sm text-gray-500">Frontier organizers</dt>
-              <dd className="font-semibold">{estimateQuery.data.frontier_size}</dd>
+            <div className="stat">
+              <div className="stat-title">Frontier organizers</div>
+              <div className="stat-value text-sm">{estimateQuery.data.frontier_size}</div>
             </div>
-          </dl>
+          </div>
 
           {estimateQuery.data.organizer_id !== null &&
             estimateQuery.data.projected_active_date !== null && (
-              <dl className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div>
-                  <dt className="text-sm text-gray-500">Projected active date</dt>
-                  <dd className="font-semibold">{estimateQuery.data.projected_active_date}</dd>
+              <div className="stats mb-4 shadow">
+                <div className="stat">
+                  <div className="stat-title">Projected active date</div>
+                  <div className="stat-value text-sm text-accent">{estimateQuery.data.projected_active_date}</div>
                 </div>
-              </dl>
+              </div>
             )}
 
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis
                 dataKey="timestamp"
                 type="number"
@@ -112,19 +112,19 @@ export function WaitTimeEstimator() {
                 name="All organizers"
                 data={toScatterData(estimateQuery.data)}
                 dataKey="organizerId"
-                fill="#93c5fd"
+                fill="#75d1f0"
               />
               <Scatter
                 name="Frontier (fastest onboarding)"
                 data={toFrontierScatterData(estimateQuery.data)}
                 dataKey="organizerId"
-                fill="#dc2626"
+                fill="#ff7598"
               />
               <Line
                 name="Fitted line"
                 data={toFittedLineData(estimateQuery.data)}
                 dataKey="organizerId"
-                stroke="#f97316"
+                stroke="#c8ff00"
                 dot={false}
                 type="linear"
               />
