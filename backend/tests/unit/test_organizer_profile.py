@@ -62,3 +62,22 @@ def test_parse_organizer_profile_returns_none_when_no_name_element():
     result = parse_organizer_profile(html, organizer_id=9999)
 
     assert result is None
+
+
+def test_parse_tournament_row_handles_non_numeric_players():
+    html = """<html><body>
+    <div class="organizer-info"><h1 class="name">Test Org</h1></div>
+    <table class="upcoming-tournaments"><tbody>
+      <tr data-id="abc123" data-date="2026-06-24T01:30:00.000Z">
+        <td class="name">Some Tournament</td>
+        <td class="game">PTCGL</td>
+        <td class="players">TBD</td>
+      </tr>
+    </tbody></table>
+    <table class="recent-tournaments"><tbody></tbody></table>
+    </body></html>"""
+
+    result = parse_organizer_profile(html, organizer_id=1)
+
+    assert result is not None
+    assert result.upcoming_tournaments[0].players == 0

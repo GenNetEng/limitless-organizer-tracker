@@ -80,6 +80,31 @@ class TestScrapeEndpoint:
 
         assert resp.status_code == 404
 
+    @respx.mock
+    def test_scrape_returns_502_on_upstream_server_error(self):
+        respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+            return_value=httpx.Response(500)
+        )
+
+        resp = self.client.get("/api/organizers/2720/scrape")
+
+        assert resp.status_code == 502
+
+    @respx.mock
+    def test_scrape_returns_502_on_connection_error(self):
+        respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+            side_effect=httpx.ConnectError("DNS resolution failed")
+        )
+
+        resp = self.client.get("/api/organizers/2720/scrape")
+
+        assert resp.status_code == 502
+
+    def test_scrape_rejects_non_positive_organizer_id(self):
+        resp = self.client.get("/api/organizers/0/scrape")
+
+        assert resp.status_code == 422
+
 
 class TestHighestIdEndpoint:
     def setup_method(self):

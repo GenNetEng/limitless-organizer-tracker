@@ -61,6 +61,8 @@ class BackfillResultOut(BaseModel):
 
 
 class TournamentEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     tournament_id: str
     name: str
     date: str
@@ -69,6 +71,8 @@ class TournamentEntryOut(BaseModel):
 
 
 class OrganizerProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     organizer_id: int
     name: str
     upcoming_tournaments: list[TournamentEntryOut]

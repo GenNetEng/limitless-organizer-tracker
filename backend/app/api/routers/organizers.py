@@ -2,7 +2,7 @@ from datetime import date
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,6 @@ from app.api.schemas import (
     BackfillResultOut,
     HighestOrganizerIdOut,
     OrganizerProfileOut,
-    TournamentEntryOut,
     WaitEstimateOut,
     WaitEstimatePointOut,
 )
@@ -141,37 +140,20 @@ def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerI
 
 
 @router.get("/organizers/{organizer_id}/scrape", response_model=OrganizerProfileOut)
-def scrape_organizer_profile(organizer_id: int) -> OrganizerProfileOut:
+def scrape_organizer_profile(organizer_id: int = Path(ge=1)) -> OrganizerProfileOut:
     url = f"{settings.limitless_base_url}/organizer/{organizer_id}"
-    resp = httpx.get(url, follow_redirects=True)
+    try:
+        resp = httpx.get(url, follow_redirects=True, timeout=30)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="failed to reach Limitless")
+
     if resp.status_code == 404:
         raise HTTPException(status_code=404, detail="organizer not found on Limitless")
+    if not resp.is_success:
+        raise HTTPException(status_code=502, detail=f"Limitless returned {resp.status_code}")
 
     profile = parse_organizer_profile(resp.text, organizer_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="organizer profile could not be parsed")
 
-    return OrganizerProfileOut(
-        organizer_id=profile.organizer_id,
-        name=profile.name,
-        upcoming_tournaments=[
-            TournamentEntryOut(
-                tournament_id=t.tournament_id,
-                name=t.name,
-                date=t.date,
-                game=t.game,
-                players=t.players,
-            )
-            for t in profile.upcoming_tournaments
-        ],
-        recent_tournaments=[
-            TournamentEntryOut(
-                tournament_id=t.tournament_id,
-                name=t.name,
-                date=t.date,
-                game=t.game,
-                players=t.players,
-            )
-            for t in profile.recent_tournaments
-        ],
-    )
+    return OrganizerProfileOut.model_validate(profile)
