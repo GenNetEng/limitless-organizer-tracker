@@ -1,0 +1,38 @@
+namespace: limitless-staging
+
+backend:
+  image:
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+
+frontend:
+  image:
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+
+celery:
+  worker:
+    replicas: 1
+  beat:
+    replicas: 1
+
+ingress:
+  enabled: false
+
+percona:
+  enabled: true
+  clusterName: limitless-staging-pg
+  pgVersion: "16"
+  storageSize: 1Gi
+  disableBackups: true
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 512Mi

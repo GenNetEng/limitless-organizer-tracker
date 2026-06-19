@@ -36,3 +36,5 @@ backend/test-results/
 
 # --- Docker ---
 *.pid
+charts/*/charts/
+charts/*/*.tgz

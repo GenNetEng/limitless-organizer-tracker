@@ -138,4 +138,4 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 16 | Organizer profile backend: `GET /api/organizers/{id}/scrape` (httpx + BS4, FR18) + `GET /api/organizers/highest-id` (FR16 API) — **Done** | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
 | 17 | Organizer profile frontend: `OrganizerProfile` component + `HighestOrganizerIdCard` stat card + Dashboard wiring (FR15, FR16 UI) — **Done** | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
 | 18 | Cyberpunk theme via DaisyUI | MVP3 | [#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46) |
-| 19 | Helm chart + Rancher Fleet GitOps deployment to local k3s/MicroOS cluster | MVP3 | [#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47) |
+| 19 | Helm chart + Rancher Fleet GitOps deployment to local k3s/MicroOS cluster — **Done** | MVP3 | [#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47) |

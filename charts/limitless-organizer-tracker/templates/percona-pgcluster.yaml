@@ -1,0 +1,38 @@
+{{- if .Values.percona.enabled }}
+apiVersion: pgv2.percona.com/v2
+kind: PerconaPGCluster
+metadata:
+  name: {{ .Values.percona.clusterName }}
+  labels:
+    {{- include "lot.labels" . | nindent 4 }}
+spec:
+  crVersion: "2.5.0"
+  postgresVersion: {{ .Values.percona.pgVersion | int }}
+  instances:
+    - name: instance1
+      replicas: 1
+      dataVolumeClaimSpec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.percona.storageSize }}
+  {{- if not .Values.percona.disableBackups }}
+  backups:
+    pgbackrest:
+      repos:
+        - name: repo1
+          volume:
+            volumeClaimSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: {{ .Values.percona.storageSize }}
+  {{- end }}
+  users:
+    - name: limitless
+      databases:
+        - limitless_tracker
+      options: "SUPERUSER"
+{{- end }}
