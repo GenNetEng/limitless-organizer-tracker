@@ -1,10 +1,10 @@
 defaultNamespace: limitless
 
 helm:
-  chart: charts/limitless-organizer-tracker
+  chart: ../../charts/limitless-organizer-tracker
   releaseName: limitless
   valuesFiles:
-    - charts/limitless-organizer-tracker/values.yaml
+    - ../../charts/limitless-organizer-tracker/values.yaml
 
 targetCustomizations:
   - name: local

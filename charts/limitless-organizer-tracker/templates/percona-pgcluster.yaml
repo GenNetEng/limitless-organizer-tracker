@@ -17,6 +17,7 @@ spec:
         resources:
           requests:
             storage: {{ .Values.percona.storageSize }}
+  {{- if not .Values.percona.disableBackups }}
   backups:
     pgbackrest:
       repos:
@@ -28,6 +29,7 @@ spec:
               resources:
                 requests:
                   storage: {{ .Values.percona.storageSize }}
+  {{- end }}
   users:
     - name: limitless
       databases:
