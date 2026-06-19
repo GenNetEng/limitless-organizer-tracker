@@ -135,6 +135,7 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 13 | MVP2 docker-compose verification (acceptance checkpoint) — **Done** | MVP2 | [#10](https://github.com/GenNetEng/limitless-organizer-tracker/issues/10) |
 | 14 | Organizer onboarding scanner: `Organizer` table (organizer_id, onboarded_at, first_tournament_date, detected_at), daily `scan_new_organizers_task` Celery task, `first_tournament_date` sync in tournament ingestion, `GET /api/organizers/onboarding-history` (FR17) — **Done** | MVP2 | [#51](https://github.com/GenNetEng/limitless-organizer-tracker/issues/51) |
 | 15 | README + traceability finalization — **Done** | MVP3 | [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11) |
-| 16 | Organizer profile dashboard: live-scrape `GET /api/organizers/{id}/scrape` (FR18) + frontend profile display + highest-ID stat card (FR15, FR16) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
-| 17 | Cyberpunk theme via DaisyUI | MVP3 | [#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46) |
-| 18 | Helm chart + Rancher Fleet GitOps deployment to local k3s/MicroOS cluster | MVP3 | [#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47) |
+| 16 | Organizer profile backend: `GET /api/organizers/{id}/scrape` (httpx + BS4, FR18) + `GET /api/organizers/highest-id` (FR16 API) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| 17 | Organizer profile frontend: `OrganizerProfile` component + `HighestOrganizerIdCard` stat card + Dashboard wiring (FR15, FR16 UI) | MVP2 | [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45) |
+| 18 | Cyberpunk theme via DaisyUI | MVP3 | [#46](https://github.com/GenNetEng/limitless-organizer-tracker/issues/46) |
+| 19 | Helm chart + Rancher Fleet GitOps deployment to local k3s/MicroOS cluster | MVP3 | [#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47) |
