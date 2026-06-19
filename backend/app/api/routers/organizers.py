@@ -140,7 +140,10 @@ def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerI
 
 
 @router.get("/organizers/{organizer_id}/scrape", response_model=OrganizerProfileOut)
-def scrape_organizer_profile(organizer_id: int = Path(ge=1)) -> OrganizerProfileOut:
+def scrape_organizer_profile(
+    organizer_id: int = Path(ge=1),
+    db: Session = Depends(get_db),
+) -> OrganizerProfileOut:
     url = f"{settings.limitless_base_url}/organizer/{organizer_id}"
     try:
         resp = httpx.get(url, follow_redirects=True, timeout=30)
@@ -156,4 +159,11 @@ def scrape_organizer_profile(organizer_id: int = Path(ge=1)) -> OrganizerProfile
     if profile is None:
         raise HTTPException(status_code=404, detail="organizer profile could not be parsed")
 
-    return OrganizerProfileOut.model_validate(profile)
+    result = OrganizerProfileOut.model_validate(profile)
+
+    org = db.get(Organizer, organizer_id)
+    if org is not None:
+        result.onboarded_at = org.onboarded_at
+        result.first_tournament_date = org.first_tournament_date
+
+    return result

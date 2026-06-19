@@ -77,6 +77,8 @@ class OrganizerProfileOut(BaseModel):
     name: str
     upcoming_tournaments: list[TournamentEntryOut]
     recent_tournaments: list[TournamentEntryOut]
+    onboarded_at: date | None = None
+    first_tournament_date: date | None = None
 
 
 class HighestOrganizerIdOut(BaseModel):

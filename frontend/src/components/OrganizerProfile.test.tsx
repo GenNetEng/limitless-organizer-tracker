@@ -62,6 +62,45 @@ describe("OrganizerProfile", () => {
     expect(await screen.findByText(/organizer not found/i)).toBeInTheDocument();
   });
 
+  it("displays onboarded and first tournament dates when available", async () => {
+    renderWithQueryClient(<OrganizerProfile />);
+
+    fireEvent.change(screen.getByLabelText(/organizer id/i), { target: { value: "42" } });
+    fireEvent.click(screen.getByRole("button", { name: /look up/i }));
+
+    await screen.findByText("Test Organizer");
+    const onboardedDt = screen.getByText(/onboarded/i);
+    expect(onboardedDt).toBeInTheDocument();
+    expect(onboardedDt.nextElementSibling?.textContent).toBe("2026-05-01");
+    const firstTournDt = screen.getByText(/first tournament/i);
+    expect(firstTournDt).toBeInTheDocument();
+    expect(firstTournDt.nextElementSibling?.textContent).toBe("2026-05-15");
+  });
+
+  it("hides date fields when they are null", async () => {
+    server.use(
+      http.get("*/api/organizers/:organizerId/scrape", () =>
+        HttpResponse.json({
+          organizer_id: 42,
+          name: "New Organizer",
+          upcoming_tournaments: [],
+          recent_tournaments: [],
+          onboarded_at: null,
+          first_tournament_date: null,
+        }),
+      ),
+    );
+
+    renderWithQueryClient(<OrganizerProfile />);
+
+    fireEvent.change(screen.getByLabelText(/organizer id/i), { target: { value: "42" } });
+    fireEvent.click(screen.getByRole("button", { name: /look up/i }));
+
+    await screen.findByText("New Organizer");
+    expect(screen.queryByText(/onboarded/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/first tournament/i)).not.toBeInTheDocument();
+  });
+
   it("shows a generic failure message for a non-404 error", async () => {
     server.use(
       http.get("*/api/organizers/:organizerId/scrape", () =>
@@ -86,6 +125,8 @@ describe("OrganizerProfile", () => {
           name: "Empty Organizer",
           upcoming_tournaments: [],
           recent_tournaments: [],
+          onboarded_at: null,
+          first_tournament_date: null,
         }),
       ),
     );

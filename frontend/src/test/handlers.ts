@@ -61,6 +61,8 @@ export const organizerProfile = {
     { tournament_id: "t2", name: "Recent League", date: "2026-06-01", game: "PTCG", players: 16 },
     { tournament_id: "t3", name: "Spring Open", date: "2026-05-15", game: "POCKET", players: 32 },
   ],
+  onboarded_at: "2026-05-01",
+  first_tournament_date: "2026-05-15",
 };
 
 export const highestOrganizerId = { organizer_id: 2720 };
