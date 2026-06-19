@@ -3,24 +3,27 @@ import { useQuery } from "@tanstack/react-query";
 import { ApiError, scrapeOrganizerProfile, type TournamentEntry } from "../api/client";
 
 function TournamentList({ tournaments, label }: { tournaments: TournamentEntry[]; label: string }) {
-  if (tournaments.length === 0) {
-    return <p className="text-sm text-gray-500">No {label.toLowerCase()}.</p>;
-  }
-
   return (
-    <ul className="divide-y divide-gray-200">
-      {tournaments.map((t) => (
-        <li key={t.tournament_id} className="py-2">
-          <div className="flex items-center justify-between gap-4">
-            <span className="font-medium">{t.name}</span>
-            <span className="text-sm text-gray-400">{t.date}</span>
-          </div>
-          <p className="text-sm text-gray-500">
-            {t.game} · {t.players} players
-          </p>
-        </li>
-      ))}
-    </ul>
+    <div>
+      <h4 className="mb-1 text-sm font-medium text-gray-700">{label}</h4>
+      {tournaments.length === 0 ? (
+        <p className="text-sm text-gray-500">No {label.toLowerCase()}.</p>
+      ) : (
+        <ul className="divide-y divide-gray-200">
+          {tournaments.map((t) => (
+            <li key={t.tournament_id} className="py-2">
+              <div className="flex items-center justify-between gap-4">
+                <span className="font-medium">{t.name}</span>
+                <span className="text-sm text-gray-400">{t.date}</span>
+              </div>
+              <p className="text-sm text-gray-500">
+                {t.game} · {t.players} players
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -32,6 +35,7 @@ export function OrganizerProfile() {
     queryKey: ["organizer-profile", organizerId],
     queryFn: () => scrapeOrganizerProfile(organizerId!),
     enabled: organizerId !== undefined,
+    staleTime: 60_000,
   });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -78,15 +82,8 @@ export function OrganizerProfile() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">{data.name}</h3>
 
-          <div>
-            <h4 className="mb-1 text-sm font-medium text-gray-700">Upcoming Tournaments</h4>
-            <TournamentList tournaments={data.upcoming_tournaments} label="Upcoming Tournaments" />
-          </div>
-
-          <div>
-            <h4 className="mb-1 text-sm font-medium text-gray-700">Recent Tournaments</h4>
-            <TournamentList tournaments={data.recent_tournaments} label="Recent Tournaments" />
-          </div>
+          <TournamentList tournaments={data.upcoming_tournaments} label="Upcoming Tournaments" />
+          <TournamentList tournaments={data.recent_tournaments} label="Recent Tournaments" />
         </div>
       )}
     </div>

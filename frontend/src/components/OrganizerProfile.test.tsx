@@ -62,6 +62,22 @@ describe("OrganizerProfile", () => {
     expect(await screen.findByText(/organizer not found/i)).toBeInTheDocument();
   });
 
+  it("shows a generic failure message for a non-404 error", async () => {
+    server.use(
+      http.get("*/api/organizers/:organizerId/scrape", () =>
+        HttpResponse.json({ detail: "failed to reach Limitless" }, { status: 502 }),
+      ),
+    );
+
+    renderWithQueryClient(<OrganizerProfile />);
+
+    fireEvent.change(screen.getByLabelText(/organizer id/i), { target: { value: "42" } });
+    fireEvent.click(screen.getByRole("button", { name: /look up/i }));
+
+    expect(await screen.findByText(/failed to load/i)).toBeInTheDocument();
+    expect(screen.queryByText(/organizer not found/i)).not.toBeInTheDocument();
+  });
+
   it("shows 'no upcoming tournaments' when the list is empty", async () => {
     server.use(
       http.get("*/api/organizers/:organizerId/scrape", () =>
