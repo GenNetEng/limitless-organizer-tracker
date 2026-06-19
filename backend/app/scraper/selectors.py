@@ -57,11 +57,9 @@ RESUBMIT_BUTTON_SELECTOR = ".page2 button.submit"
 RESUBMIT_RESULT_SELECTOR = ".page3"
 
 # --- Organizer profile page (public, no auth, httpx-only) ---
-# Best-guess selectors for /organizer/{id}; not yet verified against a live
-# page with a real organizer profile.
+# Verified against live pages for organizer 2720 (upcoming) and organizer 1
+# (completed) on 2026-06-18. Data lives in data-* attributes on <tr>; the
+# header <tr> (with <th>) is excluded by [data-name].
 PROFILE_NAME_SELECTOR = ".organizer-info h1.name"
-PROFILE_UPCOMING_TABLE_SELECTOR = "table.upcoming-tournaments tbody tr[data-id]"
-PROFILE_RECENT_TABLE_SELECTOR = "table.recent-tournaments tbody tr[data-id]"
-PROFILE_TOURNAMENT_NAME_SELECTOR = "td.name"
-PROFILE_TOURNAMENT_GAME_SELECTOR = "td.game"
-PROFILE_TOURNAMENT_PLAYERS_SELECTOR = "td.players"
+PROFILE_UPCOMING_TABLE_SELECTOR = "table.upcoming-tournaments tr[data-name]"
+PROFILE_COMPLETED_TABLE_SELECTOR = "table.completed-tournaments tr[data-name]"

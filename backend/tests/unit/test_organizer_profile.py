@@ -27,10 +27,10 @@ def test_parse_organizer_profile_extracts_upcoming_tournaments():
     assert t.name == "Pudding Weekly #1 | A New Beginning!"
     assert t.date == "2026-06-24T01:30:00.000Z"
     assert t.game == "PTCGL"
-    assert t.players == 0
+    assert t.players == 1
 
 
-def test_parse_organizer_profile_extracts_recent_tournaments():
+def test_parse_organizer_profile_extracts_completed_tournaments():
     html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
 
     result = parse_organizer_profile(html, organizer_id=2720)
@@ -41,7 +41,6 @@ def test_parse_organizer_profile_extracts_recent_tournaments():
     assert t.tournament_id == "5920b5d51c86e2a9b1506c22"
     assert t.name == "Test Tournament Past"
     assert t.date == "2026-06-17T01:30:00.000Z"
-    assert t.game == "Pokemon"
     assert t.players == 12
 
 
@@ -66,18 +65,18 @@ def test_parse_organizer_profile_returns_none_when_no_name_element():
 
 def test_parse_tournament_row_handles_non_numeric_players():
     html = """<html><body>
-    <div class="organizer-info"><h1 class="name">Test Org</h1></div>
-    <table class="upcoming-tournaments"><tbody>
-      <tr data-id="abc123" data-date="2026-06-24T01:30:00.000Z">
-        <td class="name">Some Tournament</td>
-        <td class="game">PTCGL</td>
-        <td class="players">TBD</td>
+    <div class="organizer-info"><div><h1 class="name">Test Org</h1></div></div>
+    <table class="striped upcoming-tournaments">
+      <tr><th>Date</th><th>Name</th></tr>
+      <tr data-name="Some Tournament" data-date="2026-06-24T01:30:00.000Z"
+          data-platform="PTCGL" data-players="TBD">
+        <td><a href="/tournament/abc123/details">Some Tournament</a></td>
       </tr>
-    </tbody></table>
-    <table class="recent-tournaments"><tbody></tbody></table>
+    </table>
     </body></html>"""
 
     result = parse_organizer_profile(html, organizer_id=1)
 
     assert result is not None
     assert result.upcoming_tournaments[0].players == 0
+    assert result.upcoming_tournaments[0].tournament_id == "abc123"

@@ -27,29 +27,29 @@ def _safe_int(text: str) -> int:
         return 0
 
 
-def _parse_tournament_row(row) -> TournamentEntry:
-    from app.scraper.selectors import (
-        PROFILE_TOURNAMENT_GAME_SELECTOR,
-        PROFILE_TOURNAMENT_NAME_SELECTOR,
-        PROFILE_TOURNAMENT_PLAYERS_SELECTOR,
-    )
+def _extract_tournament_id(row) -> str:
+    link = row.select_one("a[href*='/tournament/']")
+    if link:
+        parts = link["href"].split("/")
+        if len(parts) >= 3:
+            return parts[2]
+    return ""
 
-    name_el = row.select_one(PROFILE_TOURNAMENT_NAME_SELECTOR)
-    game_el = row.select_one(PROFILE_TOURNAMENT_GAME_SELECTOR)
-    players_el = row.select_one(PROFILE_TOURNAMENT_PLAYERS_SELECTOR)
+
+def _parse_tournament_row(row) -> TournamentEntry:
     return TournamentEntry(
-        tournament_id=row["data-id"],
-        name=name_el.get_text(strip=True) if name_el else "",
+        tournament_id=_extract_tournament_id(row),
+        name=row.get("data-name", ""),
         date=row.get("data-date", ""),
-        game=game_el.get_text(strip=True) if game_el else "",
-        players=_safe_int(players_el.get_text(strip=True)) if players_el else 0,
+        game=row.get("data-platform", ""),
+        players=_safe_int(row.get("data-players", "0")),
     )
 
 
 def parse_organizer_profile(html: str, organizer_id: int) -> OrganizerProfile | None:
     from app.scraper.selectors import (
+        PROFILE_COMPLETED_TABLE_SELECTOR,
         PROFILE_NAME_SELECTOR,
-        PROFILE_RECENT_TABLE_SELECTOR,
         PROFILE_UPCOMING_TABLE_SELECTOR,
     )
 
@@ -59,7 +59,7 @@ def parse_organizer_profile(html: str, organizer_id: int) -> OrganizerProfile | 
         return None
 
     upcoming = [_parse_tournament_row(row) for row in soup.select(PROFILE_UPCOMING_TABLE_SELECTOR)]
-    recent = [_parse_tournament_row(row) for row in soup.select(PROFILE_RECENT_TABLE_SELECTOR)]
+    recent = [_parse_tournament_row(row) for row in soup.select(PROFILE_COMPLETED_TABLE_SELECTOR)]
 
     return OrganizerProfile(
         organizer_id=organizer_id,
