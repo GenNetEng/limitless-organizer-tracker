@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 17 — Organizer profile frontend + dashboard overhaul (FR15, FR16 UI,
+  [#45](https://github.com/GenNetEng/limitless-organizer-tracker/issues/45))**:
+  `OrganizerProfile` component — form to look up an organizer by ID via
+  `GET /api/organizers/{id}/scrape`, displays organizer name, onboarded/first-
+  tournament dates (from `Organizer` DB table), and upcoming/recent tournament
+  lists with game and player count; handles 404 and empty-list states.
+  `HighestOrganizerIdCard` stat card — renders the highest known organizer ID
+  from `GET /api/organizers/highest-id`. Three-tab dashboard layout: "My
+  Application" (status history + resubmission log), "Organizer Growth" (activity
+  chart + wait-time estimator), "Organizer Lookup" (highest ID + profile).
+  Status history paginated (20/page) with scrollable container. Wait-time
+  estimator scatter chart axes flipped (time→X, organizer ID→Y) for readability.
+  Scrape endpoint enriched with `onboarded_at` and `first_tournament_date` from
+  the `Organizer` table. 51/51 frontend, 171/171 backend tests pass.
 - **Phase 16 — Organizer profile backend (FR16 API, FR18)**:
   `GET /api/organizers/{id}/scrape` — httpx-fetches the public
   `play.limitlesstcg.com/organizer/{id}` page, parses with BeautifulSoup 4,

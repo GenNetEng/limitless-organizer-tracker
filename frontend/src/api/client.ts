@@ -69,8 +69,8 @@ async function getJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function getStatusHistory(): Promise<Page<StatusCheck>> {
-  return getJson<Page<StatusCheck>>("/api/status-history");
+export function getStatusHistory(limit = 50, offset = 0): Promise<Page<StatusCheck>> {
+  return getJson<Page<StatusCheck>>(`/api/status-history?limit=${limit}&offset=${offset}`);
 }
 
 export function getResubmissions(): Promise<Page<ResubmissionEvent>> {
@@ -90,4 +90,33 @@ export function getWaitEstimate(organizerId?: number): Promise<WaitEstimate> {
   const query =
     organizerId !== undefined ? `?organizer_id=${encodeURIComponent(organizerId)}` : "";
   return getJson<WaitEstimate>(`/api/organizers/wait-estimate${query}`);
+}
+
+export interface TournamentEntry {
+  tournament_id: string;
+  name: string;
+  date: string;
+  game: string;
+  players: number;
+}
+
+export interface OrganizerProfile {
+  organizer_id: number;
+  name: string;
+  upcoming_tournaments: TournamentEntry[];
+  recent_tournaments: TournamentEntry[];
+  onboarded_at: string | null;
+  first_tournament_date: string | null;
+}
+
+export interface HighestOrganizerId {
+  organizer_id: number;
+}
+
+export function scrapeOrganizerProfile(organizerId: number): Promise<OrganizerProfile> {
+  return getJson<OrganizerProfile>(`/api/organizers/${encodeURIComponent(organizerId)}/scrape`);
+}
+
+export function getHighestOrganizerId(): Promise<HighestOrganizerId> {
+  return getJson<HighestOrganizerId>("/api/organizers/highest-id");
 }

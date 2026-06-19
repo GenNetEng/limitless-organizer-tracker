@@ -61,6 +61,41 @@ class TestScrapeEndpoint:
         assert data["upcoming_tournaments"][0]["tournament_id"] == "6a30c6e62d97f3b0c2617d33"
 
     @respx.mock
+    def test_scrape_includes_db_dates_when_organizer_exists(self):
+        html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+        respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+            return_value=httpx.Response(200, text=html)
+        )
+        with self.session_factory() as session:
+            session.add(Organizer(
+                organizer_id=2720,
+                onboarded_at=date(2026, 6, 10),
+                first_tournament_date=date(2026, 6, 15),
+            ))
+            session.commit()
+
+        resp = self.client.get("/api/organizers/2720/scrape")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["onboarded_at"] == "2026-06-10"
+        assert data["first_tournament_date"] == "2026-06-15"
+
+    @respx.mock
+    def test_scrape_returns_null_dates_when_organizer_not_in_db(self):
+        html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+        respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+            return_value=httpx.Response(200, text=html)
+        )
+
+        resp = self.client.get("/api/organizers/2720/scrape")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["onboarded_at"] is None
+        assert data["first_tournament_date"] is None
+
+    @respx.mock
     def test_scrape_returns_404_when_organizer_not_found(self):
         respx.get("https://play.limitlesstcg.com/organizer/99999").mock(
             return_value=httpx.Response(404)
