@@ -66,7 +66,18 @@ export const organizerProfile = {
 export const highestOrganizerId = { organizer_id: 2720 };
 
 export const handlers = [
-  http.get("*/api/status-history", () => HttpResponse.json(statusHistoryPage)),
+  http.get("*/api/status-history", ({ request }) => {
+    const url = new URL(request.url);
+    const limit = Number(url.searchParams.get("limit") ?? 50);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    const sliced = statusHistoryPage.items.slice(offset, offset + limit);
+    return HttpResponse.json({
+      items: sliced,
+      total: statusHistoryPage.items.length,
+      limit,
+      offset,
+    });
+  }),
   http.get("*/api/resubmissions", () => HttpResponse.json(resubmissionsPage)),
   http.get("*/api/games", () => HttpResponse.json(games)),
   http.get("*/api/organizers/activity", ({ request }) => {

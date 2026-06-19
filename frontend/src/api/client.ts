@@ -69,8 +69,8 @@ async function getJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function getStatusHistory(): Promise<Page<StatusCheck>> {
-  return getJson<Page<StatusCheck>>("/api/status-history");
+export function getStatusHistory(limit = 50, offset = 0): Promise<Page<StatusCheck>> {
+  return getJson<Page<StatusCheck>>(`/api/status-history?limit=${limit}&offset=${offset}`);
 }
 
 export function getResubmissions(): Promise<Page<ResubmissionEvent>> {

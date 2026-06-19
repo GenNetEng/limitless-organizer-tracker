@@ -99,31 +99,31 @@ export function WaitTimeEstimator() {
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="organizerId" type="number" name="Organizer ID" domain={["auto", "auto"]} />
-              <YAxis
+              <XAxis
                 dataKey="timestamp"
                 type="number"
                 name="First tournament date"
                 domain={["auto", "auto"]}
                 tickFormatter={(value: number) => new Date(value).toLocaleDateString()}
               />
+              <YAxis dataKey="organizerId" type="number" name="Organizer ID" domain={["auto", "auto"]} />
               <Tooltip />
               <Scatter
                 name="All organizers"
                 data={toScatterData(estimateQuery.data)}
-                dataKey="timestamp"
+                dataKey="organizerId"
                 fill="#93c5fd"
               />
               <Scatter
                 name="Frontier (fastest onboarding)"
                 data={toFrontierScatterData(estimateQuery.data)}
-                dataKey="timestamp"
+                dataKey="organizerId"
                 fill="#dc2626"
               />
               <Line
                 name="Fitted line"
                 data={toFittedLineData(estimateQuery.data)}
-                dataKey="timestamp"
+                dataKey="organizerId"
                 stroke="#f97316"
                 dot={false}
                 type="linear"
