@@ -58,3 +58,22 @@ class WaitEstimateOut(BaseModel):
 
 class BackfillResultOut(BaseModel):
     updated: int
+
+
+class TournamentEntryOut(BaseModel):
+    tournament_id: str
+    name: str
+    date: str
+    game: str
+    players: int
+
+
+class OrganizerProfileOut(BaseModel):
+    organizer_id: int
+    name: str
+    upcoming_tournaments: list[TournamentEntryOut]
+    recent_tournaments: list[TournamentEntryOut]
+
+
+class HighestOrganizerIdOut(BaseModel):
+    organizer_id: int
