@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 16 — Organizer profile backend (FR16 API, FR18)**:
+  `GET /api/organizers/{id}/scrape` — httpx-fetches the public
+  `play.limitlesstcg.com/organizer/{id}` page, parses with BeautifulSoup 4,
+  returns organizer name + upcoming/recent tournament list as JSON (no DB
+  storage). 404 from Limitless passes through as 404. Tested against fixture
+  HTML. `GET /api/organizers/highest-id` — returns `MAX(organizer_id)` from
+  `Organizer` table (falls back to `OrganizerActivity`; 404 if both empty).
+  New schemas: `OrganizerProfileOut`, `TournamentEntryOut`,
+  `HighestOrganizerIdOut`. 165/165 backend tests pass.
 - **Phase 15 — README + traceability finalization (MVP3, closes [#11](https://github.com/GenNetEng/limitless-organizer-tracker/issues/11))**:
   expanded `docs/dev_guide.md` env-var table to cover all settings added since
   Phase 8 (`LIMITLESS_APPLICATION_ID`, `CORS_ALLOWED_ORIGINS`,

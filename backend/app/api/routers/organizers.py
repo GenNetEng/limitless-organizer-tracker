@@ -1,17 +1,27 @@
 from datetime import date
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.analytics.buckets import bucket_activity, bucket_onboarding
 from app.analytics.frontier import compute_frontier
 from app.analytics.regression import fit_linear_regression
-from app.api.schemas import ActivityBucketOut, BackfillResultOut, WaitEstimateOut, WaitEstimatePointOut
+from app.api.schemas import (
+    ActivityBucketOut,
+    BackfillResultOut,
+    HighestOrganizerIdOut,
+    OrganizerProfileOut,
+    WaitEstimateOut,
+    WaitEstimatePointOut,
+)
+from app.config import settings
 from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
 from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
+from app.scraper.organizer_profile import parse_organizer_profile
 
 TOP_N_ORGANIZERS = 1000
 
@@ -117,3 +127,33 @@ def get_onboarding_history(
     ).all()
     buckets = bucket_onboarding(list(dates), interval)
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
+
+
+@router.get("/organizers/highest-id", response_model=HighestOrganizerIdOut)
+def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerIdOut:
+    highest = db.scalar(select(func.max(Organizer.organizer_id)))
+    if highest is None:
+        highest = db.scalar(select(func.max(OrganizerActivity.organizer_id)))
+    if highest is None:
+        raise HTTPException(status_code=404, detail="no organizer data available")
+    return HighestOrganizerIdOut(organizer_id=highest)
+
+
+@router.get("/organizers/{organizer_id}/scrape", response_model=OrganizerProfileOut)
+def scrape_organizer_profile(organizer_id: int = Path(ge=1)) -> OrganizerProfileOut:
+    url = f"{settings.limitless_base_url}/organizer/{organizer_id}"
+    try:
+        resp = httpx.get(url, follow_redirects=True, timeout=30)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="failed to reach Limitless")
+
+    if resp.status_code == 404:
+        raise HTTPException(status_code=404, detail="organizer not found on Limitless")
+    if not resp.is_success:
+        raise HTTPException(status_code=502, detail=f"Limitless returned {resp.status_code}")
+
+    profile = parse_organizer_profile(resp.text, organizer_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="organizer profile could not be parsed")
+
+    return OrganizerProfileOut.model_validate(profile)
