@@ -7,7 +7,7 @@ metadata:
     {{- include "lot.labels" . | nindent 4 }}
 spec:
   crVersion: "3.0.0"
-  image: percona/percona-postgresql-operator:3.0.0-ppg16-postgres
+  image: percona/percona-distribution-postgresql:16-ubi8
   postgresVersion: {{ .Values.percona.pgVersion | int }}
   instances:
     - name: instance1
@@ -18,9 +18,9 @@ spec:
         resources:
           requests:
             storage: {{ .Values.percona.storageSize }}
-  {{- if not .Values.percona.disableBackups }}
   backups:
     pgbackrest:
+      image: percona/percona-pgbackrest:2.58.0
       repos:
         - name: repo1
           volume:
@@ -29,8 +29,7 @@ spec:
                 - ReadWriteOnce
               resources:
                 requests:
-                  storage: {{ .Values.percona.storageSize }}
-  {{- end }}
+                  storage: {{ .Values.percona.backupStorageSize | default .Values.percona.storageSize }}
   users:
     - name: limitless
       databases:

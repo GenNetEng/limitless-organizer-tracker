@@ -56,7 +56,7 @@ redis:
   image:
     registry: docker.io
     repository: bitnami/redis
-    tag: "7.4"
+    tag: latest
   master:
     persistence:
       size: 1Gi
