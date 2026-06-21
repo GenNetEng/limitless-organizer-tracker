@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_KEY = import.meta.env.VITE_API_KEY ?? "";
 
 export type ApplicationStatus =
   | "pending"
@@ -62,7 +63,11 @@ export class ApiError extends Error {
 }
 
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+  const headers: Record<string, string> = {};
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers });
   if (!response.ok) {
     throw new ApiError(`Request to ${path} failed with status ${response.status}`, response.status);
   }

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_api_key
 from app.api.pagination import DEFAULT_LIMIT, MAX_LIMIT, paginate
 from app.api.schemas import Page, ResubmissionEventOut, StatusCheckOut
 from app.db.models import ApplicationStatusCheck, ResubmissionEvent
 from app.db.session import get_db
 from app.tasks.status_tasks import run_application_status_check
 
-router = APIRouter(prefix="/api", tags=["status"])
+router = APIRouter(prefix="/api", tags=["status"], dependencies=[Depends(require_api_key)])
 
 
 @router.post("/status-check", response_model=StatusCheckOut)

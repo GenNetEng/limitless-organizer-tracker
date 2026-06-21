@@ -27,5 +27,7 @@ class Settings(BaseSettings):
     organizer_scan_interval_hours: int = 24
     organizer_scan_limit: int = 50
 
+    api_keys: str = ""
+
 
 settings = Settings()
