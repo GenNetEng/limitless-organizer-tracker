@@ -5,6 +5,8 @@ backend:
     tag: latest
     pullPolicy: Always
   replicas: 1
+  env:
+    CORS_ALLOWED_ORIGINS: "https://limitless-org-dashboard-staging.badconfig.com"
 
 frontend:
   image:
