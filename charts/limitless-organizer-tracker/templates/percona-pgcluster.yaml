@@ -6,7 +6,8 @@ metadata:
   labels:
     {{- include "lot.labels" . | nindent 4 }}
 spec:
-  crVersion: "2.5.0"
+  crVersion: "3.0.0"
+  image: percona/percona-postgresql-operator:3.0.0-ppg16-postgres
   postgresVersion: {{ .Values.percona.pgVersion | int }}
   instances:
     - name: instance1
