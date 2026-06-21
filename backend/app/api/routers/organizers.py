@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_api_key
 from app.analytics.buckets import bucket_activity, bucket_onboarding
 from app.analytics.frontier import compute_frontier
 from app.analytics.regression import fit_linear_regression
@@ -25,7 +26,7 @@ from app.scraper.organizer_profile import parse_organizer_profile
 
 TOP_N_ORGANIZERS = 1000
 
-router = APIRouter(prefix="/api", tags=["organizers"])
+router = APIRouter(prefix="/api", tags=["organizers"], dependencies=[Depends(require_api_key)])
 
 
 @router.get("/games", response_model=list[str])

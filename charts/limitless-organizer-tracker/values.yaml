@@ -39,6 +39,7 @@ secrets:
   discordWebhookUrl: ""
   limitlessUsername: ""
   limitlessPassword: ""
+  apiKeys: ""
 
 # Percona PostgreSQL Operator CRD
 percona:
