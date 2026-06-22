@@ -76,7 +76,7 @@ def earliest_tournament_date(profile: OrganizerProfile) -> date | None:
     for t in all_tournaments:
         if t.date:
             try:
-                dates.append(datetime.fromisoformat(t.date.replace("Z", "+00:00")).date())
+                dates.append(datetime.fromisoformat(t.date).date())
             except ValueError:
                 continue
     return min(dates) if dates else None
