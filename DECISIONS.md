@@ -15,6 +15,8 @@ Newest entries first.
 
 **Business context**: The slope gives the onboarding rate (days per organizer ID), enabling estimates of historical approval throughput and projected time-to-approval for pending applications.
 
+**Future refinement**: The current regression formula (organizer_id vs first_tournament_date) is a rough proxy. As real `onboarded_at` data accumulates from the scanner (IDs >= 2723), a better model becomes possible — actual onboarding date vs first tournament date gives the real lag, and actual onboarding date vs organizer_id gives the true approval rate. Since `estimated_onboard_date` is computed at query time (not stored), swapping the formula is a one-function change in `_estimate_onboard_date` with no migration.
+
 ## 2026-06-22: Event log — centralized EventLog table with partitioning (Phase 21a)
 
 **Decision**: Create a single **`event_log`** table as the centralized audit/event log for all application operations. All significant functions log events here — task lifecycle (via Celery signals), scraper operations, data ingestion, notifications, and API triggers. The table uses a JSON `metadata` column for flexible structured data per event type.
