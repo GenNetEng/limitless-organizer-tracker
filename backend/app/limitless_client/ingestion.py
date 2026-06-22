@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Organizer, OrganizerActivity, Tournament
 from app.limitless_client.schemas import TournamentDTO
+
+TOURNAMENT_DATE_FLOOR = date(2020, 1, 1)
 
 
 def upsert_tournaments(session: Session, tournaments: list[TournamentDTO]) -> set[tuple[int, str]]:
@@ -13,6 +15,8 @@ def upsert_tournaments(session: Session, tournaments: list[TournamentDTO]) -> se
     touched: set[tuple[int, str]] = set()
 
     for dto in tournaments:
+        if dto.date.date() < TOURNAMENT_DATE_FLOOR:
+            continue
         session.merge(
             Tournament(
                 id=dto.id,
@@ -48,8 +52,7 @@ def recompute_organizer_activity(session: Session, pairs: set[tuple[int, str]]) 
         first, last = rows[0], rows[-1]
         activity = session.get(OrganizerActivity, (organizer_id, game))
         if activity is None:
-            activity = OrganizerActivity(organizer_id=organizer_id, game=game)
-            session.add(activity)
+            activity = session.merge(OrganizerActivity(organizer_id=organizer_id, game=game))
 
         activity.first_tournament_date = first.date
         activity.first_tournament_id = first.id
@@ -86,8 +89,7 @@ def sync_organizer_first_tournament_dates(session: Session, organizer_ids: set[i
     for organizer_id, min_dt in min_dates.items():
         organizer = existing.get(organizer_id)
         if organizer is None:
-            organizer = Organizer(organizer_id=organizer_id)
-            session.add(organizer)
+            organizer = session.merge(Organizer(organizer_id=organizer_id))
         organizer.first_tournament_date = min_dt.date()
 
     session.flush()

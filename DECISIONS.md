@@ -7,6 +7,14 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-22: Rate-limit all Limitless API interactions
+
+**Decision**: All tasks that call the Limitless API must execute sequentially — one request at a time. No parallel page fetches, no bulk concurrent scrapes. Be a good neighbor.
+
+**How to apply**: Audit-then-queue tasks should chain page/item tasks sequentially (page 1 completes → page 2 starts) rather than dispatching all at once. The organizer scanner already does this naturally (sequential probe). The tournament backfill must do the same — dispatch page tasks one at a time via chaining, not all at once.
+
+**Rationale**: The full backfill dispatched 35 page tasks simultaneously, all hitting the Limitless API in parallel. This is aggressive and risks rate-limiting or IP bans. There's no rush on historical data — sequential processing is fine.
+
 ## 2026-06-22: All Celery tasks must have manual trigger endpoints
 
 **Decision**: Every Celery beat task must also be exposed as a manually triggerable API endpoint in the admin router, so it appears in the Admin tab's Task Triggers panel. No task should be beat-only — operators need the ability to trigger any task on demand for debugging, verification, and ad-hoc runs.

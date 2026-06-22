@@ -54,32 +54,16 @@ def test_trigger_ingest_tournaments_returns_500_on_failure(client, monkeypatch):
 
 def test_trigger_scan_organizers(client, monkeypatch):
     test_client, _ = client
-    mock = _mock_task(
-        monkeypatch,
-        "app.api.routers.tasks.scan_new_organizers_task",
-        7,
-    )
+    mock_task = MagicMock()
+    mock_task.delay.return_value = MagicMock(id="mock-task-id")
+    monkeypatch.setattr("app.api.routers.tasks.audit_organizer_scan_task", mock_task)
 
     response = test_client.post("/api/tasks/scan-organizers")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "completed"
-    assert body["result"] == "Found 7 new organizers"
-    mock.delay.assert_called_once()
-
-
-def test_trigger_scan_organizers_returns_500_on_failure(client, monkeypatch):
-    test_client, _ = client
-    mock_async_result = MagicMock()
-    mock_async_result.get.side_effect = Exception("boom")
-    mock_task = MagicMock()
-    mock_task.delay.return_value = mock_async_result
-    monkeypatch.setattr("app.api.routers.tasks.scan_new_organizers_task", mock_task)
-
-    response = test_client.post("/api/tasks/scan-organizers")
-
-    assert response.status_code == 500
+    assert body["status"] == "started"
+    mock_task.delay.assert_called_once()
 
 
 # --- POST /api/tasks/resubmit-application ---

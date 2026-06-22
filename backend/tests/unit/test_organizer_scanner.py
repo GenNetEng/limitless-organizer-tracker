@@ -1,12 +1,13 @@
 from datetime import date, datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 import respx
 
 import app.tasks.organizer_tasks as organizer_tasks
 from app.config import settings
-from app.db.models import Organizer, OrganizerActivity
+from app.db.models import Organizer
 
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 
@@ -20,225 +21,172 @@ def _scanned(organizer_id):
     )
 
 
-def _activity(organizer_id, game="PTCG"):
-    return OrganizerActivity(
-        organizer_id=organizer_id,
-        game=game,
-        first_tournament_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        first_tournament_id="t1",
-        last_seen_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-    )
-
-
 @respx.mock
-def test_creates_organizer_row_for_200_response(db_session, monkeypatch):
+def test_audit_dispatches_tasks_for_200_responses(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 3)
-    db_session.add(_scanned(100))
-    db_session.commit()
+    with db_session_factory() as session:
+        session.add(_scanned(2730))
+        session.commit()
 
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
         return_value=httpx.Response(200)
     )
-    respx.get(f"{settings.limitless_base_url}/organizer/102").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2732").mock(
         return_value=httpx.Response(404)
     )
 
-    organizer_tasks.run_organizer_scan(db_session)
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
 
-    organizer = db_session.get(Organizer, 101)
-    assert organizer is not None
-    assert organizer.onboarded_at == datetime.now(timezone.utc).date()
-    assert organizer.detected_at is not None
+    assert mock_delay.call_count == 1
+    mock_delay.assert_called_with(organizer_id=2731)
 
 
 @respx.mock
-def test_stops_at_404(db_session, monkeypatch):
+def test_audit_stops_at_404(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 5)
-    db_session.add(_scanned(100))
-    db_session.commit()
+    with db_session_factory() as session:
+        session.add(_scanned(2730))
+        session.commit()
 
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
         return_value=httpx.Response(200)
     )
-    respx.get(f"{settings.limitless_base_url}/organizer/102").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2732").mock(
         return_value=httpx.Response(404)
     )
 
-    organizer_tasks.run_organizer_scan(db_session)
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
 
-    assert db_session.get(Organizer, 101) is not None
-    assert db_session.get(Organizer, 102) is None
-    assert db_session.get(Organizer, 103) is None
+    assert mock_delay.call_count == 1
 
 
 @respx.mock
-def test_starts_from_highest_scanned_organizer_id(db_session, monkeypatch):
-    """Watermark uses only scanned organizers (onboarded_at IS NOT NULL), not OrganizerActivity."""
+def test_audit_uses_config_floor_when_db_watermark_is_lower(db_session_factory, monkeypatch):
+    """The scan_start_id config floor prevents scanning below the threshold."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
-    # Scanned organizer max = 150; OrganizerActivity has a much higher ID (200)
-    # but that must NOT advance the watermark past 150.
-    db_session.add(_activity(200))
-    db_session.add(Organizer(organizer_id=150, onboarded_at=date(2026, 1, 1), detected_at=datetime(2026, 1, 1, tzinfo=timezone.utc)))
-    db_session.commit()
+    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_start_id", 2722)
+    with db_session_factory() as session:
+        session.add(_scanned(100))
+        session.commit()
 
-    respx.get(f"{settings.limitless_base_url}/organizer/151").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2723").mock(
         return_value=httpx.Response(200)
     )
-    respx.get(f"{settings.limitless_base_url}/organizer/152").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2724").mock(
         return_value=httpx.Response(404)
     )
 
-    organizer_tasks.run_organizer_scan(db_session)
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
 
-    # Scan should have started at 151 (scanned max=150, +1), not 201
-    assert db_session.get(Organizer, 151) is not None
-    assert db_session.get(Organizer, 201) is None  # never reached
+    mock_delay.assert_called_with(organizer_id=2723)
 
 
 @respx.mock
-def test_activity_data_does_not_advance_watermark(db_session, monkeypatch):
-    """OrganizerActivity rows must not push the watermark past the scanner's own position.
-
-    Scenario: tournament ingestion creates activity for ID 200 while the scanner's
-    highest confirmed ID is 50. After the fix, start_id = 51 (based only on scanned
-    organizers), not 201.
-    """
+def test_audit_respects_scan_limit(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
-    # Scanned organizer at 50; activity data exists for a much higher ID
-    db_session.add(Organizer(organizer_id=50, onboarded_at=date(2026, 1, 1), detected_at=datetime(2026, 1, 1, tzinfo=timezone.utc)))
-    db_session.add(_activity(200))
-    db_session.commit()
+    with db_session_factory() as session:
+        session.add(_scanned(2730))
+        session.commit()
 
-    respx.get(f"{settings.limitless_base_url}/organizer/51").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
         return_value=httpx.Response(200)
     )
-    respx.get(f"{settings.limitless_base_url}/organizer/52").mock(
-        return_value=httpx.Response(404)
+    respx.get(f"{settings.limitless_base_url}/organizer/2732").mock(
+        return_value=httpx.Response(200)
     )
 
-    organizer_tasks.run_organizer_scan(db_session)
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
 
-    assert db_session.get(Organizer, 51) is not None   # scanner reached 51
-    assert db_session.get(Organizer, 201) is None       # never jumped to 201
+    assert mock_delay.call_count == 2
 
 
 @respx.mock
-def test_respects_scan_limit(db_session, monkeypatch):
-    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
-    db_session.add(_scanned(100))
-    db_session.commit()
-
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
-        return_value=httpx.Response(200)
-    )
-    respx.get(f"{settings.limitless_base_url}/organizer/102").mock(
-        return_value=httpx.Response(200)
-    )
-
-    organizer_tasks.run_organizer_scan(db_session)
-
-    assert db_session.get(Organizer, 101) is not None
-    assert db_session.get(Organizer, 102) is not None
-    # 103 would be beyond the limit of 2
-    assert db_session.get(Organizer, 103) is None
-
-
-@respx.mock
-def test_stops_on_unexpected_status_code(db_session, monkeypatch):
-    """Non-200/non-404 status codes stop the scan so the ID can be retried next run."""
+def test_audit_stops_on_unexpected_status_code(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 3)
-    db_session.add(_scanned(100))
-    db_session.commit()
+    with db_session_factory() as session:
+        session.add(_scanned(2730))
+        session.commit()
 
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
         return_value=httpx.Response(500)
     )
 
-    organizer_tasks.run_organizer_scan(db_session)
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
 
-    assert db_session.get(Organizer, 101) is None  # 500 → no row
-    assert db_session.get(Organizer, 102) is None  # scan stopped; 102 not reached
-
-
-@respx.mock
-def test_empty_tables_starts_from_id_1(db_session, monkeypatch):
-    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
-
-    respx.get(f"{settings.limitless_base_url}/organizer/1").mock(
-        return_value=httpx.Response(200)
-    )
-    respx.get(f"{settings.limitless_base_url}/organizer/2").mock(
-        return_value=httpx.Response(404)
-    )
-
-    organizer_tasks.run_organizer_scan(db_session)
-
-    assert db_session.get(Organizer, 1) is not None
+    assert mock_delay.call_count == 0
 
 
 @respx.mock
-def test_returns_count_of_new_organizers_found(db_session, monkeypatch):
-    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 3)
-    db_session.add(_scanned(100))
-    db_session.commit()
+def test_scan_single_organizer_creates_row(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
 
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
-        return_value=httpx.Response(200)
-    )
-    respx.get(f"{settings.limitless_base_url}/organizer/102").mock(
-        return_value=httpx.Response(200)
-    )
-    respx.get(f"{settings.limitless_base_url}/organizer/103").mock(
-        return_value=httpx.Response(404)
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
+        return_value=httpx.Response(200, text="<html><body>No profile</body></html>")
     )
 
-    count = organizer_tasks.run_organizer_scan(db_session)
+    result = organizer_tasks.scan_single_organizer_task(organizer_id=2731)
 
-    assert count == 2
+    assert result is True
+    with db_session_factory() as session:
+        org = session.get(Organizer, 2731)
+        assert org is not None
+        assert org.onboarded_at == datetime.now(timezone.utc).date()
 
 
 @respx.mock
-def test_backfill_counts_toward_found(db_session, monkeypatch):
-    """Updating an ingestion-created stub (onboarded_at=None) counts as found."""
-    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
-    db_session.add(_scanned(99))
-    db_session.add(Organizer(organizer_id=100, onboarded_at=None))
-    db_session.commit()
-
-    # MAX(onboarded_at IS NOT NULL) = 99 → start = 100 (the stub)
-    respx.get(f"{settings.limitless_base_url}/organizer/100").mock(
-        return_value=httpx.Response(200)
-    )
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
-        return_value=httpx.Response(404)
-    )
-
-    count = organizer_tasks.run_organizer_scan(db_session)
-
-    assert count == 1
-    assert db_session.get(Organizer, 100).onboarded_at == datetime.now(timezone.utc).date()
-
-
-@respx.mock
-def test_scan_parses_first_tournament_date_from_profile(db_session, monkeypatch):
-    """When the profile page has tournaments, the scanner should populate
-    first_tournament_date from the earliest scraped tournament."""
-    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
-    db_session.add(_scanned(100))
-    db_session.commit()
+def test_scan_single_organizer_parses_first_tournament_date(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
 
     html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
-    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
         return_value=httpx.Response(200, text=html)
     )
-    respx.get(f"{settings.limitless_base_url}/organizer/102").mock(
+
+    organizer_tasks.scan_single_organizer_task(organizer_id=2731)
+
+    with db_session_factory() as session:
+        org = session.get(Organizer, 2731)
+        assert org is not None
+        assert org.onboarded_at == datetime.now(timezone.utc).date()
+        assert org.first_tournament_date == date(2026, 6, 10)
+
+
+@respx.mock
+def test_scan_single_organizer_backfills_existing_stub(db_session_factory, monkeypatch):
+    """Updating an ingestion-created stub (onboarded_at=None) sets onboarded_at."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    with db_session_factory() as session:
+        session.add(Organizer(organizer_id=2731, onboarded_at=None))
+        session.commit()
+
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
+        return_value=httpx.Response(200, text="<html><body>No profile</body></html>")
+    )
+
+    organizer_tasks.scan_single_organizer_task(organizer_id=2731)
+
+    with db_session_factory() as session:
+        org = session.get(Organizer, 2731)
+        assert org.onboarded_at == datetime.now(timezone.utc).date()
+
+
+@respx.mock
+def test_scan_single_organizer_returns_false_on_non_200(db_session_factory, monkeypatch):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
         return_value=httpx.Response(404)
     )
 
-    organizer_tasks.run_organizer_scan(db_session)
-
-    org = db_session.get(Organizer, 101)
-    assert org is not None
-    assert org.onboarded_at == datetime.now(timezone.utc).date()
-    assert org.first_tournament_date == date(2026, 6, 10)
+    result = organizer_tasks.scan_single_organizer_task(organizer_id=2731)
+    assert result is False

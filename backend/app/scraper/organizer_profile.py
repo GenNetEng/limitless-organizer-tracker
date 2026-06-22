@@ -70,13 +70,18 @@ def parse_organizer_profile(html: str, organizer_id: int) -> OrganizerProfile | 
     )
 
 
+TOURNAMENT_DATE_FLOOR = date(2020, 1, 1)
+
+
 def earliest_tournament_date(profile: OrganizerProfile) -> date | None:
     all_tournaments = profile.recent_tournaments + profile.upcoming_tournaments
     dates = []
     for t in all_tournaments:
         if t.date:
             try:
-                dates.append(datetime.fromisoformat(t.date).date())
+                parsed = datetime.fromisoformat(t.date).date()
+                if parsed >= TOURNAMENT_DATE_FLOOR:
+                    dates.append(parsed)
             except ValueError:
                 continue
     return min(dates) if dates else None
