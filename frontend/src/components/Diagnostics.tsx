@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getDiagnostics } from "../api/client";
+import { formatTimestamp } from "../lib/formatDate";
 
 function HealthBadge({ ok }: { ok: boolean }) {
   return (
@@ -62,7 +63,7 @@ export function Diagnostics() {
             {Object.entries(data.last_success_per_task).map(([task, ts]) => (
               <tr key={task}>
                 <td>{task}</td>
-                <td>{ts ? new Date(ts).toLocaleString() : "Never"}</td>
+                <td>{ts ? formatTimestamp(ts) : "Never"}</td>
               </tr>
             ))}
           </tbody>

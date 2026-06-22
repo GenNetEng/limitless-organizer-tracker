@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getResubmissions } from "../api/client";
+import { formatTimestamp } from "../lib/formatDate";
 
 export function ResubmissionLog() {
   const { data, isLoading, isError } = useQuery({
@@ -29,7 +30,7 @@ export function ResubmissionLog() {
             {item.success ? "Success" : "Failed"}
           </span>
           <time className="text-sm opacity-60" dateTime={item.submitted_at}>
-            {new Date(item.submitted_at).toLocaleString()}
+            {formatTimestamp(item.submitted_at)}
           </time>
         </li>
       ))}
