@@ -22,7 +22,7 @@ from app.config import settings
 from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
 from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
-from app.scraper.organizer_profile import parse_organizer_profile
+from app.scraper.organizer_profile import earliest_tournament_date, parse_organizer_profile
 
 TOP_N_ORGANIZERS = 1000
 
@@ -140,18 +140,6 @@ def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerI
     return HighestOrganizerIdOut(organizer_id=highest)
 
 
-def _earliest_tournament_date(profile) -> date | None:
-    all_tournaments = profile.recent_tournaments + profile.upcoming_tournaments
-    dates = []
-    for t in all_tournaments:
-        if t.date:
-            try:
-                dates.append(datetime.fromisoformat(t.date.replace("Z", "+00:00")).date())
-            except ValueError:
-                continue
-    return min(dates) if dates else None
-
-
 def _estimate_onboard_date(db: Session, organizer_id: int) -> date | None:
     rows = db.execute(
         select(
@@ -197,7 +185,7 @@ def scrape_organizer_profile(
 
     result = OrganizerProfileOut.model_validate(profile)
 
-    scraped_first_date = _earliest_tournament_date(profile)
+    scraped_first_date = earliest_tournament_date(profile)
 
     org = db.get(Organizer, organizer_id)
     if org is None:
