@@ -8,7 +8,7 @@ class TournamentDTO(BaseModel):
 
     id: str
     name: str
-    game: str
+    game: str = "unknown"
     format: str | None = None
     date: datetime
     players: int
