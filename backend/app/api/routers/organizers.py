@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Literal
 
 import httpx
@@ -140,6 +140,41 @@ def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerI
     return HighestOrganizerIdOut(organizer_id=highest)
 
 
+def _earliest_tournament_date(profile) -> date | None:
+    all_tournaments = profile.recent_tournaments + profile.upcoming_tournaments
+    dates = []
+    for t in all_tournaments:
+        if t.date:
+            try:
+                dates.append(datetime.fromisoformat(t.date.replace("Z", "+00:00")).date())
+            except ValueError:
+                continue
+    return min(dates) if dates else None
+
+
+def _estimate_onboard_date(db: Session, organizer_id: int) -> date | None:
+    rows = db.execute(
+        select(
+            OrganizerActivity.organizer_id,
+            func.min(OrganizerActivity.first_tournament_date).label("first_tournament_date"),
+        )
+        .group_by(OrganizerActivity.organizer_id)
+        .order_by(OrganizerActivity.organizer_id.desc())
+        .limit(TOP_N_ORGANIZERS)
+    ).all()
+    if len(rows) < 2:
+        return None
+
+    points = [(float(oid), float(first_date.date().toordinal())) for oid, first_date in reversed(rows)]
+    frontier_points = compute_frontier(points)
+    regression_points = frontier_points if len(frontier_points) >= 2 else points
+    result = fit_linear_regression(regression_points)
+
+    projected_ordinal = round(result.predict(float(organizer_id)))
+    projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
+    return date.fromordinal(projected_ordinal)
+
+
 @router.get("/organizers/{organizer_id}/scrape", response_model=OrganizerProfileOut)
 def scrape_organizer_profile(
     organizer_id: int = Path(ge=1),
@@ -162,9 +197,23 @@ def scrape_organizer_profile(
 
     result = OrganizerProfileOut.model_validate(profile)
 
+    scraped_first_date = _earliest_tournament_date(profile)
+
     org = db.get(Organizer, organizer_id)
-    if org is not None:
-        result.onboarded_at = org.onboarded_at
-        result.first_tournament_date = org.first_tournament_date
+    if org is None:
+        org = Organizer(organizer_id=organizer_id, detected_at=datetime.now(timezone.utc))
+        db.add(org)
+
+    if scraped_first_date is not None:
+        if org.first_tournament_date is None or scraped_first_date < org.first_tournament_date:
+            org.first_tournament_date = scraped_first_date
+
+    db.commit()
+
+    result.onboarded_at = org.onboarded_at
+    result.first_tournament_date = org.first_tournament_date
+
+    if org.onboarded_at is None:
+        result.estimated_onboard_date = _estimate_onboard_date(db, organizer_id)
 
     return result

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Added
+
+- **Phase 25 — Scrape endpoint sync + estimated onboard date
+  ([#62](https://github.com/GenNetEng/limitless-organizer-tracker/issues/62))**:
+  `GET /api/organizers/{id}/scrape` now upserts an `Organizer` row on lookup,
+  parsing `first_tournament_date` from the scraped tournament list (updating if
+  earlier than the DB value). For organizers without a scanner-observed
+  `onboarded_at`, the response includes `estimated_onboard_date` computed from
+  the Pareto frontier regression. `onboarded_at` is only set by the daily
+  scanner (organizer IDs >= 2723); the estimate fills in the gap for older IDs.
+
 ### Changed
 
 - **Phase 24 — Performance
