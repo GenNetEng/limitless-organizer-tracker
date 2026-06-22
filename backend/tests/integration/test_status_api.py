@@ -1,30 +1,18 @@
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from unittest.mock import MagicMock
 
-import httpx
 import pytest
-import respx
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import app.tasks.status_tasks as status_tasks
 from app.db.base import Base
 from app.db.models import ApplicationStatus, ApplicationStatusCheck, ResubmissionEvent
 from app.db.session import get_db
 from app.main import app
 
 BASE_TIME = datetime(2026, 6, 1, tzinfo=timezone.utc)
-FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
-WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
-
-
-@contextmanager
-def _fake_authenticated_page(page):
-    yield page
 
 
 @pytest.fixture
@@ -181,62 +169,45 @@ def test_get_resubmissions_supports_limit_and_offset(client):
     assert len(body["items"]) == 2
 
 
-@respx.mock
-def test_post_status_check_records_and_returns_result(client, monkeypatch):
+def test_post_status_check_dispatches_to_celery_and_returns_result(client, monkeypatch):
     test_client, session_factory = client
 
-    monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
-    mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "application_pending.html").read_text()
-    monkeypatch.setattr(
-        status_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
-    )
-    route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
-
-    response = test_client.post("/api/status-check")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "pending"
-    assert body["raw_text"]
-
     with session_factory() as session:
-        checks = session.query(ApplicationStatusCheck).all()
-        assert len(checks) == 1
-
-    # First-ever check has nothing to compare against, so no Discord notice.
-    assert not route.called
-
-
-@respx.mock
-def test_post_status_check_notifies_on_status_change(client, monkeypatch):
-    test_client, session_factory = client
-    with session_factory() as session:
-        session.add(
-            ApplicationStatusCheck(
-                checked_at=BASE_TIME,
-                status=ApplicationStatus.PENDING,
-                raw_text="Pending review",
-            )
+        check = ApplicationStatusCheck(
+            checked_at=BASE_TIME,
+            status=ApplicationStatus.PENDING,
+            raw_text="Status:pending",
         )
+        session.add(check)
         session.commit()
+        check_id = check.id
 
-    monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
-    mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "application_approved.html").read_text()
-    monkeypatch.setattr(
-        status_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
-    )
-    route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
+    mock_async_result = MagicMock()
+    mock_async_result.get.return_value = check_id
+    mock_task = MagicMock()
+    mock_task.delay.return_value = mock_async_result
+    monkeypatch.setattr("app.api.routers.status.check_application_status_task", mock_task)
 
     response = test_client.post("/api/status-check")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "approved"
+    assert body["id"] == check_id
+    assert body["status"] == "pending"
+    assert body["raw_text"] == "Status:pending"
+    mock_task.delay.assert_called_once()
+    mock_async_result.get.assert_called_once()
 
-    with session_factory() as session:
-        checks = session.query(ApplicationStatusCheck).all()
-        assert len(checks) == 2
 
-    assert route.called
+def test_post_status_check_returns_500_on_task_timeout(client, monkeypatch):
+    test_client, _ = client
+
+    mock_async_result = MagicMock()
+    mock_async_result.get.side_effect = Exception("Task timed out")
+    mock_task = MagicMock()
+    mock_task.delay.return_value = mock_async_result
+    monkeypatch.setattr("app.api.routers.status.check_application_status_task", mock_task)
+
+    response = test_client.post("/api/status-check")
+
+    assert response.status_code == 500
