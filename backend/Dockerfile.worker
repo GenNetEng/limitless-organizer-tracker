@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/playwright/python:v1.60.0-noble
+
+WORKDIR /app
+
+COPY pyproject.toml .
+RUN pip install --no-cache-dir .
+
+COPY . .
+
+CMD ["celery", "-A", "app.celery_app", "worker", "-l", "info"]

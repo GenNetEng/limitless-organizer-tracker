@@ -19,6 +19,12 @@ frontend:
   replicas: 1
   port: 80
 
+worker:
+  image:
+    repository: ghcr.io/genneteng/limitless-organizer-tracker/worker
+    tag: latest
+    pullPolicy: Always
+
 celery:
   worker:
     replicas: 1
