@@ -97,8 +97,9 @@ def test_audit_backfill_discovers_pages_and_dispatches_tasks(monkeypatch, db_ses
 
     tournament_tasks.audit_backfill_task.delay()
 
-    # Audit fetches pages 1-3 + empty page 4, then page tasks re-fetch 1-3
-    assert route.call_count == 7
+    # Audit fetches pages 1-3 + empty page 4 (discovery),
+    # then sequential page tasks fetch 1-3 + empty page 4 (ingestion)
+    assert route.call_count == 8
     with db_session_factory() as session:
         assert session.get(Tournament, "t1") is not None
         assert session.get(Tournament, "t2") is not None
