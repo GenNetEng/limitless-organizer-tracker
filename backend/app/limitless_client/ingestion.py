@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Organizer, OrganizerActivity, Tournament
 from app.limitless_client.schemas import TournamentDTO
+
+TOURNAMENT_DATE_FLOOR = date(2020, 1, 1)
 
 
 def upsert_tournaments(session: Session, tournaments: list[TournamentDTO]) -> set[tuple[int, str]]:
@@ -13,6 +15,8 @@ def upsert_tournaments(session: Session, tournaments: list[TournamentDTO]) -> se
     touched: set[tuple[int, str]] = set()
 
     for dto in tournaments:
+        if dto.date.date() < TOURNAMENT_DATE_FLOOR:
+            continue
         session.merge(
             Tournament(
                 id=dto.id,
