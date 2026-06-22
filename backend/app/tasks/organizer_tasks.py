@@ -54,11 +54,14 @@ def run_organizer_scan(session: Session) -> int:
 
 
 @celery_app.task(name="app.tasks.organizer_tasks.scan_new_organizers_task")
-def scan_new_organizers_task() -> None:
-    """Scan for newly onboarded organizers on the Celery beat schedule (FR17, NFR3)."""
+def scan_new_organizers_task() -> int:
+    """Scan for newly onboarded organizers on the Celery beat schedule (FR17, NFR3).
+
+    Returns the number of organizers found.
+    """
     session = SessionLocal()
     try:
-        run_organizer_scan(session)
+        return run_organizer_scan(session)
     except Exception:
         session.rollback()
         raise

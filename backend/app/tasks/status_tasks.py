@@ -63,10 +63,16 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
 
 
 @celery_app.task(name="app.tasks.status_tasks.check_application_status_task")
-def check_application_status_task() -> None:
-    """Run an application-status check on the Celery beat schedule (FR2)."""
+def check_application_status_task() -> int:
+    """Run an application-status check and return the check row ID.
+
+    Used by both the Celery beat schedule (FR2) and the on-demand
+    API endpoint (FR14), which dispatches this task to the worker
+    so Playwright runs in a container that has Chromium installed.
+    """
     session = SessionLocal()
     try:
-        run_application_status_check(session)
+        check, _ = run_application_status_check(session)
+        return check.id
     finally:
         session.close()

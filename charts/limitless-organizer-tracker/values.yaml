@@ -10,6 +10,7 @@ backend:
   env:
     CORS_ALLOWED_ORIGINS: "https://limitless-org-dashboard.badconfig.com"
     LIMITLESS_BASE_URL: "https://play.limitlesstcg.com"
+    LIMITLESS_APPLICATION_ID: ""
 
 frontend:
   image:
@@ -18,6 +19,12 @@ frontend:
     pullPolicy: Always
   replicas: 1
   port: 80
+
+worker:
+  image:
+    repository: ghcr.io/genneteng/limitless-organizer-tracker/worker
+    tag: latest
+    pullPolicy: Always
 
 celery:
   worker:

@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 20 — Separate Celery worker image with Playwright**: new
+  `Dockerfile.worker` based on `mcr.microsoft.com/playwright/python:v1.60.0-noble`
+  so the Celery worker container has Chromium available for application-status
+  checks and resubmission tasks (FR1-FR3). API server stays on `python:3.13-slim`
+  (`Dockerfile.prod`); celery-beat stays on the backend image (scheduling only).
+  CI builds and pushes `ghcr.io/.../worker` alongside backend/frontend. Helm chart
+  updated: celery-worker deployment now references `worker.image`.
 - **Phase 19 — Helm chart + Rancher Fleet GitOps
   ([#47](https://github.com/GenNetEng/limitless-organizer-tracker/issues/47))**:
   production Dockerfiles (`Dockerfile.prod` for backend + frontend with nginx),
