@@ -4,7 +4,7 @@ import { getEventLog } from "../api/client";
 export function EventLogViewer() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "event-log"],
-    queryFn: getEventLog,
+    queryFn: () => getEventLog(),
   });
 
   if (isLoading) return <p>Loading…</p>;
