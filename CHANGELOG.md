@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Changed
+
+- **Phase 22 — Backend refactors
+  ([#57](https://github.com/GenNetEng/limitless-organizer-tracker/issues/57),
+  [#56](https://github.com/GenNetEng/limitless-organizer-tracker/issues/56),
+  [#55](https://github.com/GenNetEng/limitless-organizer-tracker/issues/55),
+  [#32](https://github.com/GenNetEng/limitless-organizer-tracker/issues/32),
+  [#18](https://github.com/GenNetEng/limitless-organizer-tracker/issues/18),
+  [#17](https://github.com/GenNetEng/limitless-organizer-tracker/issues/17))**:
+  - `task_session()` context manager in `app/db/session.py` replaces the
+    duplicated `SessionLocal()` / try / finally pattern across all 4 Celery
+    task modules (#56, #17). Adds rollback-on-exception to all task paths.
+  - Shared test fixtures in `tests/conftest.py` (`db_session_factory`,
+    `db_session`) and `tests/integration/conftest.py` (`client`) eliminate
+    ~30 copies of the SQLite engine/session/TestClient boilerplate across
+    unit, integration, and acceptance tests (#57, #32).
+  - `fake_authenticated_page` helper moved to `tests/conftest.py`; the two
+    duplicated acceptance tests consolidated into a single end-to-end beat-cycle
+    test exercising both status-check and resubmission tasks in sequence (#18).
+  - `bucket_activity` and `bucket_onboarding` merged into a single
+    `bucket_dates` function accepting `date | datetime` and supporting all
+    three intervals (`day`, `week`, `month`) (#55).
+
 ### Added
 - **Phase 21b — Admin frontend tab
   ([#70](https://github.com/GenNetEng/limitless-organizer-tracker/issues/70))**:

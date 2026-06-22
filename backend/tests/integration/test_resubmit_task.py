@@ -1,39 +1,27 @@
-from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import httpx
 import respx
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import app.tasks.resubmit_tasks as resubmit_tasks
 from app.celery_app import celery_app
-from app.db.base import Base
 from app.db.models import ResubmissionEvent
+from tests.conftest import fake_authenticated_page
 
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
 
 
-@contextmanager
-def _fake_authenticated_page(page):
-    yield page
-
-
 @respx.mock
-def test_resubmit_application_task_records_event_and_notifies_on_success(monkeypatch):
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    test_session_factory = sessionmaker(bind=engine)
-
-    monkeypatch.setattr(resubmit_tasks, "SessionLocal", test_session_factory)
+def test_resubmit_application_task_records_event_and_notifies_on_success(monkeypatch, db_session_factory):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
     monkeypatch.setattr(
-        resubmit_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
+        resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page)
     )
 
     route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
@@ -43,7 +31,7 @@ def test_resubmit_application_task_records_event_and_notifies_on_success(monkeyp
 
     resubmit_tasks.resubmit_application_task.delay()
 
-    with test_session_factory() as session:
+    with db_session_factory() as session:
         events = session.query(ResubmissionEvent).all()
         assert len(events) == 1
         assert events[0].success is True
@@ -55,18 +43,14 @@ def test_resubmit_application_task_records_event_and_notifies_on_success(monkeyp
 
 
 @respx.mock
-def test_resubmit_application_task_records_event_on_failure(monkeypatch):
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    test_session_factory = sessionmaker(bind=engine)
-
-    monkeypatch.setattr(resubmit_tasks, "SessionLocal", test_session_factory)
+def test_resubmit_application_task_records_event_on_failure(monkeypatch, db_session_factory):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_failure.html").read_text()
     monkeypatch.setattr(
-        resubmit_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
+        resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page)
     )
 
     route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
@@ -76,7 +60,7 @@ def test_resubmit_application_task_records_event_on_failure(monkeypatch):
 
     resubmit_tasks.resubmit_application_task.delay()
 
-    with test_session_factory() as session:
+    with db_session_factory() as session:
         events = session.query(ResubmissionEvent).all()
         assert len(events) == 1
         assert events[0].success is False
@@ -86,18 +70,14 @@ def test_resubmit_application_task_records_event_on_failure(monkeypatch):
     assert "failed" in payload.lower()
 
 
-def test_resubmit_application_task_records_event_when_discord_webhook_unset(monkeypatch):
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    test_session_factory = sessionmaker(bind=engine)
-
-    monkeypatch.setattr(resubmit_tasks, "SessionLocal", test_session_factory)
+def test_resubmit_application_task_records_event_when_discord_webhook_unset(monkeypatch, db_session_factory):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", "")
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
     monkeypatch.setattr(
-        resubmit_tasks, "authenticated_page", lambda: _fake_authenticated_page(mock_page)
+        resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page)
     )
 
     celery_app.conf.task_always_eager = True
@@ -105,7 +85,7 @@ def test_resubmit_application_task_records_event_when_discord_webhook_unset(monk
 
     resubmit_tasks.resubmit_application_task.delay()
 
-    with test_session_factory() as session:
+    with db_session_factory() as session:
         events = session.query(ResubmissionEvent).all()
         assert len(events) == 1
         assert events[0].success is True

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.auth import require_api_key
-from app.analytics.buckets import bucket_activity, bucket_onboarding
+from app.analytics.buckets import bucket_dates
 from app.analytics.frontier import compute_frontier
 from app.analytics.regression import fit_linear_regression
 from app.api.schemas import (
@@ -45,7 +45,7 @@ def get_organizer_activity(
         stmt = stmt.where(OrganizerActivity.game == game)
 
     dates = db.scalars(stmt).all()
-    buckets = bucket_activity(dates, interval)
+    buckets = bucket_dates(dates, interval)
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
 
 
@@ -126,7 +126,7 @@ def get_onboarding_history(
     dates = db.scalars(
         select(Organizer.onboarded_at).where(Organizer.onboarded_at.isnot(None))
     ).all()
-    buckets = bucket_onboarding(list(dates), interval)
+    buckets = bucket_dates(list(dates), interval)
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
 
 

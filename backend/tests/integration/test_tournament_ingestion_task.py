@@ -2,13 +2,10 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 import respx
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import app.tasks.tournament_tasks as tournament_tasks
 from app.celery_app import celery_app
 from app.config import settings
-from app.db.base import Base
 from app.db.models import OrganizerActivity, Tournament
 
 
@@ -25,12 +22,8 @@ def _tournament(id_, date, organizer_id=1, game="PTCG"):
 
 
 @respx.mock
-def test_ingest_tournaments_task_paginates_through_backfill_window(monkeypatch):
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    test_session_factory = sessionmaker(bind=engine)
-
-    monkeypatch.setattr(tournament_tasks, "SessionLocal", test_session_factory)
+def test_ingest_tournaments_task_paginates_through_backfill_window(monkeypatch, db_session_factory):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 1000)
 
@@ -51,7 +44,7 @@ def test_ingest_tournaments_task_paginates_through_backfill_window(monkeypatch):
 
     tournament_tasks.ingest_tournaments_task.delay()
 
-    with test_session_factory() as session:
+    with db_session_factory() as session:
         assert session.get(Tournament, "t1") is not None
         assert session.get(Tournament, "t2") is not None
         assert session.get(OrganizerActivity, (100, "PTCG")) is not None
@@ -59,12 +52,8 @@ def test_ingest_tournaments_task_paginates_through_backfill_window(monkeypatch):
 
 
 @respx.mock
-def test_ingest_tournaments_task_stops_after_first_page_when_within_backfill_window(monkeypatch):
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    test_session_factory = sessionmaker(bind=engine)
-
-    monkeypatch.setattr(tournament_tasks, "SessionLocal", test_session_factory)
+def test_ingest_tournaments_task_stops_after_first_page_when_within_backfill_window(monkeypatch, db_session_factory):
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 1000)
 
@@ -80,5 +69,5 @@ def test_ingest_tournaments_task_stops_after_first_page_when_within_backfill_win
     tournament_tasks.ingest_tournaments_task.delay()
 
     assert route.call_count == 1
-    with test_session_factory() as session:
+    with db_session_factory() as session:
         assert session.get(Tournament, "t1") is not None

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import ResubmissionEvent
-from app.db.session import SessionLocal
+from app.db.session import task_session
 from app.events import log_event
 from app.notifications.discord import post_resubmission_notice
 from app.scraper.resubmit import resubmit_application
@@ -45,8 +45,7 @@ def resubmit_application_task() -> int:
     except httpx.HTTPError:
         discord_notified = False
 
-    session = SessionLocal()
-    try:
+    with task_session() as session:
         event = record_resubmission(session, success, submitted_at, discord_notified)
         log_event(
             session=session,
@@ -62,5 +61,3 @@ def resubmit_application_task() -> int:
         )
         session.commit()
         return event.id
-    finally:
-        session.close()
