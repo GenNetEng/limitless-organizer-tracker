@@ -14,11 +14,14 @@ from app.events import log_event
 
 logger = logging.getLogger(__name__)
 
+_MAX_TRACKED_TASKS = 1000
 _task_start_times: dict[str, float] = {}
 
 
 def on_task_prerun(sender=None, task_id=None, **kwargs):
     try:
+        if len(_task_start_times) >= _MAX_TRACKED_TASKS:
+            _task_start_times.clear()
         _task_start_times[task_id] = time.monotonic()
         task_name = getattr(sender, "__name__", str(sender))
         session = SessionLocal()

@@ -147,7 +147,7 @@ def check_beat_health(db: Session) -> bool:
 def get_last_success_per_task(db: Session) -> dict[str, str | None]:
     rows = db.execute(
         select(
-            EventLog.correlation_id,
+            EventLog.message,
             func.max(EventLog.timestamp),
         )
         .where(EventLog.event_type == "task.completed")
@@ -157,9 +157,10 @@ def get_last_success_per_task(db: Session) -> dict[str, str | None]:
 
     result = {}
     for row in rows:
-        task_name = row[0]
+        task_message = row[0]
         last_ts = row[1]
-        if task_name and last_ts:
+        if task_message and last_ts:
+            task_name = task_message.removesuffix(" completed")
             result[task_name] = last_ts.isoformat() if hasattr(last_ts, "isoformat") else str(last_ts)
     return result
 

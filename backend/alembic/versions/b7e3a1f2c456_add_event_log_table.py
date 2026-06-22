@@ -73,6 +73,11 @@ def upgrade() -> None:
                 FOR VALUES FROM ('2026-09-01') TO ('2026-10-01')
             """
         )
+        op.execute(
+            """
+            CREATE TABLE event_log_default PARTITION OF event_log DEFAULT
+            """
+        )
     else:
         op.create_table(
             "event_log",
