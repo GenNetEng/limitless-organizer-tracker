@@ -35,6 +35,12 @@ TASK_TRIGGERS = [
         description="Ingest tournament data from the Limitless API across all games",
     ),
     TaskTriggerInfo(
+        name="full_backfill",
+        endpoint="/api/tasks/full-backfill",
+        method="POST",
+        description="Run a full historical tournament backfill (all pages, no date cutoff)",
+    ),
+    TaskTriggerInfo(
         name="scan_organizers",
         endpoint="/api/tasks/scan-organizers",
         method="POST",

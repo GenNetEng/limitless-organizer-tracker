@@ -71,3 +71,35 @@ def test_ingest_tournaments_task_stops_after_first_page_when_within_backfill_win
     assert route.call_count == 1
     with db_session_factory() as session:
         assert session.get(Tournament, "t1") is not None
+
+
+@respx.mock
+def test_full_backfill_task_paginates_through_all_history(monkeypatch, db_session_factory):
+    """Full backfill ignores the date cutoff and pages through all data."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 1000)
+
+    now = datetime.now(timezone.utc)
+    pages = {
+        "1": [_tournament("t1", now, organizer_id=100)],
+        "2": [_tournament("t2", now - timedelta(days=500), organizer_id=200)],
+        "3": [_tournament("t3", now - timedelta(days=1000), organizer_id=300)],
+    }
+
+    def handler(request):
+        page = request.url.params.get("page", "1")
+        return httpx.Response(200, json=pages.get(page, []))
+
+    route = respx.get(f"{settings.limitless_base_url}/api/tournaments").mock(side_effect=handler)
+
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True
+
+    tournament_tasks.full_tournament_backfill_task.delay()
+
+    assert route.call_count == 4  # pages 1-3 + empty page 4
+    with db_session_factory() as session:
+        assert session.get(Tournament, "t1") is not None
+        assert session.get(Tournament, "t2") is not None
+        assert session.get(Tournament, "t3") is not None
+        assert session.get(OrganizerActivity, (300, "PTCG")) is not None

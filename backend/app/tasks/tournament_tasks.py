@@ -40,6 +40,46 @@ def run_tournament_ingestion(session: Session) -> int:
     return total
 
 
+def run_full_tournament_backfill(session: Session) -> int:
+    """Ingest the full tournament history with no date cutoff (FR6, #68).
+
+    Same pagination as run_tournament_ingestion but continues until the API
+    returns an empty page. Intended for one-time or on-demand backfill runs.
+    """
+    total = 0
+    page = 1
+
+    while True:
+        dtos = fetch_tournaments(limit=settings.tournament_ingest_limit, page=page)
+        if not dtos:
+            break
+
+        ingest_tournaments(session, dtos)
+        total += len(dtos)
+        page += 1
+
+    return total
+
+
+@celery_app.task(name="app.tasks.tournament_tasks.full_tournament_backfill_task")
+def full_tournament_backfill_task() -> int:
+    """Run a full historical tournament backfill (#68).
+
+    Returns the total number of tournaments ingested.
+    """
+    with task_session() as session:
+        total = run_full_tournament_backfill(session)
+        log_event(
+            session=session,
+            event_type="ingestion.full_backfill",
+            source="tournament_tasks",
+            message=f"Full backfill ingested {total} tournaments",
+            details={"count": total},
+        )
+        session.commit()
+        return total
+
+
 @celery_app.task(name="app.tasks.tournament_tasks.ingest_tournaments_task")
 def ingest_tournaments_task() -> int:
     """Ingest tournament data on the Celery beat schedule (FR6, FR7, NFR3).

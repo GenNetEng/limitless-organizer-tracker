@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Added
 
+- **Phase 26 — Historical tournament backfill
+  ([#68](https://github.com/GenNetEng/limitless-organizer-tracker/issues/68))**:
+  `full_tournament_backfill_task` Celery task pages through the entire Limitless
+  tournament API history with no date cutoff, upserting all tournaments and
+  recomputing organizer activity/first-tournament-date data. Admin trigger at
+  `POST /api/tasks/full-backfill` (10-minute timeout for the long-running
+  operation). Registered in the Task Triggers panel.
 - **Phase 25 — Scrape endpoint sync + estimated onboard date
   ([#62](https://github.com/GenNetEng/limitless-organizer-tracker/issues/62))**:
   `GET /api/organizers/{id}/scrape` now upserts an `Organizer` row on lookup,

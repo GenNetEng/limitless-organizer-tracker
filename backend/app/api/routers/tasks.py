@@ -7,7 +7,7 @@ from app.db.models import ResubmissionEvent
 from app.db.session import get_db
 from app.tasks.organizer_tasks import scan_new_organizers_task
 from app.tasks.resubmit_tasks import resubmit_application_task
-from app.tasks.tournament_tasks import ingest_tournaments_task
+from app.tasks.tournament_tasks import full_tournament_backfill_task, ingest_tournaments_task
 
 router = APIRouter(
     prefix="/api/tasks",
@@ -36,6 +36,26 @@ def trigger_ingest_tournaments() -> dict:
         task_id=result.id,
         status="completed",
         result=f"Ingested {count} tournaments",
+    )
+
+
+@router.post("/full-backfill", response_model=TaskResultOut)
+def trigger_full_backfill() -> dict:
+    """Trigger a full historical tournament backfill on the Celery worker.
+
+    Pages through the entire Limitless tournament API history with no date
+    cutoff, upserting all tournaments and recomputing organizer activity.
+    This is a long-running operation.
+    """
+    try:
+        result = full_tournament_backfill_task.delay()
+        count = result.get(timeout=600)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Full backfill task failed or timed out")
+    return TaskResultOut(
+        task_id=result.id,
+        status="completed",
+        result=f"Backfilled {count} tournaments",
     )
 
 
