@@ -1,15 +1,8 @@
-from contextlib import contextmanager
-
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
-
-
-@contextmanager
-def fake_authenticated_page(page):
-    yield page
 
 
 @pytest.fixture

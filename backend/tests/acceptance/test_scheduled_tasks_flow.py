@@ -18,7 +18,7 @@ import app.tasks.resubmit_tasks as resubmit_tasks
 import app.tasks.status_tasks as status_tasks
 from app.celery_app import celery_app
 from app.db.models import ApplicationStatus, ApplicationStatusCheck, ResubmissionEvent
-from tests.conftest import fake_authenticated_page
+from tests.helpers import fake_authenticated_page
 
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
