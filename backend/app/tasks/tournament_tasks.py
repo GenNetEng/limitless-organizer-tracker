@@ -40,44 +40,62 @@ def run_tournament_ingestion(session: Session) -> int:
     return total
 
 
-def run_full_tournament_backfill(session: Session) -> int:
-    """Ingest the full tournament history with no date cutoff (FR6, #68).
+@celery_app.task(name="app.tasks.tournament_tasks.audit_backfill_task")
+def audit_backfill_task() -> int:
+    """Audit the Limitless API to discover pages, then dispatch per-page tasks (#68).
 
-    Same pagination as run_tournament_ingestion but continues until the API
-    returns an empty page. Intended for one-time or on-demand backfill runs.
+    Pages through the API to find all non-empty pages, dispatches a
+    backfill_page_task for each, and logs the total queued. Returns the
+    number of page tasks dispatched.
     """
-    total = 0
+    pages_found = []
     page = 1
 
     while True:
         dtos = fetch_tournaments(limit=settings.tournament_ingest_limit, page=page)
         if not dtos:
             break
-
-        ingest_tournaments(session, dtos)
-        total += len(dtos)
+        pages_found.append(page)
         page += 1
 
-    return total
+    for p in pages_found:
+        backfill_page_task.delay(page=p)
 
-
-@celery_app.task(name="app.tasks.tournament_tasks.full_tournament_backfill_task")
-def full_tournament_backfill_task() -> int:
-    """Run a full historical tournament backfill (#68).
-
-    Returns the total number of tournaments ingested.
-    """
     with task_session() as session:
-        total = run_full_tournament_backfill(session)
         log_event(
             session=session,
-            event_type="ingestion.full_backfill",
+            event_type="ingestion.backfill_audit",
             source="tournament_tasks",
-            message=f"Full backfill ingested {total} tournaments",
-            details={"count": total},
+            message=f"Backfill audit complete: queued {len(pages_found)} page tasks",
+            details={"pages_queued": len(pages_found)},
         )
         session.commit()
-        return total
+
+    return len(pages_found)
+
+
+@celery_app.task(name="app.tasks.tournament_tasks.backfill_page_task")
+def backfill_page_task(page: int) -> int:
+    """Ingest a single page of tournament history (#68).
+
+    Returns the number of tournaments ingested.
+    """
+    dtos = fetch_tournaments(limit=settings.tournament_ingest_limit, page=page)
+    if not dtos:
+        return 0
+
+    with task_session() as session:
+        ingest_tournaments(session, dtos)
+        log_event(
+            session=session,
+            event_type="ingestion.backfill_page",
+            source="tournament_tasks",
+            message=f"Backfill page {page}: ingested {len(dtos)} tournaments",
+            details={"page": page, "count": len(dtos)},
+        )
+        session.commit()
+
+    return len(dtos)
 
 
 @celery_app.task(name="app.tasks.tournament_tasks.ingest_tournaments_task")

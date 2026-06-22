@@ -5,9 +5,9 @@ from app.api.auth import require_api_key
 from app.api.schemas import ResubmissionEventOut, TaskResultOut
 from app.db.models import ResubmissionEvent
 from app.db.session import get_db
-from app.tasks.organizer_tasks import scan_new_organizers_task
+from app.tasks.organizer_tasks import audit_organizer_scan_task
 from app.tasks.resubmit_tasks import resubmit_application_task
-from app.tasks.tournament_tasks import full_tournament_backfill_task, ingest_tournaments_task
+from app.tasks.tournament_tasks import audit_backfill_task, ingest_tournaments_task
 
 router = APIRouter(
     prefix="/api/tasks",
@@ -43,19 +43,14 @@ def trigger_ingest_tournaments() -> dict:
 def trigger_full_backfill() -> dict:
     """Trigger a full historical tournament backfill on the Celery worker.
 
-    Pages through the entire Limitless tournament API history with no date
-    cutoff, upserting all tournaments and recomputing organizer activity.
-    This is a long-running operation.
+    Audits the Limitless API to discover all pages, then dispatches one
+    task per page. Returns immediately — monitor progress via the event log.
     """
-    try:
-        result = full_tournament_backfill_task.delay()
-        count = result.get(timeout=600)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Full backfill task failed or timed out")
+    result = audit_backfill_task.delay()
     return TaskResultOut(
         task_id=result.id,
-        status="completed",
-        result=f"Backfilled {count} tournaments",
+        status="started",
+        result="Backfill audit started — page tasks will be queued after discovery. Monitor progress in the event log.",
     )
 
 
@@ -63,20 +58,15 @@ def trigger_full_backfill() -> dict:
 def trigger_scan_organizers() -> dict:
     """Trigger an organizer scan on the Celery worker.
 
-    Scans public organizer profile pages starting from the current
-    watermark (highest confirmed organizer ID), recording each new
-    organizer found until the first 404. Returns the count of new
-    organizers discovered.
+    Audits organizer IDs from the current watermark, then dispatches
+    per-organizer scan tasks. Returns immediately — monitor progress
+    via the event log.
     """
-    try:
-        result = scan_new_organizers_task.delay()
-        count = result.get(timeout=TASK_TIMEOUT_SECONDS)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Organizer scan task failed or timed out")
+    result = audit_organizer_scan_task.delay()
     return TaskResultOut(
         task_id=result.id,
-        status="completed",
-        result=f"Found {count} new organizers",
+        status="started",
+        result="Organizer scan audit started — individual scan tasks will be queued. Monitor progress in the event log.",
     )
 
 

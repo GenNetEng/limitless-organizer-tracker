@@ -10,7 +10,7 @@ from app.db.models import Organizer
 
 
 @respx.mock
-def test_scan_new_organizers_task_inserts_row_and_commits(monkeypatch, db_session_factory):
+def test_scan_new_organizers_task_dispatches_audit_and_scans(monkeypatch, db_session_factory):
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
 
