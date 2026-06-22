@@ -116,6 +116,7 @@ export interface OrganizerProfile {
   recent_tournaments: TournamentEntry[];
   onboarded_at: string | null;
   first_tournament_date: string | null;
+  estimated_onboard_date: string | null;
 }
 
 export interface HighestOrganizerId {

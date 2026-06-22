@@ -82,12 +82,18 @@ export function OrganizerProfile() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-secondary">{data.name}</h3>
 
-          {(data.onboarded_at || data.first_tournament_date) && (
+          {(data.onboarded_at || data.estimated_onboard_date || data.first_tournament_date) && (
             <div className="stats stats-horizontal shadow">
               {data.onboarded_at && (
                 <div className="stat">
                   <div className="stat-title">Onboarded</div>
                   <div className="stat-value text-sm">{data.onboarded_at}</div>
+                </div>
+              )}
+              {!data.onboarded_at && data.estimated_onboard_date && (
+                <div className="stat">
+                  <div className="stat-title">Est. Onboarded</div>
+                  <div className="stat-value text-sm">{data.estimated_onboard_date}</div>
                 </div>
               )}
               {data.first_tournament_date && (

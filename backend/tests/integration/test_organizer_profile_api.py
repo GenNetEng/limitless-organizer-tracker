@@ -48,11 +48,14 @@ def test_scrape_includes_db_dates_when_organizer_exists(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["onboarded_at"] == "2026-06-10"
-    assert data["first_tournament_date"] == "2026-06-15"
+    assert data["first_tournament_date"] == "2026-06-10"
 
 
 @respx.mock
-def test_scrape_returns_null_dates_when_organizer_not_in_db(client):
+def test_scrape_returns_null_onboarded_at_when_organizer_not_in_db(client):
+    """Scraping a new organizer should return null onboarded_at (only the
+    scanner sets that), but first_tournament_date should be populated
+    from the scraped tournaments."""
     test_client, session_factory = client
     html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
     respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
@@ -64,7 +67,7 @@ def test_scrape_returns_null_dates_when_organizer_not_in_db(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["onboarded_at"] is None
-    assert data["first_tournament_date"] is None
+    assert data["first_tournament_date"] == "2026-06-10"
 
 
 @respx.mock
@@ -159,3 +162,134 @@ def test_highest_id_returns_404_when_both_tables_empty(client):
     resp = test_client.get("/api/organizers/highest-id")
 
     assert resp.status_code == 404
+
+
+@respx.mock
+def test_scrape_upserts_organizer_with_first_tournament_date(client):
+    """Scraping an organizer not in the DB should create an Organizer row
+    with first_tournament_date derived from the scraped tournaments."""
+    test_client, session_factory = client
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["first_tournament_date"] == "2026-06-10"
+
+    with session_factory() as session:
+        org = session.get(Organizer, 2720)
+        assert org is not None
+        assert org.first_tournament_date == date(2026, 6, 10)
+        assert org.onboarded_at is None
+        assert org.detected_at is not None
+
+
+@respx.mock
+def test_scrape_updates_first_tournament_date_if_earlier(client):
+    """If the scraped profile shows an earlier tournament than what's in
+    the DB, first_tournament_date should be updated."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(
+            organizer_id=2720,
+            first_tournament_date=date(2026, 6, 20),
+        ))
+        session.commit()
+
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    assert resp.json()["first_tournament_date"] == "2026-06-10"
+
+    with session_factory() as session:
+        org = session.get(Organizer, 2720)
+        assert org.first_tournament_date == date(2026, 6, 10)
+
+
+@respx.mock
+def test_scrape_does_not_overwrite_onboarded_at(client):
+    """Scraping should never set onboarded_at — only the scanner does that."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(
+            organizer_id=2720,
+            onboarded_at=date(2026, 6, 1),
+            first_tournament_date=date(2026, 6, 15),
+        ))
+        session.commit()
+
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    with session_factory() as session:
+        org = session.get(Organizer, 2720)
+        assert org.onboarded_at == date(2026, 6, 1)
+
+
+@respx.mock
+def test_scrape_returns_estimated_onboard_date_when_no_onboarded_at(client):
+    """For organizers without an observed onboarded_at, the response should
+    include an estimated_onboard_date derived from the regression."""
+    test_client, session_factory = client
+
+    with session_factory() as session:
+        for oid, dt in [(2700, datetime(2026, 5, 1, tzinfo=timezone.utc)),
+                        (2710, datetime(2026, 5, 15, tzinfo=timezone.utc)),
+                        (2720, datetime(2026, 6, 1, tzinfo=timezone.utc))]:
+            session.add(OrganizerActivity(
+                organizer_id=oid, game="PTCG",
+                first_tournament_date=dt, first_tournament_id=f"t{oid}",
+                last_seen_date=dt, updated_at=dt,
+            ))
+        session.commit()
+
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["onboarded_at"] is None
+    assert data["estimated_onboard_date"] is not None
+
+
+@respx.mock
+def test_scrape_omits_estimated_onboard_date_when_onboarded_at_exists(client):
+    """If the organizer has a real onboarded_at, estimated_onboard_date should be null."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(
+            organizer_id=2720,
+            onboarded_at=date(2026, 6, 1),
+            first_tournament_date=date(2026, 6, 10),
+        ))
+        session.commit()
+
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["onboarded_at"] == "2026-06-01"
+    assert data["estimated_onboard_date"] is None

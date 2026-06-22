@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import date, datetime
 
 from bs4 import BeautifulSoup
 
@@ -67,3 +68,15 @@ def parse_organizer_profile(html: str, organizer_id: int) -> OrganizerProfile | 
         upcoming_tournaments=upcoming,
         recent_tournaments=recent,
     )
+
+
+def earliest_tournament_date(profile: OrganizerProfile) -> date | None:
+    all_tournaments = profile.recent_tournaments + profile.upcoming_tournaments
+    dates = []
+    for t in all_tournaments:
+        if t.date:
+            try:
+                dates.append(datetime.fromisoformat(t.date).date())
+            except ValueError:
+                continue
+    return min(dates) if dates else None

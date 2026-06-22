@@ -9,6 +9,7 @@ from app.config import settings
 from app.db.models import Organizer
 from app.db.session import task_session
 from app.events import log_event
+from app.scraper.organizer_profile import earliest_tournament_date, parse_organizer_profile
 
 
 def run_organizer_scan(session: Session) -> int:
@@ -17,9 +18,10 @@ def run_organizer_scan(session: Session) -> int:
     Watermark: MAX(organizer_id WHERE onboarded_at IS NOT NULL) — only rows the
     scanner itself has confirmed count, so ingestion-created stubs and activity
     data for high IDs never advance the position past unscanned ranges. Fetches
-    each page via httpx (no auth), records a row for each 200 response
-    (backfilling onboarded_at if a stub already exists), stops at the first 404
-    or unexpected status code. Returns the number of rows created or updated.
+    each page via httpx (no auth), parses the profile to extract
+    first_tournament_date, records a row for each 200 response (backfilling
+    onboarded_at if a stub already exists), stops at the first 404 or unexpected
+    status code. Returns the number of rows created or updated.
     """
     start_id = (session.scalar(
         select(func.max(Organizer.organizer_id)).where(Organizer.onboarded_at.isnot(None))
@@ -38,17 +40,26 @@ def run_organizer_scan(session: Session) -> int:
         if response.status_code == 200:
             existing = session.get(Organizer, organizer_id)
             if existing is None:
-                session.add(Organizer(
+                existing = Organizer(
                     organizer_id=organizer_id,
                     onboarded_at=today,
                     detected_at=now,
-                ))
+                )
+                session.add(existing)
             elif existing.onboarded_at is None:
                 existing.onboarded_at = today
                 existing.detected_at = now
+
+            profile = parse_organizer_profile(response.text, organizer_id)
+            if profile is not None:
+                scraped_date = earliest_tournament_date(profile)
+                if scraped_date is not None:
+                    if existing.first_tournament_date is None or scraped_date < existing.first_tournament_date:
+                        existing.first_tournament_date = scraped_date
+
             found += 1
         else:
-            break  # stop on unexpected status; next run retries from same watermark
+            break
 
     session.commit()
     return found

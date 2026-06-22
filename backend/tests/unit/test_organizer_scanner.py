@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 import httpx
 import respx
@@ -6,6 +7,8 @@ import respx
 import app.tasks.organizer_tasks as organizer_tasks
 from app.config import settings
 from app.db.models import Organizer, OrganizerActivity
+
+FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 
 
 def _scanned(organizer_id):
@@ -215,3 +218,27 @@ def test_backfill_counts_toward_found(db_session, monkeypatch):
 
     assert count == 1
     assert db_session.get(Organizer, 100).onboarded_at == datetime.now(timezone.utc).date()
+
+
+@respx.mock
+def test_scan_parses_first_tournament_date_from_profile(db_session, monkeypatch):
+    """When the profile page has tournaments, the scanner should populate
+    first_tournament_date from the earliest scraped tournament."""
+    monkeypatch.setattr(organizer_tasks.settings, "organizer_scan_limit", 2)
+    db_session.add(_scanned(100))
+    db_session.commit()
+
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get(f"{settings.limitless_base_url}/organizer/101").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+    respx.get(f"{settings.limitless_base_url}/organizer/102").mock(
+        return_value=httpx.Response(404)
+    )
+
+    organizer_tasks.run_organizer_scan(db_session)
+
+    org = db_session.get(Organizer, 101)
+    assert org is not None
+    assert org.onboarded_at == datetime.now(timezone.utc).date()
+    assert org.first_tournament_date == date(2026, 6, 10)

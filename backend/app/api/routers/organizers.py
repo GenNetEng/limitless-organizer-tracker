@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Literal
 
 import httpx
@@ -22,7 +22,7 @@ from app.config import settings
 from app.db.models import Organizer, OrganizerActivity
 from app.db.session import get_db
 from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
-from app.scraper.organizer_profile import parse_organizer_profile
+from app.scraper.organizer_profile import earliest_tournament_date, parse_organizer_profile
 
 TOP_N_ORGANIZERS = 1000
 
@@ -49,11 +49,7 @@ def get_organizer_activity(
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
 
 
-@router.get("/organizers/wait-estimate", response_model=WaitEstimateOut)
-def get_wait_estimate(
-    organizer_id: int | None = Query(None),
-    db: Session = Depends(get_db),
-) -> WaitEstimateOut:
+def _build_frontier_regression(db: Session):
     rows = db.execute(
         select(
             OrganizerActivity.organizer_id,
@@ -64,20 +60,33 @@ def get_wait_estimate(
         .limit(TOP_N_ORGANIZERS)
     ).all()
     if len(rows) < 2:
-        raise HTTPException(status_code=404, detail="not enough activity data to estimate")
+        return None, None, None
 
-    # rows is DESC by organizer_id from the query; reverse to get ascending for frontier scan
     points = [(float(oid), float(first_date.date().toordinal())) for oid, first_date in reversed(rows)]
     frontier_points = compute_frontier(points)
-    frontier_ids = {p[0] for p in frontier_points}
     regression_points = frontier_points if len(frontier_points) >= 2 else points
     result = fit_linear_regression(regression_points)
+    return points, frontier_points, result
 
-    projected_date = None
-    if organizer_id is not None:
-        projected_ordinal = round(result.predict(float(organizer_id)))
-        projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
-        projected_date = date.fromordinal(projected_ordinal)
+
+def _predict_date(result, organizer_id: int) -> date:
+    projected_ordinal = round(result.predict(float(organizer_id)))
+    projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
+    return date.fromordinal(projected_ordinal)
+
+
+@router.get("/organizers/wait-estimate", response_model=WaitEstimateOut)
+def get_wait_estimate(
+    organizer_id: int | None = Query(None),
+    db: Session = Depends(get_db),
+) -> WaitEstimateOut:
+    points, frontier_points, result = _build_frontier_regression(db)
+    if points is None:
+        raise HTTPException(status_code=404, detail="not enough activity data to estimate")
+
+    frontier_ids = {p[0] for p in frontier_points}
+
+    projected_date = _predict_date(result, organizer_id) if organizer_id is not None else None
 
     return WaitEstimateOut(
         organizer_id=organizer_id,
@@ -140,6 +149,13 @@ def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerI
     return HighestOrganizerIdOut(organizer_id=highest)
 
 
+def _estimate_onboard_date(db: Session, organizer_id: int) -> date | None:
+    _, _, result = _build_frontier_regression(db)
+    if result is None:
+        return None
+    return _predict_date(result, organizer_id)
+
+
 @router.get("/organizers/{organizer_id}/scrape", response_model=OrganizerProfileOut)
 def scrape_organizer_profile(
     organizer_id: int = Path(ge=1),
@@ -162,9 +178,23 @@ def scrape_organizer_profile(
 
     result = OrganizerProfileOut.model_validate(profile)
 
+    scraped_first_date = earliest_tournament_date(profile)
+
     org = db.get(Organizer, organizer_id)
-    if org is not None:
-        result.onboarded_at = org.onboarded_at
-        result.first_tournament_date = org.first_tournament_date
+    if org is None:
+        org = db.merge(Organizer(organizer_id=organizer_id, detected_at=datetime.now(timezone.utc)))
+
+    if scraped_first_date is not None:
+        if org.first_tournament_date is None or scraped_first_date < org.first_tournament_date:
+            org.first_tournament_date = scraped_first_date
+
+    db.commit()
+    db.refresh(org)
+
+    result.onboarded_at = org.onboarded_at
+    result.first_tournament_date = org.first_tournament_date
+
+    if org.onboarded_at is None:
+        result.estimated_onboard_date = _estimate_onboard_date(db, organizer_id)
 
     return result
