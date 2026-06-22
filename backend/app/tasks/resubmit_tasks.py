@@ -7,6 +7,7 @@ from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import ResubmissionEvent
 from app.db.session import SessionLocal
+from app.events import log_event
 from app.notifications.discord import post_resubmission_notice
 from app.scraper.resubmit import resubmit_application
 from app.scraper.session import authenticated_page
@@ -47,6 +48,19 @@ def resubmit_application_task() -> int:
     session = SessionLocal()
     try:
         event = record_resubmission(session, success, submitted_at, discord_notified)
+        log_event(
+            session=session,
+            event_type="scraper.resubmit",
+            source="resubmit_tasks",
+            message=f"Application resubmission {'succeeded' if success else 'failed'}",
+            severity="INFO" if success else "WARNING",
+            details={
+                "success": success,
+                "discord_notified": discord_notified,
+                "event_id": event.id,
+            },
+        )
+        session.commit()
         return event.id
     finally:
         session.close()

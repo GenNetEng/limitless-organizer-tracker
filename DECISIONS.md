@@ -7,6 +7,51 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-22: Event log — centralized EventLog table with partitioning (Phase 21a)
+
+**Decision**: Create a single **`event_log`** table as the centralized audit/event log for all application operations. All significant functions log events here — task lifecycle (via Celery signals), scraper operations, data ingestion, notifications, and API triggers. The table uses a JSON `metadata` column for flexible structured data per event type.
+
+**Schema**: `id PK, timestamp UTCDateTime (indexed), event_type VARCHAR (indexed), severity VARCHAR, source VARCHAR, message TEXT, metadata JSON, correlation_id VARCHAR (nullable)`.
+
+**Partitioning**: PostgreSQL native range partitioning on `timestamp` (monthly partitions) for log rotation. Tests use SQLite (no partitioning support), so the migration conditionally applies partitioning only on PostgreSQL.
+
+**Alternatives considered**:
+
+- Separate `TaskExecution` table for Celery + general `EventLog` — two tables to query/maintain for admin views; task events are just one category of event
+- Celery result backend (Redis) for task history — results expire in 24h, no start time/duration, hard to query by task name
+- Application-level log files instead of DB — not queryable from the admin API, no structured metadata, harder to correlate with business data
+
+**Why**: Owner requested a centralized event log following industry best practices, with all functions instrumented. A single table with typed events + JSON metadata covers both structured task tracking (for diagnostics) and general audit logging (for the admin event log view). Partitioning ensures log rotation without manual cleanup.
+
+---
+
+## 2026-06-22: Celery task event capture via signals (Phase 21a)
+
+**Decision**: Wire `task_prerun`, `task_postrun`, and `task_failure` **Celery signals** in `celery_app.py` to automatically log task lifecycle events to the `event_log` table. No changes to individual task modules needed for task-level events.
+
+**Alternatives considered**: Decorator/wrapper on each `@celery_app.task` — more explicit but requires touching all 4 task files and maintaining the wrapper for new tasks.
+
+**Why**: Signals are the idiomatic Celery mechanism; they fire automatically for all registered tasks without per-task boilerplate.
+
+---
+
+## 2026-06-22: Admin API design — single diagnostics endpoint, config allowlist (Phase 21a)
+
+**Decision**: Four admin endpoints under `/api/admin/`:
+
+1. `GET /api/admin/event-log` — paginated, filterable event log query
+2. `GET /api/admin/diagnostics` — single endpoint returning DB/Redis/worker/beat status + last success per task
+3. `GET /api/admin/config` — hardcoded allowlist of non-sensitive settings fields
+4. `GET /api/admin/tasks` — static list of available task trigger endpoints
+
+**Config allowlist fields**: `application_status_check_interval_hours`, `resubmit_times_utc`, `tournament_ingest_interval_hours`, `tournament_ingest_limit`, `tournament_backfill_months`, `organizer_scan_interval_hours`, `organizer_scan_limit`.
+
+**Alternatives considered**: Separate endpoints per health check (more granular, more frontend complexity); `Settings.model_dump(exclude=...)` for config (risky if new sensitive fields added later).
+
+**Why**: Owner approved all recommended approaches. Single diagnostics endpoint keeps the admin panel simple (one fetch, one loading state). Hardcoded config allowlist is safer than an exclusion list.
+
+---
+
 ## 2026-06-18: Organizer onboarding scraper — httpx + BeautifulSoup 4, no auth (Phase 18)
 
 **Decision**: Use plain **httpx** (no Playwright) + **BeautifulSoup 4** (`beautifulsoup4`) to fetch and parse `play.limitlesstcg.com/organizer/{id}` pages for the `scan_new_organizers_task` and the `GET /api/organizers/{id}/scrape` endpoint.

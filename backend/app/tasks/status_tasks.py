@@ -7,6 +7,7 @@ from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import ApplicationStatusCheck
 from app.db.session import SessionLocal
+from app.events import log_event
 from app.notifications.discord import post_status_update_notice
 from app.scraper.application_status import check_application_status
 from app.scraper.parsing import ApplicationStatusResult
@@ -35,6 +36,17 @@ def record_status_check(
         review_note=result.review_note,
     )
     session.add(check)
+    log_event(
+        session=session,
+        event_type="scraper.status_check",
+        source="status_tasks",
+        message=f"Application status: {result.status.value}",
+        details={
+            "status": result.status.value,
+            "changed": changed,
+            "raw_text": result.raw_text[:200] if result.raw_text else None,
+        },
+    )
     session.commit()
 
     return check, changed
@@ -56,8 +68,22 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
     if changed:
         try:
             post_status_update_notice(settings.discord_webhook_url, result.status, checked_at)
+            log_event(
+                session=session,
+                event_type="notification.discord_sent",
+                source="status_tasks",
+                message=f"Status change notification sent: {result.status.value}",
+            )
+            session.commit()
         except httpx.HTTPError:
-            pass
+            log_event(
+                session=session,
+                event_type="notification.discord_failed",
+                source="status_tasks",
+                message="Failed to send status change notification",
+                severity="WARNING",
+            )
+            session.commit()
 
     return check, changed
 

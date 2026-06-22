@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routers import admin as admin_router
 from app.api.routers import organizers as organizers_router
 from app.api.routers import status as status_router
 from app.api.routers import tasks as tasks_router
@@ -19,6 +20,7 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+app.include_router(admin_router.router)
 app.include_router(status_router.router)
 app.include_router(organizers_router.router)
 app.include_router(tasks_router.router)
