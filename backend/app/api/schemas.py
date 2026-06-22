@@ -121,6 +121,7 @@ class AdminConfigOut(BaseModel):
     tournament_backfill_months: int
     organizer_scan_interval_hours: int
     organizer_scan_limit: int
+    organizer_scan_start_id: int
 
 
 class TaskTriggerInfo(BaseModel):

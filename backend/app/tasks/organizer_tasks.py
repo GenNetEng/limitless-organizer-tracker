@@ -21,9 +21,10 @@ def audit_organizer_scan_task() -> int:
     dispatched.
     """
     with task_session() as session:
-        start_id = (session.scalar(
+        db_watermark = session.scalar(
             select(func.max(Organizer.organizer_id)).where(Organizer.onboarded_at.isnot(None))
-        ) or 0) + 1
+        ) or 0
+        start_id = max(db_watermark, settings.organizer_scan_start_id) + 1
 
     found_ids = []
     for organizer_id in range(start_id, start_id + settings.organizer_scan_limit):

@@ -192,6 +192,7 @@ def get_config() -> dict:
         "tournament_backfill_months": settings.tournament_backfill_months,
         "organizer_scan_interval_hours": settings.organizer_scan_interval_hours,
         "organizer_scan_limit": settings.organizer_scan_limit,
+        "organizer_scan_start_id": settings.organizer_scan_start_id,
     }
 
 
