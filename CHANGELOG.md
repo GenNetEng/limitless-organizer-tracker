@@ -15,9 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   ([#77](https://github.com/GenNetEng/limitless-organizer-tracker/issues/77),
   [#40](https://github.com/GenNetEng/limitless-organizer-tracker/issues/40),
   [#39](https://github.com/GenNetEng/limitless-organizer-tracker/issues/39))**:
-  - Tabs switched from `tabs-bordered` to `tabs-boxed` for a more visible
-    active state; all dashboard sections wrapped in `card bg-base-200` containers
-    for clear visual separation from the page background (#77).
+  - Tabs switched from `tabs-bordered` to DaisyUI v5 `tabs-border` with
+    `text-primary font-semibold` on the active tab for clear visual distinction;
+    all dashboard sections wrapped in `card bg-base-200` containers for visual
+    separation from the page background (#77).
   - Shared date-formatting helpers (`formatTimestamp`, `formatDateShort`,
     `formatEpochDate`) in `src/lib/formatDate.ts` replace ad-hoc
     `new Date(x).toLocaleString()` calls across 5 components (#40).
