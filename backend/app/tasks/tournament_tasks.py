@@ -40,10 +40,13 @@ def run_tournament_ingestion(session: Session) -> int:
 
 
 @celery_app.task(name="app.tasks.tournament_tasks.ingest_tournaments_task")
-def ingest_tournaments_task() -> None:
-    """Ingest tournament data on the Celery beat schedule (FR6, FR7, NFR3)."""
+def ingest_tournaments_task() -> int:
+    """Ingest tournament data on the Celery beat schedule (FR6, FR7, NFR3).
+
+    Returns the total number of tournaments ingested.
+    """
     session = SessionLocal()
     try:
-        run_tournament_ingestion(session)
+        return run_tournament_ingestion(session)
     finally:
         session.close()

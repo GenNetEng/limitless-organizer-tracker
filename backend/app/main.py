@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import organizers as organizers_router
 from app.api.routers import status as status_router
+from app.api.routers import tasks as tasks_router
 from app.config import settings
 
 
@@ -20,6 +21,7 @@ app.add_middleware(
 )
 app.include_router(status_router.router)
 app.include_router(organizers_router.router)
+app.include_router(tasks_router.router)
 
 
 @app.get("/healthz")

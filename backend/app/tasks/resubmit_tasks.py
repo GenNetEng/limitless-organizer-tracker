@@ -25,11 +25,12 @@ def record_resubmission(
 
 
 @celery_app.task(name="app.tasks.resubmit_tasks.resubmit_application_task")
-def resubmit_application_task() -> None:
+def resubmit_application_task() -> int:
     """Resubmit the organization application and record the outcome (FR3, FR5).
 
     Posts a Discord notification with the outcome (FR4); the outcome is
-    recorded (FR5) even if the notification fails.
+    recorded (FR5) even if the notification fails. Returns the
+    ResubmissionEvent row ID.
     """
     with authenticated_page() as page:
         success = resubmit_application(page)
@@ -45,6 +46,7 @@ def resubmit_application_task() -> None:
 
     session = SessionLocal()
     try:
-        record_resubmission(session, success, submitted_at, discord_notified)
+        event = record_resubmission(session, success, submitted_at, discord_notified)
+        return event.id
     finally:
         session.close()

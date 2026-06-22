@@ -83,3 +83,9 @@ class OrganizerProfileOut(BaseModel):
 
 class HighestOrganizerIdOut(BaseModel):
     organizer_id: int
+
+
+class TaskResultOut(BaseModel):
+    task_id: str
+    status: str
+    result: str
