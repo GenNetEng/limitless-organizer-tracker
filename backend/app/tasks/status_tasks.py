@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import ApplicationStatusCheck
-from app.db.session import SessionLocal
+from app.db.session import task_session
 from app.events import log_event
 from app.notifications.discord import post_status_update_notice
 from app.scraper.application_status import check_application_status
@@ -96,9 +96,6 @@ def check_application_status_task() -> int:
     API endpoint (FR14), which dispatches this task to the worker
     so Playwright runs in a container that has Chromium installed.
     """
-    session = SessionLocal()
-    try:
+    with task_session() as session:
         check, _ = run_application_status_check(session)
         return check.id
-    finally:
-        session.close()

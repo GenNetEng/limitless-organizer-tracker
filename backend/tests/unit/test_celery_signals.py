@@ -3,34 +3,18 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from app.db.base import Base
 from app.db.models import EventLog
 from app.celery_signals import on_task_prerun, on_task_postrun, on_task_failure
 
 
-def _make_session_factory():
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine)
-
-
-def test_on_task_prerun_logs_started_event():
-    factory = _make_session_factory()
-    with patch("app.celery_signals.SessionLocal", factory):
+def test_on_task_prerun_logs_started_event(db_session_factory):
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
         on_task_prerun(
             sender=MagicMock(__name__="ingest_tournaments_task"),
             task_id="abc-123",
         )
 
-    with factory() as session:
+    with db_session_factory() as session:
         row = session.query(EventLog).one()
         assert row.event_type == "task.started"
         assert row.severity == "INFO"
@@ -39,9 +23,8 @@ def test_on_task_prerun_logs_started_event():
         assert "ingest_tournaments_task" in row.message
 
 
-def test_on_task_postrun_logs_completed_event():
-    factory = _make_session_factory()
-    with patch("app.celery_signals.SessionLocal", factory):
+def test_on_task_postrun_logs_completed_event(db_session_factory):
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
         on_task_prerun(
             sender=MagicMock(__name__="ingest_tournaments_task"),
             task_id="abc-123",
@@ -52,7 +35,7 @@ def test_on_task_postrun_logs_completed_event():
             retval=42,
         )
 
-    with factory() as session:
+    with db_session_factory() as session:
         rows = session.query(EventLog).order_by(EventLog.id).all()
         assert len(rows) == 2
         completed = rows[1]
@@ -64,9 +47,8 @@ def test_on_task_postrun_logs_completed_event():
         assert details["result"] == "42"
 
 
-def test_on_task_failure_logs_error_event():
-    factory = _make_session_factory()
-    with patch("app.celery_signals.SessionLocal", factory):
+def test_on_task_failure_logs_error_event(db_session_factory):
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
         on_task_prerun(
             sender=MagicMock(__name__="ingest_tournaments_task"),
             task_id="abc-123",
@@ -78,7 +60,7 @@ def test_on_task_failure_logs_error_event():
             traceback=None,
         )
 
-    with factory() as session:
+    with db_session_factory() as session:
         rows = session.query(EventLog).order_by(EventLog.id).all()
         assert len(rows) == 2
         failed = rows[1]
@@ -90,17 +72,16 @@ def test_on_task_failure_logs_error_event():
         assert "something broke" in details["error"]
 
 
-def test_on_task_postrun_without_prerun_still_works():
+def test_on_task_postrun_without_prerun_still_works(db_session_factory):
     """postrun should not crash if prerun wasn't recorded (e.g., signal race)."""
-    factory = _make_session_factory()
-    with patch("app.celery_signals.SessionLocal", factory):
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
         on_task_postrun(
             sender=MagicMock(__name__="some_task"),
             task_id="no-prerun",
             retval="ok",
         )
 
-    with factory() as session:
+    with db_session_factory() as session:
         row = session.query(EventLog).one()
         assert row.event_type == "task.completed"
         details = json.loads(row.details)

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import Organizer
-from app.db.session import SessionLocal
+from app.db.session import task_session
 from app.events import log_event
 
 
@@ -60,8 +60,7 @@ def scan_new_organizers_task() -> int:
 
     Returns the number of organizers found.
     """
-    session = SessionLocal()
-    try:
+    with task_session() as session:
         found = run_organizer_scan(session)
         log_event(
             session=session,
@@ -72,8 +71,3 @@ def scan_new_organizers_task() -> int:
         )
         session.commit()
         return found
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()

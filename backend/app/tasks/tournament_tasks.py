@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.celery_app import celery_app
 from app.config import settings
-from app.db.session import SessionLocal
+from app.db.session import task_session
 from app.events import log_event
 from app.limitless_client.ingestion import ingest_tournaments
 from app.limitless_client.tournaments_api import fetch_tournaments
@@ -46,8 +46,7 @@ def ingest_tournaments_task() -> int:
 
     Returns the total number of tournaments ingested.
     """
-    session = SessionLocal()
-    try:
+    with task_session() as session:
         total = run_tournament_ingestion(session)
         log_event(
             session=session,
@@ -58,5 +57,3 @@ def ingest_tournaments_task() -> int:
         )
         session.commit()
         return total
-    finally:
-        session.close()

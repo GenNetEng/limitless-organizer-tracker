@@ -1,22 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 import app.tasks.tournament_tasks as tournament_tasks
-from app.db.base import Base
 from app.db.models import Tournament
 from app.limitless_client.schemas import TournamentDTO
-
-
-@pytest.fixture
-def session():
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    session_factory = sessionmaker(bind=engine)
-    with session_factory() as session:
-        yield session
 
 
 def _dto(id_, date, organizer_id=1, game="PTCG"):
@@ -25,7 +11,7 @@ def _dto(id_, date, organizer_id=1, game="PTCG"):
     )
 
 
-def test_stops_at_empty_page(session, monkeypatch):
+def test_stops_at_empty_page(db_session, monkeypatch):
     now = datetime.now(timezone.utc)
     pages = {
         1: [_dto("t1", now)],
@@ -38,13 +24,13 @@ def test_stops_at_empty_page(session, monkeypatch):
     monkeypatch.setattr(tournament_tasks, "fetch_tournaments", fake_fetch)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
 
-    total = tournament_tasks.run_tournament_ingestion(session)
+    total = tournament_tasks.run_tournament_ingestion(db_session)
 
     assert total == 1
-    assert session.get(Tournament, "t1") is not None
+    assert db_session.get(Tournament, "t1") is not None
 
 
-def test_stops_once_oldest_tournament_is_past_backfill_window(session, monkeypatch):
+def test_stops_once_oldest_tournament_is_past_backfill_window(db_session, monkeypatch):
     now = datetime.now(timezone.utc)
     pages = {
         1: [_dto("t1", now)],
@@ -58,17 +44,17 @@ def test_stops_once_oldest_tournament_is_past_backfill_window(session, monkeypat
     monkeypatch.setattr(tournament_tasks, "fetch_tournaments", fake_fetch)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
 
-    total = tournament_tasks.run_tournament_ingestion(session)
+    total = tournament_tasks.run_tournament_ingestion(db_session)
 
     # page 2's tournament (200 days old) is past the 3-month (~90 day)
     # backfill window, so pagination stops after ingesting it
     assert total == 2
-    assert session.get(Tournament, "t1") is not None
-    assert session.get(Tournament, "t2") is not None
-    assert session.get(Tournament, "t3") is None
+    assert db_session.get(Tournament, "t1") is not None
+    assert db_session.get(Tournament, "t2") is not None
+    assert db_session.get(Tournament, "t3") is None
 
 
-def test_passes_configured_limit_to_fetch_tournaments(session, monkeypatch):
+def test_passes_configured_limit_to_fetch_tournaments(db_session, monkeypatch):
     now = datetime.now(timezone.utc)
     seen_limits = []
 
@@ -80,6 +66,6 @@ def test_passes_configured_limit_to_fetch_tournaments(session, monkeypatch):
     monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
     monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 500)
 
-    tournament_tasks.run_tournament_ingestion(session)
+    tournament_tasks.run_tournament_ingestion(db_session)
 
     assert seen_limits == [500, 500]
