@@ -205,5 +205,8 @@ export function getTaskTriggers(): Promise<TaskTriggerInfo[]> {
 }
 
 export function triggerTask(endpoint: string): Promise<unknown> {
+  if (!endpoint.startsWith("/api/")) {
+    throw new ApiError(`Invalid task endpoint: ${endpoint}`, 400);
+  }
   return postJson<unknown>(endpoint);
 }

@@ -13,6 +13,7 @@ export function TaskTriggers() {
 
   const mutation = useMutation({
     mutationFn: (endpoint: string) => triggerTask(endpoint),
+    onMutate: () => setLastTriggered(null),
     onSuccess: (_data, endpoint) => {
       setLastTriggered(endpoint);
       queryClient.invalidateQueries({ queryKey: ["admin", "event-log"] });

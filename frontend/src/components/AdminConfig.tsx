@@ -21,7 +21,7 @@ export function AdminConfig() {
   if (error) return <p className="text-error">Failed to load configuration</p>;
   if (!data) return null;
 
-  const entries = Object.entries(data) as [string, string | number][];
+  const keys = Object.keys(CONFIG_LABELS) as (keyof typeof CONFIG_LABELS)[];
 
   return (
     <div className="overflow-x-auto">
@@ -33,10 +33,10 @@ export function AdminConfig() {
           </tr>
         </thead>
         <tbody>
-          {entries.map(([key, value]) => (
+          {keys.map((key) => (
             <tr key={key}>
-              <td>{CONFIG_LABELS[key] ?? key}</td>
-              <td>{String(value)}</td>
+              <td>{CONFIG_LABELS[key]}</td>
+              <td>{String(data[key as keyof typeof data])}</td>
             </tr>
           ))}
         </tbody>
