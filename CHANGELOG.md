@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [Unreleased]
 
 ### Added
+- **Phase 21b — Admin frontend tab
+  ([#70](https://github.com/GenNetEng/limitless-organizer-tracker/issues/70))**:
+  new "Admin" tab in the dashboard with four components consuming the Phase 21a
+  admin API: `EventLogViewer` (paginated event log table with severity badges),
+  `Diagnostics` (DB/Redis/Celery/Beat health cards + worker list + last success
+  per task), `TaskTriggers` (trigger buttons for all registered Celery tasks),
+  `AdminConfig` (current configuration display). Admin API client functions and
+  MSW test handlers added. 16 new frontend tests (68 total). References FR20-FR23.
 - **Phase 20 — Separate Celery worker image with Playwright**: new
   `Dockerfile.worker` based on `mcr.microsoft.com/playwright/python:v1.60.0-noble`
   so the Celery worker container has Chromium available for application-status

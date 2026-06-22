@@ -67,6 +67,80 @@ export const organizerProfile = {
 
 export const highestOrganizerId = { organizer_id: 2720 };
 
+export const adminEventLog = {
+  items: [
+    {
+      id: 3,
+      timestamp: "2026-06-22T12:00:00Z",
+      event_type: "task.completed",
+      severity: "info",
+      source: "celery",
+      message: "ingest_tournaments completed",
+      details: { duration_ms: 1234 },
+      correlation_id: "abc-123",
+    },
+    {
+      id: 2,
+      timestamp: "2026-06-22T11:00:00Z",
+      event_type: "task.started",
+      severity: "info",
+      source: "celery",
+      message: "ingest_tournaments started",
+      details: null,
+      correlation_id: "abc-123",
+    },
+    {
+      id: 1,
+      timestamp: "2026-06-22T10:00:00Z",
+      event_type: "scraper.error",
+      severity: "error",
+      source: "resubmit",
+      message: "Resubmit button not found",
+      details: { url: "/organizer/settings" },
+      correlation_id: null,
+    },
+  ],
+  total: 3,
+  limit: 50,
+  offset: 0,
+};
+
+export const adminDiagnostics = {
+  db_ok: true,
+  redis_ok: true,
+  celery_workers: ["celery@worker1"],
+  beat_ok: true,
+  last_success_per_task: {
+    ingest_tournaments: "2026-06-22T11:30:00Z",
+    scan_new_organizers: "2026-06-22T10:00:00Z",
+  },
+};
+
+export const adminConfig = {
+  application_status_check_interval_hours: 4,
+  resubmit_times_utc: "09:00,21:00",
+  tournament_ingest_interval_hours: 6,
+  tournament_ingest_limit: 200,
+  tournament_backfill_months: 3,
+  organizer_scan_interval_hours: 24,
+  organizer_scan_limit: 100,
+};
+
+export const adminTasks = [
+  {
+    name: "ingest_tournaments",
+    endpoint: "/api/tasks/ingest-tournaments",
+    method: "POST",
+    description: "Ingest tournament data from the Limitless API across all games",
+  },
+  {
+    name: "scan_organizers",
+    endpoint: "/api/tasks/scan-organizers",
+    method: "POST",
+    description: "Scan for newly onboarded organizer profiles",
+  },
+];
+
 export const handlers = [
   http.get("*/api/status-history", ({ request }) => {
     const url = new URL(request.url);
@@ -101,4 +175,9 @@ export const handlers = [
     }
     return HttpResponse.json({ ...organizerProfile, organizer_id: id });
   }),
+  http.get("*/api/admin/event-log", () => HttpResponse.json(adminEventLog)),
+  http.get("*/api/admin/diagnostics", () => HttpResponse.json(adminDiagnostics)),
+  http.get("*/api/admin/config", () => HttpResponse.json(adminConfig)),
+  http.get("*/api/admin/tasks", () => HttpResponse.json(adminTasks)),
+  http.post("*/api/tasks/*", () => HttpResponse.json({ status: "triggered" })),
 ];

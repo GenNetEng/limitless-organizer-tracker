@@ -12,6 +12,9 @@ the platform's organizer onboarding activity over time.
   organizer, across all games).
 - **Backend**: FastAPI + SQLAlchemy + Celery (worker/beat) + Postgres + Redis.
 - **Frontend**: React + TypeScript dashboard (Vite).
+- **Admin tab**: operational visibility — system diagnostics (DB/Redis/Celery
+  health), event log viewer, task trigger buttons, and current configuration
+  display. All admin endpoints are API-key protected.
 
 ## Requirements & MVPs
 

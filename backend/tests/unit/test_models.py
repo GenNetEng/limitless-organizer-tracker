@@ -1,7 +1,6 @@
 from app.db.models import (
     ApplicationStatus,
     ApplicationStatusCheck,
-    EventLog,
     OrganizerActivity,
     ResubmissionEvent,
     Tournament,
