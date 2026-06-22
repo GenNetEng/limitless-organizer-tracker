@@ -125,3 +125,85 @@ export function scrapeOrganizerProfile(organizerId: number): Promise<OrganizerPr
 export function getHighestOrganizerId(): Promise<HighestOrganizerId> {
   return getJson<HighestOrganizerId>("/api/organizers/highest-id");
 }
+
+// Admin API types (FR20-FR23)
+
+export interface EventLogEntry {
+  id: number;
+  timestamp: string;
+  event_type: string;
+  severity: string;
+  source: string;
+  message: string;
+  details: Record<string, unknown> | unknown[] | null;
+  correlation_id: string | null;
+}
+
+export interface Diagnostics {
+  db_ok: boolean;
+  redis_ok: boolean;
+  celery_workers: string[];
+  beat_ok: boolean;
+  last_success_per_task: Record<string, string | null>;
+}
+
+export interface AdminConfig {
+  application_status_check_interval_hours: number;
+  resubmit_times_utc: string;
+  tournament_ingest_interval_hours: number;
+  tournament_ingest_limit: number;
+  tournament_backfill_months: number;
+  organizer_scan_interval_hours: number;
+  organizer_scan_limit: number;
+}
+
+export interface TaskTriggerInfo {
+  name: string;
+  endpoint: string;
+  method: string;
+  description: string;
+}
+
+async function postJson<T>(path: string): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+  });
+  if (!response.ok) {
+    throw new ApiError(`Request to ${path} failed with status ${response.status}`, response.status);
+  }
+  return (await response.json()) as T;
+}
+
+export function getEventLog(
+  params: { limit?: number; offset?: number; event_type?: string; severity?: string; source?: string } = {},
+): Promise<Page<EventLogEntry>> {
+  const search = new URLSearchParams();
+  if (params.limit !== undefined) search.set("limit", String(params.limit));
+  if (params.offset !== undefined) search.set("offset", String(params.offset));
+  if (params.event_type) search.set("event_type", params.event_type);
+  if (params.severity) search.set("severity", params.severity);
+  if (params.source) search.set("source", params.source);
+  const qs = search.toString();
+  return getJson<Page<EventLogEntry>>(`/api/admin/event-log${qs ? `?${qs}` : ""}`);
+}
+
+export function getDiagnostics(): Promise<Diagnostics> {
+  return getJson<Diagnostics>("/api/admin/diagnostics");
+}
+
+export function getAdminConfig(): Promise<AdminConfig> {
+  return getJson<AdminConfig>("/api/admin/config");
+}
+
+export function getTaskTriggers(): Promise<TaskTriggerInfo[]> {
+  return getJson<TaskTriggerInfo[]>("/api/admin/tasks");
+}
+
+export function triggerTask(endpoint: string): Promise<unknown> {
+  return postJson<unknown>(endpoint);
+}

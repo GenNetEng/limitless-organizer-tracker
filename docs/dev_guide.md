@@ -76,7 +76,9 @@ never commit real credentials or webhook URLs.
 | `TOURNAMENT_BACKFILL_MONTHS` | Months of historical tournament data to keep backfilled per run (default: 3) |
 | `ORGANIZER_SCAN_INTERVAL_HOURS` | How often the organizer onboarding scanner runs, in hours (default: 24) |
 | `ORGANIZER_SCAN_LIMIT` | Max new organizer IDs probed per scan run (default: 50) |
+| `API_KEY` | Shared secret protecting `/api/*` endpoints; must match `VITE_API_KEY` |
 | `VITE_API_BASE_URL` | Frontend's base URL for the backend API |
+| `VITE_API_KEY` | API key baked into the frontend build; sent as `X-API-Key` header on every request |
 
 ### Scraper selectors
 
@@ -113,6 +115,21 @@ Run the backend test suite inside Docker:
 ```bash
 docker compose run backend pytest
 ```
+
+## Admin API
+
+The admin router (`/api/admin/*`) provides operational visibility into the
+running system. All endpoints require the `X-API-Key` header.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/event-log` | GET | Paginated, filterable event log (query params: `limit`, `offset`, `event_type`, `severity`, `source`) |
+| `/api/admin/diagnostics` | GET | System health: DB/Redis connectivity, Celery worker list, beat status, last success per task |
+| `/api/admin/config` | GET | Current non-sensitive configuration values (intervals, limits) |
+| `/api/admin/tasks` | GET | Available task trigger endpoints for the frontend trigger buttons |
+
+The frontend Admin tab consumes these endpoints via four components:
+`EventLogViewer`, `Diagnostics`, `TaskTriggers`, and `AdminConfig`.
 
 ## CI
 

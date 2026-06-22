@@ -1,16 +1,21 @@
 import { useState } from "react";
+import { AdminConfig } from "../components/AdminConfig";
+import { Diagnostics } from "../components/Diagnostics";
+import { EventLogViewer } from "../components/EventLogViewer";
 import { HighestOrganizerIdCard } from "../components/HighestOrganizerIdCard";
 import { OrganizerActivityChart } from "../components/OrganizerActivityChart";
 import { OrganizerProfile } from "../components/OrganizerProfile";
 import { ResubmissionLog } from "../components/ResubmissionLog";
 import { StatusTimeline } from "../components/StatusTimeline";
 import { TabNavigation, type Tab } from "../components/TabNavigation";
+import { TaskTriggers } from "../components/TaskTriggers";
 import { WaitTimeEstimator } from "../components/WaitTimeEstimator";
 
 const TABS: Tab[] = [
   { id: "application", label: "My Application" },
   { id: "growth", label: "Organizer Growth" },
   { id: "lookup", label: "Organizer Lookup" },
+  { id: "admin", label: "Admin" },
 ];
 
 export function Dashboard() {
@@ -56,6 +61,27 @@ export function Dashboard() {
           <section>
             <h2 className="mb-2 text-lg font-semibold">Organizer Profile</h2>
             <OrganizerProfile />
+          </section>
+        </div>
+      )}
+
+      {activeTab === "admin" && (
+        <div className="space-y-8">
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">System Diagnostics</h2>
+            <Diagnostics />
+          </section>
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">Task Triggers</h2>
+            <TaskTriggers />
+          </section>
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">Configuration</h2>
+            <AdminConfig />
+          </section>
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">Event Log</h2>
+            <EventLogViewer />
           </section>
         </div>
       )}

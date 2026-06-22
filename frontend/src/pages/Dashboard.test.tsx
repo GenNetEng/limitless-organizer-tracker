@@ -4,12 +4,13 @@ import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { Dashboard } from "./Dashboard";
 
 describe("Dashboard", () => {
-  it("renders the tab navigation with three tabs", () => {
+  it("renders the tab navigation with four tabs", () => {
     renderWithQueryClient(<Dashboard />);
 
     expect(screen.getByRole("tab", { name: /my application/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /organizer growth/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /organizer lookup/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /admin/i })).toBeInTheDocument();
   });
 
   it("shows the application tab by default with status history and resubmission log", async () => {
@@ -42,6 +43,20 @@ describe("Dashboard", () => {
     expect(screen.getByRole("heading", { name: /organizer profile/i })).toBeInTheDocument();
 
     expect(await screen.findByText("2720")).toBeInTheDocument();
+  });
+
+  it("switches to admin tab and shows diagnostics, task triggers, config, and event log", async () => {
+    renderWithQueryClient(<Dashboard />);
+
+    fireEvent.click(screen.getByRole("tab", { name: /admin/i }));
+
+    expect(screen.getByRole("heading", { name: /system diagnostics/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /task triggers/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /configuration/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /event log/i })).toBeInTheDocument();
+
+    expect(await screen.findByText("Database")).toBeInTheDocument();
+    expect(await screen.findByText("ingest_tournaments completed")).toBeInTheDocument();
   });
 
   it("hides other tabs' content when switching", async () => {
