@@ -61,19 +61,33 @@ def recompute_organizer_activity(session: Session, pairs: set[tuple[int, str]]) 
 
 def sync_organizer_first_tournament_dates(session: Session, organizer_ids: set[int]) -> None:
     """Upsert Organizer.first_tournament_date = MIN(OrganizerActivity.first_tournament_date) across games."""
-    for organizer_id in organizer_ids:
-        min_dt = session.scalar(
-            select(func.min(OrganizerActivity.first_tournament_date))
-            .where(OrganizerActivity.organizer_id == organizer_id)
-        )
-        if min_dt is None:
-            continue
+    if not organizer_ids:
+        return
 
-        organizer = session.get(Organizer, organizer_id)
+    min_dates = dict(session.execute(
+        select(
+            OrganizerActivity.organizer_id,
+            func.min(OrganizerActivity.first_tournament_date),
+        )
+        .where(OrganizerActivity.organizer_id.in_(organizer_ids))
+        .group_by(OrganizerActivity.organizer_id)
+    ).all())
+
+    if not min_dates:
+        return
+
+    existing = {
+        o.organizer_id: o
+        for o in session.scalars(
+            select(Organizer).where(Organizer.organizer_id.in_(min_dates.keys()))
+        ).all()
+    }
+
+    for organizer_id, min_dt in min_dates.items():
+        organizer = existing.get(organizer_id)
         if organizer is None:
             organizer = Organizer(organizer_id=organizer_id)
             session.add(organizer)
-
         organizer.first_tournament_date = min_dt.date()
 
     session.flush()
