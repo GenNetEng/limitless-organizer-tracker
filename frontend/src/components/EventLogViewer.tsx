@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getEventLog } from "../api/client";
+import { formatTimestamp } from "../lib/formatDate";
 
 export function EventLogViewer() {
   const { data, isLoading, error } = useQuery({
@@ -13,7 +14,7 @@ export function EventLogViewer() {
 
   return (
     <div className="overflow-x-auto">
-      <table className="table table-zebra table-sm w-full">
+      <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
         <thead>
           <tr>
             <th>Timestamp</th>
@@ -27,7 +28,7 @@ export function EventLogViewer() {
           {data.items.map((entry) => (
             <tr key={entry.id}>
               <td className="whitespace-nowrap">
-                {new Date(entry.timestamp).toLocaleString()}
+                {formatTimestamp(entry.timestamp)}
               </td>
               <td>{entry.event_type}</td>
               <td>

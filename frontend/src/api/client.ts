@@ -75,7 +75,8 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 export function getStatusHistory(limit = 50, offset = 0): Promise<Page<StatusCheck>> {
-  return getJson<Page<StatusCheck>>(`/api/status-history?limit=${limit}&offset=${offset}`);
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return getJson<Page<StatusCheck>>(`/api/status-history?${params}`);
 }
 
 export function getResubmissions(): Promise<Page<ResubmissionEvent>> {
@@ -87,14 +88,17 @@ export function getGames(): Promise<string[]> {
 }
 
 export function getOrganizerActivity(game: string | null): Promise<ActivityBucket[]> {
-  const query = game ? `?game=${encodeURIComponent(game)}` : "";
-  return getJson<ActivityBucket[]>(`/api/organizers/activity${query}`);
+  const params = new URLSearchParams();
+  if (game) params.set("game", game);
+  const qs = params.toString();
+  return getJson<ActivityBucket[]>(`/api/organizers/activity${qs ? `?${qs}` : ""}`);
 }
 
 export function getWaitEstimate(organizerId?: number): Promise<WaitEstimate> {
-  const query =
-    organizerId !== undefined ? `?organizer_id=${encodeURIComponent(organizerId)}` : "";
-  return getJson<WaitEstimate>(`/api/organizers/wait-estimate${query}`);
+  const params = new URLSearchParams();
+  if (organizerId !== undefined) params.set("organizer_id", String(organizerId));
+  const qs = params.toString();
+  return getJson<WaitEstimate>(`/api/organizers/wait-estimate${qs ? `?${qs}` : ""}`);
 }
 
 export interface TournamentEntry {

@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { ApiError, getWaitEstimate, type WaitEstimate } from "../api/client";
+import { formatEpochDate } from "../lib/formatDate";
 import { toFittedLineData, toFrontierScatterData, toScatterData } from "../lib/waitEstimateChartData";
 
 export function WaitTimeEstimator() {
@@ -104,7 +105,7 @@ export function WaitTimeEstimator() {
                 type="number"
                 name="First tournament date"
                 domain={["auto", "auto"]}
-                tickFormatter={(value: number) => new Date(value).toLocaleDateString()}
+                tickFormatter={formatEpochDate}
               />
               <YAxis dataKey="organizerId" type="number" name="Organizer ID" domain={["auto", "auto"]} />
               <Tooltip />

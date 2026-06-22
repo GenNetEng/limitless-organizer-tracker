@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Changed
 
+- **Phase 23 — Frontend cleanup
+  ([#77](https://github.com/GenNetEng/limitless-organizer-tracker/issues/77),
+  [#40](https://github.com/GenNetEng/limitless-organizer-tracker/issues/40),
+  [#39](https://github.com/GenNetEng/limitless-organizer-tracker/issues/39))**:
+  - Tabs switched from `tabs-bordered` to DaisyUI v5 `tabs-border` with
+    `text-primary font-semibold` on the active tab for clear visual distinction;
+    all dashboard sections wrapped in `card bg-base-200` containers for visual
+    separation from the page background (#77).
+  - Shared date-formatting helpers (`formatTimestamp`, `formatDateShort`,
+    `formatEpochDate`) in `src/lib/formatDate.ts` replace ad-hoc
+    `new Date(x).toLocaleString()` calls across 5 components (#40).
+  - All API client functions standardized on `URLSearchParams` for query-string
+    building, replacing inconsistent `encodeURIComponent` template literals (#39).
+  - #38 was already resolved during the Phase 12.5 redesign (the unreachable
+    `fetchEstimate` null branch no longer exists).
 - **Phase 22 — Backend refactors
   ([#57](https://github.com/GenNetEng/limitless-organizer-tracker/issues/57),
   [#56](https://github.com/GenNetEng/limitless-organizer-tracker/issues/56),

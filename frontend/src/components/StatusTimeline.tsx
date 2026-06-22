@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStatusHistory } from "../api/client";
+import { formatTimestamp } from "../lib/formatDate";
 
 const STATUS_COLORS: Record<string, string> = {
   approved: "badge-success",
@@ -47,7 +48,7 @@ export function StatusTimeline() {
                   {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                 </span>
                 <time className="text-sm opacity-60" dateTime={item.checked_at}>
-                  {new Date(item.checked_at).toLocaleString()}
+                  {formatTimestamp(item.checked_at)}
                 </time>
               </div>
               {item.review_note && (

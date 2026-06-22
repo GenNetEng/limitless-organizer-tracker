@@ -27,12 +27,12 @@ export function TaskTriggers() {
   return (
     <div className="space-y-3">
       {tasks.map((task) => (
-        <div key={task.name} className="card bg-base-200 p-4">
+        <div key={task.name} className="card bg-base-300 p-4">
           <div className="flex items-center justify-between">
             <p className="font-semibold">{task.description}</p>
             <button
               type="button"
-              className={`btn btn-sm ${mutation.isPending ? "btn-disabled" : "btn-primary"}`}
+              className={`btn btn-sm ${mutation.isPending ? "btn-disabled" : "bg-primary text-primary-content hover:bg-primary/80"}`}
               disabled={mutation.isPending}
               onClick={() => mutation.mutate(task.endpoint)}
             >

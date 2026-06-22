@@ -1,4 +1,5 @@
 import type { ActivityBucket } from "../api/client";
+import { formatDateShort } from "./formatDate";
 
 export interface ActivityChartDatum {
   period: string;
@@ -9,16 +10,7 @@ export interface ActivityChartDatum {
 export function toActivityChartData(buckets: ActivityBucket[]): ActivityChartDatum[] {
   return buckets.map((bucket) => ({
     period: bucket.period,
-    label: formatPeriodLabel(bucket.period),
+    label: formatDateShort(bucket.period),
     count: bucket.count,
   }));
-}
-
-function formatPeriodLabel(period: string): string {
-  const date = new Date(`${period}T00:00:00Z`);
-  return date.toLocaleDateString(undefined, {
-    timeZone: "UTC",
-    month: "short",
-    day: "numeric",
-  });
 }

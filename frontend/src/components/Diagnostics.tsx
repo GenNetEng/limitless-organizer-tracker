@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getDiagnostics } from "../api/client";
+import { formatTimestamp } from "../lib/formatDate";
 
 function HealthBadge({ ok }: { ok: boolean }) {
   return (
@@ -22,15 +23,15 @@ export function Diagnostics() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="card bg-base-200 p-4">
+        <div className="card bg-base-300 p-4">
           <h3 className="font-semibold">Database</h3>
           <HealthBadge ok={data.db_ok} />
         </div>
-        <div className="card bg-base-200 p-4">
+        <div className="card bg-base-300 p-4">
           <h3 className="font-semibold">Redis</h3>
           <HealthBadge ok={data.redis_ok} />
         </div>
-        <div className="card bg-base-200 p-4">
+        <div className="card bg-base-300 p-4">
           <h3 className="font-semibold">Celery Beat</h3>
           <HealthBadge ok={data.beat_ok} />
         </div>
@@ -51,7 +52,7 @@ export function Diagnostics() {
 
       <div className="card bg-base-200 p-4">
         <h3 className="mb-2 font-semibold">Last Task Success</h3>
-        <table className="table table-sm w-full">
+        <table className="table table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
           <thead>
             <tr>
               <th>Task</th>
@@ -62,7 +63,7 @@ export function Diagnostics() {
             {Object.entries(data.last_success_per_task).map(([task, ts]) => (
               <tr key={task}>
                 <td>{task}</td>
-                <td>{ts ? new Date(ts).toLocaleString() : "Never"}</td>
+                <td>{ts ? formatTimestamp(ts) : "Never"}</td>
               </tr>
             ))}
           </tbody>
