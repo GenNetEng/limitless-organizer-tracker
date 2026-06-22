@@ -1,0 +1,119 @@
+"""Unit tests for Celery task lifecycle signal handlers."""
+
+import json
+from unittest.mock import MagicMock, patch
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.db.base import Base
+from app.db.models import EventLog
+from app.celery_signals import on_task_prerun, on_task_postrun, on_task_failure
+
+
+def _make_session_factory():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine)
+
+
+def test_on_task_prerun_logs_started_event():
+    factory = _make_session_factory()
+    with patch("app.celery_signals.SessionLocal", factory):
+        on_task_prerun(
+            sender=MagicMock(__name__="ingest_tournaments_task"),
+            task_id="abc-123",
+        )
+
+    with factory() as session:
+        row = session.query(EventLog).one()
+        assert row.event_type == "task.started"
+        assert row.severity == "INFO"
+        assert row.source == "celery"
+        assert row.correlation_id == "abc-123"
+        assert "ingest_tournaments_task" in row.message
+
+
+def test_on_task_postrun_logs_completed_event():
+    factory = _make_session_factory()
+    with patch("app.celery_signals.SessionLocal", factory):
+        on_task_prerun(
+            sender=MagicMock(__name__="ingest_tournaments_task"),
+            task_id="abc-123",
+        )
+        on_task_postrun(
+            sender=MagicMock(__name__="ingest_tournaments_task"),
+            task_id="abc-123",
+            retval=42,
+        )
+
+    with factory() as session:
+        rows = session.query(EventLog).order_by(EventLog.id).all()
+        assert len(rows) == 2
+        completed = rows[1]
+        assert completed.event_type == "task.completed"
+        assert completed.severity == "INFO"
+        assert completed.correlation_id == "abc-123"
+        details = json.loads(completed.details)
+        assert "duration_ms" in details
+        assert details["result"] == "42"
+
+
+def test_on_task_failure_logs_error_event():
+    factory = _make_session_factory()
+    with patch("app.celery_signals.SessionLocal", factory):
+        on_task_prerun(
+            sender=MagicMock(__name__="ingest_tournaments_task"),
+            task_id="abc-123",
+        )
+        on_task_failure(
+            sender=MagicMock(__name__="ingest_tournaments_task"),
+            task_id="abc-123",
+            exception=ValueError("something broke"),
+            traceback=None,
+        )
+
+    with factory() as session:
+        rows = session.query(EventLog).order_by(EventLog.id).all()
+        assert len(rows) == 2
+        failed = rows[1]
+        assert failed.event_type == "task.failed"
+        assert failed.severity == "ERROR"
+        assert failed.correlation_id == "abc-123"
+        details = json.loads(failed.details)
+        assert "duration_ms" in details
+        assert "something broke" in details["error"]
+
+
+def test_on_task_postrun_without_prerun_still_works():
+    """postrun should not crash if prerun wasn't recorded (e.g., signal race)."""
+    factory = _make_session_factory()
+    with patch("app.celery_signals.SessionLocal", factory):
+        on_task_postrun(
+            sender=MagicMock(__name__="some_task"),
+            task_id="no-prerun",
+            retval="ok",
+        )
+
+    with factory() as session:
+        row = session.query(EventLog).one()
+        assert row.event_type == "task.completed"
+        details = json.loads(row.details)
+        assert details["duration_ms"] is None
+
+
+def test_signal_handlers_never_raise():
+    """Signal handlers should swallow exceptions to never crash a task."""
+    on_task_prerun(sender=MagicMock(__name__="t"), task_id="x")
+    on_task_postrun(sender=MagicMock(__name__="t"), task_id="x", retval=None)
+    on_task_failure(
+        sender=MagicMock(__name__="t"),
+        task_id="x",
+        exception=RuntimeError("boom"),
+        traceback=None,
+    )

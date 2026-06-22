@@ -8,6 +8,19 @@ from app.db.base import Base
 from app.db.types import UTCDateTime
 
 
+class EventLog(Base):
+    __tablename__ = "event_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    event_type: Mapped[str] = mapped_column(String, index=True)
+    severity: Mapped[str] = mapped_column(String)
+    source: Mapped[str] = mapped_column(String)
+    message: Mapped[str] = mapped_column(Text)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 class ApplicationStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"

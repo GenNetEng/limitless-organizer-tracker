@@ -89,3 +89,41 @@ class TaskResultOut(BaseModel):
     task_id: str
     status: str
     result: str
+
+
+class EventLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    timestamp: datetime
+    event_type: str
+    severity: str
+    source: str
+    message: str
+    details: dict | list | None = None
+    correlation_id: str | None = None
+
+
+class DiagnosticsOut(BaseModel):
+    db_ok: bool
+    redis_ok: bool
+    celery_workers: list[str]
+    beat_ok: bool
+    last_success_per_task: dict[str, str | None]
+
+
+class AdminConfigOut(BaseModel):
+    application_status_check_interval_hours: int
+    resubmit_times_utc: str
+    tournament_ingest_interval_hours: int
+    tournament_ingest_limit: int
+    tournament_backfill_months: int
+    organizer_scan_interval_hours: int
+    organizer_scan_limit: int
+
+
+class TaskTriggerInfo(BaseModel):
+    name: str
+    endpoint: str
+    method: str
+    description: str

@@ -8,6 +8,7 @@ from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import Organizer
 from app.db.session import SessionLocal
+from app.events import log_event
 
 
 def run_organizer_scan(session: Session) -> int:
@@ -61,7 +62,16 @@ def scan_new_organizers_task() -> int:
     """
     session = SessionLocal()
     try:
-        return run_organizer_scan(session)
+        found = run_organizer_scan(session)
+        log_event(
+            session=session,
+            event_type="scanner.scan_complete",
+            source="organizer_tasks",
+            message=f"Organizer scan found {found} new organizers",
+            details={"found": found},
+        )
+        session.commit()
+        return found
     except Exception:
         session.rollback()
         raise

@@ -3,6 +3,7 @@ from datetime import timedelta
 from celery import Celery
 from celery.schedules import crontab
 
+from app.celery_signals import connect_signals
 from app.config import settings
 
 celery_app = Celery(
@@ -43,6 +44,8 @@ def _hourly_schedule(interval_hours: int) -> crontab:
     hours = interval_hours if interval_hours > 0 else 1
     return crontab(minute=0, hour=f"*/{hours}")
 
+
+connect_signals()
 
 celery_app.conf.beat_schedule = {
     "check-application-status": {
