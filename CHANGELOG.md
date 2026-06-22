@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Changed
 
+- **Phase 24 — Performance
+  ([#54](https://github.com/GenNetEng/limitless-organizer-tracker/issues/54),
+  [#31](https://github.com/GenNetEng/limitless-organizer-tracker/issues/31))**:
+  - `sync_organizer_first_tournament_dates` rewritten from O(N) per-organizer
+    queries to 2 bulk queries (one `GROUP BY` aggregate + one `IN` fetch),
+    eliminating the N+1 pattern during tournament ingestion (#54).
+  - Added standalone index on `OrganizerActivity.game` (Alembic migration
+    `d7c22892b275`) to support `WHERE game = :game` filters in activity and
+    wait-estimate endpoints without a full table scan (#31).
 - **Phase 23 — Frontend cleanup
   ([#77](https://github.com/GenNetEng/limitless-organizer-tracker/issues/77),
   [#40](https://github.com/GenNetEng/limitless-organizer-tracker/issues/40),

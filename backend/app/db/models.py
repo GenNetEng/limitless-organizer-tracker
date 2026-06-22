@@ -65,7 +65,7 @@ class OrganizerActivity(Base):
     __tablename__ = "organizer_activity"
 
     organizer_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    game: Mapped[str] = mapped_column(String, primary_key=True)
+    game: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     first_tournament_date: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     first_tournament_id: Mapped[str] = mapped_column(String)
     last_seen_date: Mapped[datetime] = mapped_column(UTCDateTime)
