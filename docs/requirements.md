@@ -47,7 +47,7 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR20 | Admin event-log API: `GET /api/admin/event-log` returns paginated, filterable event log entries (by event type, severity, source, date range) | BR1 | **Done — Phase 21a** (API), **Phase 21b** (frontend: `EventLogViewer.tsx`) |
 | FR21 | Admin diagnostics API: `GET /api/admin/diagnostics` returns system health (DB status, Redis connectivity, Celery worker/beat status, last successful run per task) | BR1 | **Done — Phase 21a** (API), **Phase 21b** (frontend: `Diagnostics.tsx`) |
 | FR22 | Admin config API: `GET /api/admin/config` returns current non-sensitive configuration (scan intervals, backfill months, ingest limits) via hardcoded allowlist | BR1 | **Done — Phase 21a** (API), **Phase 21b** (frontend: `AdminConfig.tsx`) |
-| FR23 | Admin tasks API: `GET /api/admin/tasks` returns available task trigger endpoints for frontend task-trigger buttons | BR1 | **Done — Phase 21a** (API), **Phase 21b** (frontend: `TaskTriggers.tsx`) |
+| FR23 | Admin tasks API: `GET /api/admin/tasks` returns available task trigger endpoints for frontend task-trigger buttons. All Celery beat tasks must have a corresponding manual trigger endpoint | BR1 | **Done — Phase 21a** (API), **Phase 21b** (frontend: `TaskTriggers.tsx`). Gap: `scan_new_organizers_task` missing — [#83](https://github.com/GenNetEng/limitless-organizer-tracker/issues/83) |
 
 ## Non-Functional Requirements (NFR)
 

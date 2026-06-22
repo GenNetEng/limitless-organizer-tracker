@@ -7,6 +7,14 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-22: All Celery tasks must have manual trigger endpoints
+
+**Decision**: Every Celery beat task must also be exposed as a manually triggerable API endpoint in the admin router, so it appears in the Admin tab's Task Triggers panel. No task should be beat-only — operators need the ability to trigger any task on demand for debugging, verification, and ad-hoc runs.
+
+**Rationale**: The scanner task (`scan_new_organizers_task`) was discovered to be missing from the admin triggers despite being a beat-scheduled task. This is a gap — if a task is important enough to run on a schedule, it's important enough to run on demand.
+
+**How to apply**: When adding a new Celery task, always add a corresponding `POST /api/admin/trigger-{task}` endpoint (or register it in the existing task-trigger registry). Audit existing tasks for gaps.
+
 ## 2026-06-22: Onboarding date model — observed vs estimated (Phase 25)
 
 **Decision**: `Organizer.onboarded_at` is only set for organizer IDs >= 2723 — the watermark when the daily scanner went live. These are real observed dates (the date the scanner first saw a 200 on `/organizer/{id}`). For organizer IDs < 2723, `onboarded_at` remains NULL; an `estimated_onboard_date` is computed at query time from the frontier regression slope (same math as the wait-estimate endpoint, applied retrospectively). This field is returned in API responses but not stored.
