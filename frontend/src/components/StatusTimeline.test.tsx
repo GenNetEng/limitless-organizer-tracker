@@ -80,4 +80,12 @@ describe("StatusTimeline", () => {
     expect(screen.queryByText(/page/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /next/i })).not.toBeInTheDocument();
   });
+
+  it("shows error message on API failure", async () => {
+    server.use(
+      http.get("*/api/status-history", () => HttpResponse.json(null, { status: 500 })),
+    );
+    renderWithQueryClient(<StatusTimeline />);
+    expect(await screen.findByText("Failed to load status history.")).toBeInTheDocument();
+  });
 });

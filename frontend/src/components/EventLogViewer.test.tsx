@@ -1,6 +1,8 @@
 import { screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
+import { server } from "../test/server";
 import { EventLogViewer } from "./EventLogViewer";
 
 describe("EventLogViewer", () => {
@@ -37,5 +39,13 @@ describe("EventLogViewer", () => {
     renderWithQueryClient(<EventLogViewer />);
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it("shows error message on API failure", async () => {
+    server.use(
+      http.get("*/api/admin/event-log", () => HttpResponse.json(null, { status: 500 })),
+    );
+    renderWithQueryClient(<EventLogViewer />);
+    expect(await screen.findByText("Failed to load event log")).toBeInTheDocument();
   });
 });

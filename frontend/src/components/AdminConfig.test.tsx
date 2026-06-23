@@ -1,6 +1,8 @@
 import { screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
+import { server } from "../test/server";
 import { AdminConfig } from "./AdminConfig";
 
 describe("AdminConfig", () => {
@@ -34,5 +36,13 @@ describe("AdminConfig", () => {
     renderWithQueryClient(<AdminConfig />);
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it("shows error message on API failure", async () => {
+    server.use(
+      http.get("*/api/admin/config", () => HttpResponse.json(null, { status: 500 })),
+    );
+    renderWithQueryClient(<AdminConfig />);
+    expect(await screen.findByText("Failed to load configuration")).toBeInTheDocument();
   });
 });

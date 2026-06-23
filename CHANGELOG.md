@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Added
 
+- **Phase 27 — Error-state tests
+  ([#75](https://github.com/GenNetEng/limitless-organizer-tracker/issues/75))**:
+  added API error-state tests (500 responses via MSW `server.use()`) to all 6
+  data components: EventLogViewer, Diagnostics, TaskTriggers, AdminConfig,
+  StatusTimeline, ResubmissionLog. 74 frontend tests total.
 - **Phase 26 — Historical tournament backfill
   ([#68](https://github.com/GenNetEng/limitless-organizer-tracker/issues/68))**:
   `full_tournament_backfill_task` Celery task pages through the entire Limitless
