@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-23
+
 ### Fixed
 
 - **Phase 29 — Expired session detection and recovery
