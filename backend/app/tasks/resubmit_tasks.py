@@ -55,7 +55,8 @@ def resubmit_application_task() -> int:
         if not result.success:
             details["failure_stage"] = result.failure_stage
             details["page_html"] = result.page_html
-            details["network_log"] = result.network_log
+        if result.server_response:
+            details["server_response"] = result.server_response
         log_event(
             session=session,
             event_type="scraper.resubmit",

@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import httpx
@@ -9,8 +8,15 @@ from app.celery_app import celery_app
 from app.db.models import ResubmissionEvent
 from tests.helpers import fake_authenticated_page
 
-FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
+
+FORM_DATA = {"name": "Test Org", "discord": "user", "message": "msg", "answers": {"q1": "a1"}}
+
+
+def _mock_resubmit_page(server_response):
+    mock_page = MagicMock()
+    mock_page.evaluate.side_effect = [None, FORM_DATA, server_response]
+    return mock_page
 
 
 @respx.mock
@@ -18,8 +24,7 @@ def test_resubmit_application_task_records_event_and_notifies_on_success(monkeyp
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
-    mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
+    mock_page = _mock_resubmit_page({"status": "ok", "ok": True})
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page)
     )
@@ -47,8 +52,7 @@ def test_resubmit_application_task_records_event_on_failure(monkeypatch, db_sess
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
-    mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_failure.html").read_text()
+    mock_page = _mock_resubmit_page({"status": "error", "ok": False})
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page)
     )
@@ -74,8 +78,7 @@ def test_resubmit_application_task_records_event_when_discord_webhook_unset(monk
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", "")
 
-    mock_page = MagicMock()
-    mock_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
+    mock_page = _mock_resubmit_page({"status": "ok", "ok": True})
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page)
     )
