@@ -116,6 +116,12 @@ references.
 `ORGANIZER_SCAN_LIMIT`) and the scraper-selector caveat. FR/NFR traceability
 table is complete through Phase 14. README placeholder stub removed.
 
+**Release — v0.3.0 (2026-06-23)**: Phases 15–29 shipped. Includes Helm/Fleet
+deployment, DaisyUI theme, admin API + frontend, event logging, backend
+refactors, frontend cleanup, performance fixes, historical backfill,
+error-state tests, wait-estimate API shape cleanup (#37), and expired session
+detection/recovery (#16). CHANGELOG cut to `[0.3.0]`.
+
 ## Build Order
 
 Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer-tracker/milestones)
