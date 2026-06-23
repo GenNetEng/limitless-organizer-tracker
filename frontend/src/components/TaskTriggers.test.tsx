@@ -1,6 +1,8 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
+import { server } from "../test/server";
 import { TaskTriggers } from "./TaskTriggers";
 
 describe("TaskTriggers", () => {
@@ -37,5 +39,13 @@ describe("TaskTriggers", () => {
     renderWithQueryClient(<TaskTriggers />);
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it("shows error message on API failure", async () => {
+    server.use(
+      http.get("*/api/admin/tasks", () => HttpResponse.json(null, { status: 500 })),
+    );
+    renderWithQueryClient(<TaskTriggers />);
+    expect(await screen.findByText("Failed to load tasks")).toBeInTheDocument();
   });
 });
