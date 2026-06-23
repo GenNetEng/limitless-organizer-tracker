@@ -16,7 +16,7 @@ from app.scraper.selectors import (
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 
 
-def test_resubmit_application_returns_true_on_success():
+def test_resubmit_application_returns_success():
     page = MagicMock()
     page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
 
@@ -25,7 +25,7 @@ def test_resubmit_application_returns_true_on_success():
     path = APPLICATION_PATH_TEMPLATE.format(application_id=settings.limitless_application_id)
     page.goto.assert_called_once_with(f"{settings.limitless_base_url}{path}")
     page.click.assert_has_calls(
-        [call(RESUBMIT_CONTINUE_BUTTON_SELECTOR), call(RESUBMIT_BUTTON_SELECTOR)]
+        [call(RESUBMIT_CONTINUE_BUTTON_SELECTOR, timeout=10000), call(RESUBMIT_BUTTON_SELECTOR, timeout=10000)]
     )
     page.wait_for_selector.assert_any_call(
         RESUBMIT_PAGE2_SELECTOR, state="visible", timeout=10000
@@ -33,27 +33,41 @@ def test_resubmit_application_returns_true_on_success():
     page.wait_for_selector.assert_any_call(
         RESUBMIT_RESULT_SELECTOR, state="visible", timeout=10000
     )
-    page.wait_for_load_state.assert_not_called()
-    assert result is True
+    assert result.success is True
+    assert result.failure_stage is None
 
 
-def test_resubmit_application_returns_false_when_page2_never_appears():
+def test_resubmit_application_captures_html_when_page2_never_appears():
     page = MagicMock()
+    page.content.return_value = "<html>stuck on page1</html>"
     page.wait_for_selector.side_effect = [PlaywrightTimeoutError("timeout")]
 
     result = resubmit_application(page)
 
-    assert result is False
-    page.click.assert_called_once_with(RESUBMIT_CONTINUE_BUTTON_SELECTOR)
-    page.content.assert_not_called()
+    assert result.success is False
+    assert result.failure_stage == "page2_not_visible"
+    assert "stuck on page1" in result.page_html
 
 
-def test_resubmit_application_returns_false_when_page3_never_appears():
+def test_resubmit_application_captures_html_when_page3_never_appears():
     page = MagicMock()
-    # First call (page2 visible): succeeds; second call (page3 visible): times out
+    page.content.return_value = "<html>stuck on page2</html>"
     page.wait_for_selector.side_effect = [None, PlaywrightTimeoutError("timeout")]
 
     result = resubmit_application(page)
 
-    assert result is False
-    page.content.assert_not_called()
+    assert result.success is False
+    assert result.failure_stage == "result_page_not_visible"
+    assert "stuck on page2" in result.page_html
+
+
+def test_resubmit_application_captures_html_when_continue_button_missing():
+    page = MagicMock()
+    page.content.return_value = "<html>no button</html>"
+    page.click.side_effect = PlaywrightTimeoutError("timeout")
+
+    result = resubmit_application(page)
+
+    assert result.success is False
+    assert result.failure_stage == "continue_button_not_found"
+    assert "no button" in result.page_html

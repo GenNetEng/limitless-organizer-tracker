@@ -28,13 +28,13 @@ def test_resubmission_success_triggers_discord_notification():
     route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
 
     # When the application is resubmitted and the result is reported
-    success = resubmit_application(page)
+    result = resubmit_application(page)
     response = post_resubmission_notice(
-        WEBHOOK_URL, datetime(2026, 6, 12, 9, 0, tzinfo=timezone.utc), success=success
+        WEBHOOK_URL, datetime(2026, 6, 12, 9, 0, tzinfo=timezone.utc), success=result.success
     )
 
     # Then the resubmission is reported as successful and Discord is notified
-    assert success is True
+    assert result.success is True
     assert response.status_code == 204
     payload = route.calls.last.request.content.decode()
     assert "succeeded" in payload.lower()
@@ -48,13 +48,13 @@ def test_resubmission_failure_triggers_discord_notification():
     route = respx.post(WEBHOOK_URL).mock(return_value=httpx.Response(204))
 
     # When the application is resubmitted and the result is reported
-    success = resubmit_application(page)
+    result = resubmit_application(page)
     response = post_resubmission_notice(
-        WEBHOOK_URL, datetime(2026, 6, 12, 21, 0, tzinfo=timezone.utc), success=success
+        WEBHOOK_URL, datetime(2026, 6, 12, 21, 0, tzinfo=timezone.utc), success=result.success
     )
 
     # Then the resubmission is reported as failed but Discord is still notified
-    assert success is False
+    assert result.success is False
     assert response.status_code == 204
     payload = route.calls.last.request.content.decode()
     assert "failed" in payload.lower()

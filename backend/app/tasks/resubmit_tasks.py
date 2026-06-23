@@ -34,30 +34,35 @@ def resubmit_application_task() -> int:
     ResubmissionEvent row ID.
     """
     with authenticated_page() as page:
-        success = resubmit_application(page)
+        result = resubmit_application(page)
 
     submitted_at = datetime.now(timezone.utc)
 
     discord_notified = False
     try:
-        response = post_resubmission_notice(settings.discord_webhook_url, submitted_at, success)
+        response = post_resubmission_notice(settings.discord_webhook_url, submitted_at, result.success)
         discord_notified = response.status_code < 300
     except httpx.HTTPError:
         discord_notified = False
 
     with task_session() as session:
-        event = record_resubmission(session, success, submitted_at, discord_notified)
+        event = record_resubmission(session, result.success, submitted_at, discord_notified)
+        details = {
+            "success": result.success,
+            "discord_notified": discord_notified,
+            "event_id": event.id,
+        }
+        if not result.success:
+            details["failure_stage"] = result.failure_stage
+            details["page_html"] = result.page_html
         log_event(
             session=session,
             event_type="scraper.resubmit",
             source="resubmit_tasks",
-            message=f"Application resubmission {'succeeded' if success else 'failed'}",
-            severity="INFO" if success else "WARNING",
-            details={
-                "success": success,
-                "discord_notified": discord_notified,
-                "event_id": event.id,
-            },
+            message=f"Application resubmission {'succeeded' if result.success else 'failed'}"
+            + (f" at stage: {result.failure_stage}" if result.failure_stage else ""),
+            severity="INFO" if result.success else "WARNING",
+            details=details,
         )
         session.commit()
         return event.id

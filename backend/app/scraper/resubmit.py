@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from app.config import settings
@@ -11,31 +13,56 @@ from app.scraper.selectors import (
 )
 
 
-def resubmit_application(page: Page) -> bool:
+@dataclass
+class ResubmitResult:
+    success: bool
+    failure_stage: str | None = None
+    page_html: str | None = None
+
+
+def resubmit_application(page: Page) -> ResubmitResult:
     """Resubmit the organization application using an authenticated Page.
 
-    The page's session must already be logged in (see app.scraper.browser).
-    Advances the on-page resubmit wizard from `.page1` to `.page2` (a
-    client-side reveal with no server effect) before clicking the actual
-    "Resubmit" button.
-
-    Waits explicitly for .page2 to become visible after clicking Continue so
-    that the JS transition completes before the Submit click is dispatched —
-    without this wait, the click fires before the module script attaches its
-    handler and page2 is never revealed. Then waits for .page3 to become
-    visible rather than relying on networkidle, which fires after any
-    post-submit page reload and misses the success state.
+    Returns a ResubmitResult with success status and, on failure, the
+    stage that failed and a snapshot of the page HTML for diagnosis.
     """
     path = APPLICATION_PATH_TEMPLATE.format(application_id=settings.limitless_application_id)
     page.goto(f"{settings.limitless_base_url}{path}")
-    page.click(RESUBMIT_CONTINUE_BUTTON_SELECTOR)
+
+    try:
+        page.click(RESUBMIT_CONTINUE_BUTTON_SELECTOR, timeout=10000)
+    except PlaywrightTimeoutError:
+        return ResubmitResult(
+            success=False,
+            failure_stage="continue_button_not_found",
+            page_html=page.content()[:5000],
+        )
+
     try:
         page.wait_for_selector(RESUBMIT_PAGE2_SELECTOR, state="visible", timeout=10000)
     except PlaywrightTimeoutError:
-        return False
-    page.click(RESUBMIT_BUTTON_SELECTOR)
+        return ResubmitResult(
+            success=False,
+            failure_stage="page2_not_visible",
+            page_html=page.content()[:5000],
+        )
+
+    try:
+        page.click(RESUBMIT_BUTTON_SELECTOR, timeout=10000)
+    except PlaywrightTimeoutError:
+        return ResubmitResult(
+            success=False,
+            failure_stage="submit_button_not_found",
+            page_html=page.content()[:5000],
+        )
+
     try:
         page.wait_for_selector(RESUBMIT_RESULT_SELECTOR, state="visible", timeout=10000)
     except PlaywrightTimeoutError:
-        return False
-    return parse_resubmit_result(page.content())
+        return ResubmitResult(
+            success=False,
+            failure_stage="result_page_not_visible",
+            page_html=page.content()[:5000],
+        )
+
+    return ResubmitResult(success=parse_resubmit_result(page.content()))
