@@ -35,7 +35,7 @@ def resubmit_application(page: Page) -> ResubmitResult:
         return ResubmitResult(
             success=False,
             failure_stage="continue_button_not_found",
-            page_html=page.content()[:5000],
+            page_html=page.content()[:20000],
         )
 
     try:
@@ -44,7 +44,7 @@ def resubmit_application(page: Page) -> ResubmitResult:
         return ResubmitResult(
             success=False,
             failure_stage="page2_not_visible",
-            page_html=page.content()[:5000],
+            page_html=page.content()[:20000],
         )
 
     try:
@@ -53,7 +53,7 @@ def resubmit_application(page: Page) -> ResubmitResult:
         return ResubmitResult(
             success=False,
             failure_stage="submit_button_not_found",
-            page_html=page.content()[:5000],
+            page_html=page.content()[:20000],
         )
 
     try:
@@ -62,7 +62,7 @@ def resubmit_application(page: Page) -> ResubmitResult:
         return ResubmitResult(
             success=False,
             failure_stage="result_page_not_visible",
-            page_html=page.content()[:5000],
+            page_html=page.content()[:20000],
         )
 
     return ResubmitResult(success=parse_resubmit_result(page.content()))
