@@ -45,14 +45,20 @@ class WaitEstimatePointOut(BaseModel):
     is_frontier: bool
 
 
+class FittedLineEndpointOut(BaseModel):
+    organizer_id: int
+    projected_date: date
+
+
 class WaitEstimateOut(BaseModel):
     organizer_id: int | None
     slope: float
-    intercept: float
     r_squared: float
     projected_active_date: date | None
     sample_size: int
     frontier_size: int
+    total_points: int
+    fitted_line: list[FittedLineEndpointOut]
     points: list[WaitEstimatePointOut]
 
 

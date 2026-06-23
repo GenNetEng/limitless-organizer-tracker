@@ -311,6 +311,110 @@ def test_get_wait_estimate_falls_back_to_all_points_when_frontier_size_one(clien
 
 
 # ---------------------------------------------------------------------------
+# GET /api/organizers/wait-estimate — Phase 28 response shape (#37)
+# ---------------------------------------------------------------------------
+
+
+def test_get_wait_estimate_returns_fitted_line_not_intercept(client):
+    """Response includes fitted_line endpoints and omits the raw intercept."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 3, 3))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "intercept" not in body
+    assert "fitted_line" in body
+    assert len(body["fitted_line"]) == 2
+    assert body["fitted_line"][0]["organizer_id"] == 100
+    assert body["fitted_line"][1]["organizer_id"] == 300
+    assert "projected_date" in body["fitted_line"][0]
+    assert "projected_date" in body["fitted_line"][1]
+
+
+def test_get_wait_estimate_fitted_line_extends_to_target(client):
+    """When the target organizer_id exceeds the data range, fitted_line extends to it."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate", params={"organizer_id": 400})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["fitted_line"][0]["organizer_id"] == 100
+    assert body["fitted_line"][1]["organizer_id"] == 400
+    assert body["fitted_line"][1]["projected_date"] == body["projected_active_date"]
+
+
+def test_get_wait_estimate_includes_total_points(client):
+    """Response includes total_points showing the full count before any capping."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 2, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 3, 3))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_points"] == 3
+    assert len(body["points"]) == 3
+
+
+def test_get_wait_estimate_caps_points_preserving_frontier(client, monkeypatch):
+    """When points exceed MAX_CHART_POINTS, the response is capped but frontier points are preserved."""
+    import app.api.routers.organizers as organizers_module
+
+    monkeypatch.setattr(organizers_module, "MAX_CHART_POINTS", 4)
+
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all(
+            [
+                OrganizerActivity(**_activity(100, "PTCG", _dt(2026, 1, 1))),
+                OrganizerActivity(**_activity(200, "PTCG", _dt(2026, 6, 1))),
+                OrganizerActivity(**_activity(300, "PTCG", _dt(2026, 4, 1))),
+                OrganizerActivity(**_activity(400, "PTCG", _dt(2026, 6, 1))),
+                OrganizerActivity(**_activity(500, "PTCG", _dt(2026, 5, 1))),
+                OrganizerActivity(**_activity(600, "PTCG", _dt(2026, 6, 1))),
+                OrganizerActivity(**_activity(700, "PTCG", _dt(2026, 5, 15))),
+            ]
+        )
+        session.commit()
+
+    response = test_client.get("/api/organizers/wait-estimate")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_points"] == 7
+    assert len(body["points"]) <= 4
+    frontier_ids = {p["organizer_id"] for p in body["points"] if p["is_frontier"]}
+    assert frontier_ids == {100, 300, 500, 700}
+
+
+# ---------------------------------------------------------------------------
 # GET /api/organizers/onboarding-history
 # ---------------------------------------------------------------------------
 
