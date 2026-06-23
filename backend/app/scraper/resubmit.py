@@ -48,8 +48,9 @@ def resubmit_application(page: Page) -> ResubmitResult:
     page.goto(f"{settings.limitless_base_url}{path}")
 
     try:
-        page.click(RESUBMIT_CONTINUE_BUTTON_SELECTOR, timeout=10000)
-    except PlaywrightTimeoutError:
+        page.wait_for_selector(RESUBMIT_CONTINUE_BUTTON_SELECTOR, state="visible", timeout=10000)
+        page.evaluate(f"document.querySelector('{RESUBMIT_CONTINUE_BUTTON_SELECTOR}').click()")
+    except (PlaywrightTimeoutError, Exception):
         return ResubmitResult(
             success=False,
             failure_stage="continue_button_not_found",
@@ -68,8 +69,8 @@ def resubmit_application(page: Page) -> ResubmitResult:
         )
 
     try:
-        page.click(RESUBMIT_BUTTON_SELECTOR, timeout=10000)
-    except PlaywrightTimeoutError:
+        page.evaluate(f"document.querySelector('{RESUBMIT_BUTTON_SELECTOR}').click()")
+    except Exception:
         return ResubmitResult(
             success=False,
             failure_stage="submit_button_not_found",
