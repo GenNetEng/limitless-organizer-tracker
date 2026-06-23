@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Changed
+
+- **Phase 28 — Wait-estimate response shape cleanup
+  ([#37](https://github.com/GenNetEng/limitless-organizer-tracker/issues/37))**:
+  `GET /api/organizers/wait-estimate` no longer exposes the regression
+  `intercept` (Python ordinal-day units). The backend now computes the fitted
+  line's two endpoints as `{organizer_id, projected_date}` pairs and returns
+  them in a new `fitted_line` field, so the frontend consumes dates directly
+  without reimplementing ordinal-to-timestamp math. `points` is capped at
+  `MAX_CHART_POINTS` (200) with frontier points always preserved; a new
+  `total_points` field reports the pre-cap count. Frontend
+  `waitEstimateChartData.ts` simplified: `EPOCH_ORDINAL`, `MIN_ORDINAL`,
+  `MAX_ORDINAL` constants and ordinal conversion logic removed entirely.
+  References FR12, FR13.
+
 ### Added
 
 - **Phase 27 — Error-state tests

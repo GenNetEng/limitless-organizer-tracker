@@ -13,6 +13,7 @@ from app.analytics.regression import fit_linear_regression
 from app.api.schemas import (
     ActivityBucketOut,
     BackfillResultOut,
+    FittedLineEndpointOut,
     HighestOrganizerIdOut,
     OrganizerProfileOut,
     WaitEstimateOut,
@@ -25,6 +26,7 @@ from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
 from app.scraper.organizer_profile import earliest_tournament_date, parse_organizer_profile
 
 TOP_N_ORGANIZERS = 1000
+MAX_CHART_POINTS = 200
 
 router = APIRouter(prefix="/api", tags=["organizers"], dependencies=[Depends(require_api_key)])
 
@@ -88,22 +90,47 @@ def get_wait_estimate(
 
     projected_date = _predict_date(result, organizer_id) if organizer_id is not None else None
 
+    all_point_outs = [
+        WaitEstimatePointOut(
+            organizer_id=int(oid),
+            first_tournament_date=date.fromordinal(int(ordinal)),
+            is_frontier=oid in frontier_ids,
+        )
+        for oid, ordinal in points
+    ]
+    sample_size = len(all_point_outs)
+
+    if len(all_point_outs) > MAX_CHART_POINTS:
+        frontier = [p for p in all_point_outs if p.is_frontier]
+        non_frontier = [p for p in all_point_outs if not p.is_frontier]
+        budget = MAX_CHART_POINTS - len(frontier)
+        if budget > 0 and non_frontier:
+            step = max(1, len(non_frontier) // budget)
+            sampled = non_frontier[::step][:budget]
+            all_point_outs = sorted(frontier + sampled, key=lambda p: p.organizer_id)
+        else:
+            all_point_outs = frontier
+
+    point_ids = [oid for oid, _ in points]
+    target_ids = [float(organizer_id)] if organizer_id is not None else []
+    all_ids = point_ids + target_ids
+    min_id = int(min(all_ids))
+    max_id = int(max(all_ids))
+    fitted_line = [
+        FittedLineEndpointOut(organizer_id=min_id, projected_date=_predict_date(result, min_id)),
+        FittedLineEndpointOut(organizer_id=max_id, projected_date=_predict_date(result, max_id)),
+    ]
+
     return WaitEstimateOut(
         organizer_id=organizer_id,
         slope=result.slope,
-        intercept=result.intercept,
         r_squared=result.r_squared,
         projected_active_date=projected_date,
-        sample_size=len(points),
+        sample_size=sample_size,
         frontier_size=len(frontier_points),
-        points=[
-            WaitEstimatePointOut(
-                organizer_id=int(oid),
-                first_tournament_date=date.fromordinal(int(ordinal)),
-                is_frontier=oid in frontier_ids,
-            )
-            for oid, ordinal in points
-        ],
+        total_points=sample_size,
+        fitted_line=fitted_line,
+        points=all_point_outs,
     )
 
 

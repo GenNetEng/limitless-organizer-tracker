@@ -41,14 +41,20 @@ export interface WaitEstimatePoint {
   is_frontier: boolean;
 }
 
+export interface FittedLineEndpoint {
+  organizer_id: number;
+  projected_date: string;
+}
+
 export interface WaitEstimate {
   organizer_id: number | null;
   slope: number;
-  intercept: number;
   r_squared: number;
   projected_active_date: string | null;
   sample_size: number;
   frontier_size: number;
+  total_points: number;
+  fitted_line: FittedLineEndpoint[];
   points: WaitEstimatePoint[];
 }
 

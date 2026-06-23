@@ -39,11 +39,15 @@ export const organizerActivityForPTCG = [{ period: "2026-06-01", count: 1 }];
 export const waitEstimate = {
   organizer_id: 400,
   slope: 0.5,
-  intercept: 739000,
   r_squared: 0.95,
   projected_active_date: "2026-04-01",
   sample_size: 3,
   frontier_size: 2,
+  total_points: 3,
+  fitted_line: [
+    { organizer_id: 100, projected_date: "2026-01-01" },
+    { organizer_id: 400, projected_date: "2026-04-01" },
+  ],
   points: [
     { organizer_id: 100, first_tournament_date: "2026-01-01", is_frontier: true },
     { organizer_id: 200, first_tournament_date: "2026-02-01", is_frontier: false },
@@ -164,7 +168,15 @@ export const handlers = [
     const organizerId = new URL(request.url).searchParams.get("organizer_id");
     const response = organizerId
       ? waitEstimate
-      : { ...waitEstimate, organizer_id: null, projected_active_date: null };
+      : {
+          ...waitEstimate,
+          organizer_id: null,
+          projected_active_date: null,
+          fitted_line: [
+            { organizer_id: 100, projected_date: "2026-01-01" },
+            { organizer_id: 300, projected_date: "2026-03-03" },
+          ],
+        };
     return HttpResponse.json(response);
   }),
   http.get("*/api/organizers/highest-id", () => HttpResponse.json(highestOrganizerId)),
