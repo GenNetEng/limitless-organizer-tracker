@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Fixed
+
+- **Phase 29 — Expired session detection and recovery
+  ([#16](https://github.com/GenNetEng/limitless-organizer-tracker/issues/16))**:
+  `authenticated_page()` now validates stored sessions by navigating to an
+  auth-required page after loading the context. If the server redirects to
+  `/login` (indicating the session cookie has expired), the stale
+  `storage_state.json` is deleted and a fresh login is performed
+  automatically. Previously, an expired session caused `parse_status_html` to
+  fall back to `UNKNOWN` (firing false Discord alerts) and
+  `parse_resubmit_result` to report `success=False` on every run, with no
+  automatic recovery.
+
 ### Changed
 
 - **Phase 28 — Wait-estimate response shape cleanup

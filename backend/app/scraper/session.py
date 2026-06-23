@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -6,17 +7,28 @@ from playwright.sync_api import Page, sync_playwright
 
 from app.config import settings
 from app.scraper.browser import DEFAULT_STORAGE_STATE_PATH, login
+from app.scraper.selectors import APPLY_PATH, LOGIN_PATH
+
+logger = logging.getLogger(__name__)
+
+
+def _is_login_page(page: Page) -> bool:
+    return LOGIN_PATH in page.url
 
 
 @contextmanager
 def authenticated_page(
     storage_state_path: Path | str = DEFAULT_STORAGE_STATE_PATH,
 ) -> Iterator[Page]:
-    """Yield an authenticated Page, logging in if no session is persisted yet.
+    """Yield an authenticated Page, logging in if no session is persisted.
 
-    Reuses `storage_state_path` (see app.scraper.browser.login) if it exists;
+    Reuses `storage_state_path` if it exists and the session is still valid;
     otherwise logs in with the configured credentials and persists the
     resulting session for reuse by later runs.
+
+    When a stored session is found, navigates to an auth-required page to
+    validate it.  If the server redirects to the login page, the stale
+    storage state is deleted and a fresh login is performed.
     """
     storage_state_path = Path(storage_state_path)
     state = str(storage_state_path) if storage_state_path.exists() else None
@@ -34,6 +46,17 @@ def authenticated_page(
                     settings.limitless_password,
                     storage_state_path=storage_state_path,
                 )
+            else:
+                page.goto(f"{settings.limitless_base_url}{APPLY_PATH}")
+                if _is_login_page(page):
+                    logger.warning("Stored session expired — re-authenticating")
+                    storage_state_path.unlink(missing_ok=True)
+                    login(
+                        page,
+                        settings.limitless_username,
+                        settings.limitless_password,
+                        storage_state_path=storage_state_path,
+                    )
 
             yield page
         finally:
