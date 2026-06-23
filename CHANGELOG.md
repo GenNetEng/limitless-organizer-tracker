@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Tests
+
+- **Phase 30 — Triage resubmit bug
+  ([#86](https://github.com/GenNetEng/limitless-organizer-tracker/issues/86))**:
+  verified resubmit flow is working after PR #88 fix (in-browser `fetch()`).
+  Added missing `post_request_failed` failure-stage unit test. All 6 resubmit
+  unit tests + 2 acceptance tests pass. Closes #86.
+
 ## [0.3.0] - 2026-06-23
 
 ### Fixed

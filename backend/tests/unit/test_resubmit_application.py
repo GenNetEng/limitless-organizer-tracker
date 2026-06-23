@@ -64,3 +64,15 @@ def test_resubmit_fails_when_form_data_missing():
 
     assert result.success is False
     assert result.failure_stage == "form_data_extraction_failed"
+
+
+def test_resubmit_fails_when_fetch_post_raises():
+    page = MagicMock()
+    form_data = {"name": "Test Org", "discord": "user", "message": "msg", "answers": {"q1": "a1"}}
+    page.evaluate.side_effect = [None, form_data, Exception("fetch failed")]
+
+    result = resubmit_application(page)
+
+    assert result.success is False
+    assert result.failure_stage == "post_request_failed"
+    assert "fetch failed" in result.server_response["error"]
