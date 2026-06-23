@@ -168,7 +168,15 @@ export const handlers = [
     const organizerId = new URL(request.url).searchParams.get("organizer_id");
     const response = organizerId
       ? waitEstimate
-      : { ...waitEstimate, organizer_id: null, projected_active_date: null };
+      : {
+          ...waitEstimate,
+          organizer_id: null,
+          projected_active_date: null,
+          fitted_line: [
+            { organizer_id: 100, projected_date: "2026-01-01" },
+            { organizer_id: 300, projected_date: "2026-03-03" },
+          ],
+        };
     return HttpResponse.json(response);
   }),
   http.get("*/api/organizers/highest-id", () => HttpResponse.json(highestOrganizerId)),

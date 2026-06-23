@@ -98,7 +98,7 @@ def get_wait_estimate(
         )
         for oid, ordinal in points
     ]
-    total_points = len(all_point_outs)
+    sample_size = len(all_point_outs)
 
     if len(all_point_outs) > MAX_CHART_POINTS:
         frontier = [p for p in all_point_outs if p.is_frontier]
@@ -126,9 +126,9 @@ def get_wait_estimate(
         slope=result.slope,
         r_squared=result.r_squared,
         projected_active_date=projected_date,
-        sample_size=len(points),
+        sample_size=sample_size,
         frontier_size=len(frontier_points),
-        total_points=total_points,
+        total_points=sample_size,
         fitted_line=fitted_line,
         points=all_point_outs,
     )
