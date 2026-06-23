@@ -18,6 +18,7 @@ FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 
 def test_resubmit_application_returns_success():
     page = MagicMock()
+    page.on = MagicMock()
     page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
 
     result = resubmit_application(page)
@@ -31,7 +32,7 @@ def test_resubmit_application_returns_success():
         RESUBMIT_PAGE2_SELECTOR, state="visible", timeout=10000
     )
     page.wait_for_selector.assert_any_call(
-        RESUBMIT_RESULT_SELECTOR, state="visible", timeout=10000
+        RESUBMIT_RESULT_SELECTOR, state="visible", timeout=15000
     )
     assert result.success is True
     assert result.failure_stage is None
