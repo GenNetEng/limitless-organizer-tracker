@@ -1,59 +1,66 @@
-from pathlib import Path
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-from app.config import settings
 from app.scraper.resubmit import resubmit_application
-from app.scraper.selectors import (
-    APPLICATION_PATH_TEMPLATE,
-    RESUBMIT_BUTTON_SELECTOR,
-    RESUBMIT_CONTINUE_BUTTON_SELECTOR,
-    RESUBMIT_PAGE2_SELECTOR,
-    RESUBMIT_RESULT_SELECTOR,
-)
-
-FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 
 
-def test_resubmit_application_returns_true_on_success():
+def _make_page(form_data=None, server_response=None):
     page = MagicMock()
-    page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
+    if form_data is None:
+        form_data = {"name": "Test Org", "discord": "user", "message": "msg", "answers": {"q1": "a1"}}
+    if server_response is None:
+        server_response = {"status": "ok", "ok": True}
+    page.evaluate.side_effect = [None, form_data, server_response]
+    return page
+
+
+def test_resubmit_application_returns_success():
+    page = _make_page()
 
     result = resubmit_application(page)
 
-    path = APPLICATION_PATH_TEMPLATE.format(application_id=settings.limitless_application_id)
-    page.goto.assert_called_once_with(f"{settings.limitless_base_url}{path}")
-    page.click.assert_has_calls(
-        [call(RESUBMIT_CONTINUE_BUTTON_SELECTOR), call(RESUBMIT_BUTTON_SELECTOR)]
-    )
-    page.wait_for_selector.assert_any_call(
-        RESUBMIT_PAGE2_SELECTOR, state="visible", timeout=10000
-    )
-    page.wait_for_selector.assert_any_call(
-        RESUBMIT_RESULT_SELECTOR, state="visible", timeout=10000
-    )
-    page.wait_for_load_state.assert_not_called()
-    assert result is True
+    assert result.success is True
+    assert result.failure_stage is None
+    assert result.server_response == {"status": "ok", "ok": True}
+    assert page.evaluate.call_count == 3
 
 
-def test_resubmit_application_returns_false_when_page2_never_appears():
+def test_resubmit_fails_when_page_load_fails():
     page = MagicMock()
-    page.wait_for_selector.side_effect = [PlaywrightTimeoutError("timeout")]
+    page.wait_for_selector.side_effect = PlaywrightTimeoutError("timeout")
 
     result = resubmit_application(page)
 
-    assert result is False
-    page.click.assert_called_once_with(RESUBMIT_CONTINUE_BUTTON_SELECTOR)
-    page.content.assert_not_called()
+    assert result.success is False
+    assert result.failure_stage == "page_load_failed"
 
 
-def test_resubmit_application_returns_false_when_page3_never_appears():
+def test_resubmit_fails_when_page2_not_visible():
     page = MagicMock()
-    # First call (page2 visible): succeeds; second call (page3 visible): times out
     page.wait_for_selector.side_effect = [None, PlaywrightTimeoutError("timeout")]
 
     result = resubmit_application(page)
 
-    assert result is False
-    page.content.assert_not_called()
+    assert result.success is False
+    assert result.failure_stage == "page2_not_visible"
+
+
+def test_resubmit_fails_when_server_rejects():
+    page = _make_page(server_response={"status": "error", "ok": False})
+
+    result = resubmit_application(page)
+
+    assert result.success is False
+    assert result.failure_stage == "server_rejected"
+    assert result.server_response == {"status": "error", "ok": False}
+
+
+def test_resubmit_fails_when_form_data_missing():
+    page = MagicMock()
+    page.evaluate.side_effect = [None, {"name": "", "discord": "", "message": "", "answers": {}}]
+
+    result = resubmit_application(page)
+
+    assert result.success is False
+    assert result.failure_stage == "form_data_extraction_failed"

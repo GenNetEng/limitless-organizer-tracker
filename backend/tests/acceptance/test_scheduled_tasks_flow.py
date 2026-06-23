@@ -68,8 +68,9 @@ def test_full_beat_cycle_status_check_then_resubmit(monkeypatch, db_session_fact
     assert "approved" in status_route.calls.last.request.content.decode().lower()
 
     # --- Phase 2: resubmission task runs and records success ---
+    form_data = {"name": "Test", "discord": "user", "message": "msg", "answers": {"q1": "a1"}}
     resubmit_page = MagicMock()
-    resubmit_page.content.return_value = (FIXTURE_DIR / "application_resubmit_success.html").read_text()
+    resubmit_page.evaluate.side_effect = [None, form_data, {"status": "ok", "ok": True}]
     monkeypatch.setattr(
         resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(resubmit_page)
     )
