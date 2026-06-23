@@ -3,6 +3,7 @@ name: Build & Push Images
 on:
   push:
     branches: [main]
+    tags: ["v*"]
     paths:
       - "backend/**"
       - "frontend/**"
@@ -39,6 +40,7 @@ jobs:
         with:
           images: ${{ env.BACKEND_IMAGE }}
           tags: |
+            type=semver,pattern={{version}}
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=pr
@@ -70,6 +72,7 @@ jobs:
         with:
           images: ${{ env.WORKER_IMAGE }}
           tags: |
+            type=semver,pattern={{version}}
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=pr
@@ -101,6 +104,7 @@ jobs:
         with:
           images: ${{ env.FRONTEND_IMAGE }}
           tags: |
+            type=semver,pattern={{version}}
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=pr
