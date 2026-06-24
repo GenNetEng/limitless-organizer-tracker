@@ -70,7 +70,6 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
             message="Expired session detected and refreshed before status check",
             severity="WARNING",
         )
-        session.commit()
 
     checked_at = datetime.now(timezone.utc)
     check, changed = record_status_check(session, result, checked_at)
