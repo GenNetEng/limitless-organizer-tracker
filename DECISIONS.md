@@ -7,6 +7,20 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-24: celery-redbeat for dynamic beat schedule reload
+
+**Decision**: Use `celery-redbeat` to replace the static import-time beat schedule with Redis-backed dynamic entries. One new dependency (`celery-redbeat`).
+
+**Alternatives considered**:
+
+1. **Custom Redis-based scheduler** — full control, but replicates what celery-redbeat already does. High maintenance.
+2. **Restart beat worker after config change** — simple but requires container orchestration signaling; fragile and slow.
+3. **celery-redbeat** — proven library, stores schedules in Redis (already in our stack), well-maintained, drop-in scheduler replacement.
+
+**Rationale**: celery-redbeat is the standard solution for this problem. It stores schedule entries in Redis (which we already use as the Celery broker), supports runtime creation/update of `RedBeatSchedulerEntry` objects, and requires minimal code changes. The alternative of restarting the beat container on every config edit is operationally fragile.
+
+**How to apply**: Configure `redbeat_redis_url` and set `beat_scheduler = "redbeat.RedBeatScheduler"` in celery config. Use `build_beat_schedule()` to write entries on startup and after admin config edits.
+
 ## 2026-06-22: Rate-limit all Limitless API interactions
 
 **Decision**: All tasks that call the Limitless API must execute sequentially — one request at a time. No parallel page fetches, no bulk concurrent scrapes. Be a good neighbor.

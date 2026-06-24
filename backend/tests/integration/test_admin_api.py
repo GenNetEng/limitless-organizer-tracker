@@ -370,3 +370,34 @@ def test_put_config_validates_int_type(client):
         json={"tournament_ingest_limit": "not_a_number"},
     )
     assert response.status_code == 422
+
+
+# --- PUT /api/admin/config — FR29: beat schedule rebuild ---
+
+
+def test_put_config_rebuilds_beat_schedule(client):
+    """FR29: PUT /api/admin/config triggers build_beat_schedule() after persisting changes."""
+    test_client, _ = client
+
+    with patch("app.api.routers.admin.build_beat_schedule") as mock_build:
+        response = test_client.put(
+            "/api/admin/config",
+            json={"tournament_ingest_limit": 42},
+        )
+
+    assert response.status_code == 200
+    mock_build.assert_called_once()
+
+
+def test_put_config_rebuild_receives_updated_config(client):
+    """FR29: build_beat_schedule() is called with the effective config after DB writes."""
+    test_client, _ = client
+
+    with patch("app.api.routers.admin.build_beat_schedule") as mock_build:
+        test_client.put(
+            "/api/admin/config",
+            json={"resubmit_times_utc": "10:00,22:00"},
+        )
+
+    config_arg = mock_build.call_args[0][1]
+    assert config_arg["resubmit_times_utc"] == "10:00,22:00"

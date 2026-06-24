@@ -1,10 +1,15 @@
+import logging
 from datetime import timedelta
 
 from celery import Celery
 from celery.schedules import crontab
+from redbeat import RedBeatSchedulerEntry
+from redbeat.schedulers import get_redis
 
 from app.celery_signals import connect_signals
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 celery_app = Celery(
     "limitless_organizer_tracker",
@@ -17,6 +22,11 @@ celery_app = Celery(
         "app.tasks.organizer_tasks",
     ],
 )
+
+celery_app.conf.redbeat_redis_url = settings.celery_broker_url
+celery_app.conf.beat_scheduler = "redbeat.RedBeatScheduler"
+
+MANAGED_ENTRIES_REDIS_KEY = "lot:managed-beat-entries"
 
 
 def parse_resubmit_times(value: str) -> list[tuple[int, int]]:
@@ -45,26 +55,59 @@ def _hourly_schedule(interval_hours: int) -> crontab:
     return crontab(minute=0, hour=f"*/{hours}")
 
 
-connect_signals()
+def build_schedule_entries(config: dict) -> list[tuple[str, str, crontab | timedelta]]:
+    """Build (name, task, schedule) tuples from effective config."""
+    scan_hours = config["organizer_scan_interval_hours"]
+    entries: list[tuple[str, str, crontab | timedelta]] = [
+        (
+            "check-application-status",
+            "app.tasks.status_tasks.check_application_status_task",
+            _hourly_schedule(config["application_status_check_interval_hours"]),
+        ),
+        (
+            "ingest-tournaments",
+            "app.tasks.tournament_tasks.ingest_tournaments_task",
+            _hourly_schedule(config["tournament_ingest_interval_hours"]),
+        ),
+        (
+            "scan-new-organizers",
+            "app.tasks.organizer_tasks.scan_new_organizers_task",
+            timedelta(hours=max(scan_hours, 1)),
+        ),
+    ]
+    for hour, minute in parse_resubmit_times(config["resubmit_times_utc"]):
+        entries.append((
+            f"resubmit-application-{hour:02d}{minute:02d}",
+            "app.tasks.resubmit_tasks.resubmit_application_task",
+            crontab(hour=hour, minute=minute),
+        ))
+    return entries
 
-celery_app.conf.beat_schedule = {
-    "check-application-status": {
-        "task": "app.tasks.status_tasks.check_application_status_task",
-        "schedule": _hourly_schedule(settings.application_status_check_interval_hours),
-    },
-    "ingest-tournaments": {
-        "task": "app.tasks.tournament_tasks.ingest_tournaments_task",
-        "schedule": _hourly_schedule(settings.tournament_ingest_interval_hours),
-    },
-    "scan-new-organizers": {
-        "task": "app.tasks.organizer_tasks.scan_new_organizers_task",
-        "schedule": timedelta(hours=settings.organizer_scan_interval_hours),
-    },
-    **{
-        f"resubmit-application-{hour:02d}{minute:02d}": {
-            "task": "app.tasks.resubmit_tasks.resubmit_application_task",
-            "schedule": crontab(hour=hour, minute=minute),
-        }
-        for hour, minute in parse_resubmit_times(settings.resubmit_times_utc)
-    },
-}
+
+def build_beat_schedule(app, config: dict) -> None:
+    """Write RedBeatSchedulerEntry objects to Redis from the given config."""
+    entries = build_schedule_entries(config)
+    redis_client = get_redis(app)
+
+    old_names = redis_client.smembers(MANAGED_ENTRIES_REDIS_KEY)
+    for raw in old_names:
+        name = raw.decode() if isinstance(raw, bytes) else raw
+        try:
+            old_entry = RedBeatSchedulerEntry.from_key(f"redbeat:{name}", app=app)
+            old_entry.delete()
+        except KeyError:
+            pass
+    redis_client.delete(MANAGED_ENTRIES_REDIS_KEY)
+
+    new_names = []
+    for name, task, schedule in entries:
+        RedBeatSchedulerEntry(name, task, schedule, app=app).save()
+        new_names.append(name)
+
+    if new_names:
+        redis_client.sadd(MANAGED_ENTRIES_REDIS_KEY, *new_names)
+
+    logger.info("Beat schedule rebuilt: %d entries", len(new_names))
+
+
+connect_signals()

@@ -16,6 +16,7 @@ from app.api.schemas import (
     Page,
     TaskTriggerInfo,
 )
+from app.celery_app import build_beat_schedule, celery_app
 from app.config_db import get_effective_config, set_config_value
 from app.db.models import EventLog
 from app.db.session import get_db
@@ -199,7 +200,12 @@ def update_config(
     for key, value in fields.items():
         set_config_value(db, key, str(value))
     db.commit()
-    return get_effective_config(db)
+    effective = get_effective_config(db)
+    try:
+        build_beat_schedule(celery_app, effective)
+    except Exception:
+        logger.warning("Failed to rebuild beat schedule after config update", exc_info=True)
+    return effective
 
 
 @router.get("/tasks", response_model=list[TaskTriggerInfo])

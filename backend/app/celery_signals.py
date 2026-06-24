@@ -7,7 +7,7 @@ exception-safe — a logging failure never crashes a running task.
 import logging
 import time
 
-from celery.signals import task_failure, task_postrun, task_prerun
+from celery.signals import beat_init, task_failure, task_postrun, task_prerun
 
 from app.db.session import SessionLocal
 from app.events import log_event
@@ -91,7 +91,23 @@ def on_task_failure(sender=None, task_id=None, exception=None, traceback=None, *
         logger.debug("Failed to log task_failure", exc_info=True)
 
 
+def on_beat_init(sender=None, **kwargs):
+    try:
+        from app.celery_app import build_beat_schedule
+        from app.config_db import get_effective_config
+
+        session = SessionLocal()
+        try:
+            config = get_effective_config(session)
+            build_beat_schedule(sender.app, config)
+        finally:
+            session.close()
+    except Exception:
+        logger.warning("Failed to build beat schedule on startup", exc_info=True)
+
+
 def connect_signals():
     task_prerun.connect(on_task_prerun)
     task_postrun.connect(on_task_postrun)
     task_failure.connect(on_task_failure)
+    beat_init.connect(on_beat_init)

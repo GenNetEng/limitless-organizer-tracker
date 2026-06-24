@@ -1,4 +1,9 @@
-from app.celery_app import _hourly_schedule, celery_app, parse_resubmit_times
+from datetime import timedelta
+from unittest.mock import MagicMock, patch
+
+from celery.schedules import crontab
+
+from app.celery_app import _hourly_schedule, build_schedule_entries, parse_resubmit_times
 
 
 def test_parse_resubmit_times_parses_multiple_times():
@@ -25,35 +30,206 @@ def test_hourly_schedule_treats_negative_interval_as_hourly():
     assert _hourly_schedule(-1).hour == _hourly_schedule(1).hour
 
 
-def test_beat_schedule_includes_status_check_task():
-    schedule = celery_app.conf.beat_schedule
-
-    assert "check-application-status" in schedule
-    assert (
-        schedule["check-application-status"]["task"]
-        == "app.tasks.status_tasks.check_application_status_task"
-    )
+# --- build_schedule_entries() ---
 
 
-def test_beat_schedule_includes_one_entry_per_resubmit_time():
-    schedule = celery_app.conf.beat_schedule
-
-    resubmit_entries = {
-        name: entry for name, entry in schedule.items() if name.startswith("resubmit-application-")
+def _default_config():
+    return {
+        "application_status_check_interval_hours": 4,
+        "resubmit_times_utc": "09:00,21:00",
+        "tournament_ingest_interval_hours": 1,
+        "tournament_ingest_limit": 1000,
+        "tournament_backfill_months": 3,
+        "organizer_scan_interval_hours": 24,
+        "organizer_scan_limit": 50,
+        "organizer_scan_start_id": 2722,
     }
 
-    assert len(resubmit_entries) == 2
-    assert all(
-        entry["task"] == "app.tasks.resubmit_tasks.resubmit_application_task"
-        for entry in resubmit_entries.values()
-    )
+
+def _find_entry(entries, name):
+    return next((e for e in entries if e[0] == name), None)
 
 
-def test_beat_schedule_includes_tournament_ingestion_task():
-    schedule = celery_app.conf.beat_schedule
+def test_build_schedule_entries_always_has_three_fixed_entries():
+    entries = build_schedule_entries(_default_config())
+    fixed = [e for e in entries if not e[0].startswith("resubmit-application-")]
+    assert len(fixed) == 3
 
-    assert "ingest-tournaments" in schedule
-    assert (
-        schedule["ingest-tournaments"]["task"]
-        == "app.tasks.tournament_tasks.ingest_tournaments_task"
-    )
+
+def test_build_schedule_entries_creates_status_check():
+    entries = build_schedule_entries(_default_config())
+    entry = _find_entry(entries, "check-application-status")
+    assert entry is not None
+    assert entry[1] == "app.tasks.status_tasks.check_application_status_task"
+    assert isinstance(entry[2], crontab)
+
+
+def test_build_schedule_entries_creates_tournament_ingestion():
+    entries = build_schedule_entries(_default_config())
+    entry = _find_entry(entries, "ingest-tournaments")
+    assert entry is not None
+    assert entry[1] == "app.tasks.tournament_tasks.ingest_tournaments_task"
+    assert isinstance(entry[2], crontab)
+
+
+def test_build_schedule_entries_creates_organizer_scan():
+    entries = build_schedule_entries(_default_config())
+    entry = _find_entry(entries, "scan-new-organizers")
+    assert entry is not None
+    assert entry[1] == "app.tasks.organizer_tasks.scan_new_organizers_task"
+    assert isinstance(entry[2], timedelta)
+
+
+def test_build_schedule_entries_status_check_uses_configured_interval():
+    config = _default_config()
+    config["application_status_check_interval_hours"] = 6
+    entries = build_schedule_entries(config)
+    entry = _find_entry(entries, "check-application-status")
+    assert entry[2].hour == {0, 6, 12, 18}
+
+
+def test_build_schedule_entries_tournament_ingestion_uses_configured_interval():
+    config = _default_config()
+    config["tournament_ingest_interval_hours"] = 3
+    entries = build_schedule_entries(config)
+    entry = _find_entry(entries, "ingest-tournaments")
+    assert entry[2].hour == {0, 3, 6, 9, 12, 15, 18, 21}
+
+
+def test_build_schedule_entries_organizer_scan_uses_configured_hours():
+    config = _default_config()
+    config["organizer_scan_interval_hours"] = 12
+    entries = build_schedule_entries(config)
+    entry = _find_entry(entries, "scan-new-organizers")
+    assert entry[2] == timedelta(hours=12)
+
+
+def test_build_schedule_entries_organizer_scan_treats_zero_as_one_hour():
+    config = _default_config()
+    config["organizer_scan_interval_hours"] = 0
+    entries = build_schedule_entries(config)
+    entry = _find_entry(entries, "scan-new-organizers")
+    assert entry[2] == timedelta(hours=1)
+
+
+def test_build_schedule_entries_creates_resubmit_entries():
+    config = _default_config()
+    config["resubmit_times_utc"] = "09:00,21:00"
+    entries = build_schedule_entries(config)
+    resubmit = [e for e in entries if e[0].startswith("resubmit-application-")]
+    assert len(resubmit) == 2
+    assert resubmit[0][0] == "resubmit-application-0900"
+    assert resubmit[1][0] == "resubmit-application-2100"
+    assert all(e[1] == "app.tasks.resubmit_tasks.resubmit_application_task" for e in resubmit)
+
+
+def test_build_schedule_entries_resubmit_crontab_matches_time():
+    config = _default_config()
+    config["resubmit_times_utc"] = "14:30"
+    entries = build_schedule_entries(config)
+    entry = _find_entry(entries, "resubmit-application-1430")
+    assert entry is not None
+    assert entry[2].hour == {14}
+    assert entry[2].minute == {30}
+
+
+def test_build_schedule_entries_empty_resubmit_times():
+    config = _default_config()
+    config["resubmit_times_utc"] = ""
+    entries = build_schedule_entries(config)
+    resubmit = [e for e in entries if e[0].startswith("resubmit-application-")]
+    assert len(resubmit) == 0
+
+
+def test_build_schedule_entries_single_resubmit_time():
+    config = _default_config()
+    config["resubmit_times_utc"] = "10:00"
+    entries = build_schedule_entries(config)
+    resubmit = [e for e in entries if e[0].startswith("resubmit-application-")]
+    assert len(resubmit) == 1
+    assert resubmit[0][0] == "resubmit-application-1000"
+
+
+# --- build_beat_schedule() (mocked Redis) ---
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_saves_entries_to_redis(mock_get_redis, MockEntry):
+    from app.celery_app import build_beat_schedule
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = set()
+    mock_get_redis.return_value = mock_redis
+
+    mock_entry_instance = MagicMock()
+    MockEntry.return_value = mock_entry_instance
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    assert MockEntry.call_count == 5  # 3 fixed + 2 resubmit
+    assert mock_entry_instance.save.call_count == 5
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_tracks_entry_names_in_redis(mock_get_redis, MockEntry):
+    from app.celery_app import MANAGED_ENTRIES_REDIS_KEY, build_beat_schedule
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = set()
+    mock_get_redis.return_value = mock_redis
+    MockEntry.return_value = MagicMock()
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    mock_redis.sadd.assert_called_once()
+    call_args = mock_redis.sadd.call_args
+    assert call_args[0][0] == MANAGED_ENTRIES_REDIS_KEY
+    stored_names = set(call_args[0][1:])
+    assert "check-application-status" in stored_names
+    assert "ingest-tournaments" in stored_names
+    assert "scan-new-organizers" in stored_names
+    assert "resubmit-application-0900" in stored_names
+    assert "resubmit-application-2100" in stored_names
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_deletes_old_entries_before_creating(mock_get_redis, MockEntry):
+    from app.celery_app import build_beat_schedule
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = {b"resubmit-application-0800", b"old-entry"}
+    mock_get_redis.return_value = mock_redis
+
+    mock_old_entry = MagicMock()
+    MockEntry.from_key.return_value = mock_old_entry
+    MockEntry.return_value = MagicMock()
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    assert MockEntry.from_key.call_count == 2
+    assert mock_old_entry.delete.call_count == 2
+    mock_redis.delete.assert_called_once()
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_tolerates_missing_old_entries(mock_get_redis, MockEntry):
+    from app.celery_app import build_beat_schedule
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = {b"ghost-entry"}
+    mock_get_redis.return_value = mock_redis
+
+    MockEntry.from_key.side_effect = KeyError("not found")
+    MockEntry.return_value = MagicMock()
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    assert MockEntry.return_value.save.call_count == 5
