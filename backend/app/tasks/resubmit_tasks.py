@@ -35,6 +35,7 @@ def resubmit_application_task() -> int:
     """
     with authenticated_page() as ctx:
         result = resubmit_application(ctx.page)
+        debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
     session_refreshed = ctx.session_refreshed
 
     submitted_at = datetime.now(timezone.utc)
@@ -67,6 +68,8 @@ def resubmit_application_task() -> int:
             details["page_html"] = result.page_html
         if result.server_response:
             details["server_response"] = result.server_response
+        if debug_html:
+            details["debug_page_html"] = debug_html
         log_event(
             session=session,
             event_type="scraper.resubmit",

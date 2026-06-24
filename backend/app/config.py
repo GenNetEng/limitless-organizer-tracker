@@ -30,6 +30,8 @@ class Settings(BaseSettings):
 
     session_validation_timeout_ms: int = 10000
 
+    scraper_debug: bool = False
+
     api_keys: str = ""
 
 
