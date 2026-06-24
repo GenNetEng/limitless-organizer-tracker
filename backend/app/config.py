@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     organizer_scan_limit: int = 50
     organizer_scan_start_id: int = 2722
 
+    session_validation_timeout_ms: int = 10000
+
     api_keys: str = ""
 
 

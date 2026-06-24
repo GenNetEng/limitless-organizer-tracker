@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Added
 
+- **Phase 32 — Configurable session validation timeout
+  ([#97](https://github.com/GenNetEng/limitless-organizer-tracker/issues/97))**:
+  New `SESSION_VALIDATION_TIMEOUT_MS` setting (default 10000) controls the
+  timeout for the `page.goto()` call that validates stored sessions.
+  `PlaywrightTimeoutError` is now caught and treated as an expired session
+  (triggers re-authentication), logged distinctly from redirect-based expiry.
+
 - **Phase 31 — Log session refresh event
   ([#96](https://github.com/GenNetEng/limitless-organizer-tracker/issues/96),
   FR24)**: `authenticated_page()` now yields an `AuthenticatedPageContext`

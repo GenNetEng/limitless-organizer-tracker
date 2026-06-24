@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from app.config import settings
 from app.scraper.selectors import APPLY_PATH, LOGIN_PATH
@@ -176,3 +177,61 @@ def test_authenticated_page_yields_context_with_session_refreshed_false_on_fresh
             assert isinstance(ctx, AuthenticatedPageContext)
             assert ctx.page is mock_page
             assert ctx.session_refreshed is False
+
+
+# --- Phase 32: Configurable session validation timeout tests ---
+
+
+def test_session_validation_timeout_ms_setting_exists():
+    """Settings has session_validation_timeout_ms with default 10000."""
+    assert hasattr(settings, "session_validation_timeout_ms")
+    assert settings.session_validation_timeout_ms == 10000
+
+
+def test_authenticated_page_passes_timeout_to_goto(tmp_path):
+    """page.goto() is called with timeout=settings.session_validation_timeout_ms."""
+    storage_state_path = tmp_path / "storage_state.json"
+    storage_state_path.write_text("{}")
+
+    mock_page = MagicMock()
+    mock_page.url = f"{settings.limitless_base_url}{APPLY_PATH}"
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"):
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.page is mock_page
+
+    mock_page.goto.assert_called_once_with(
+        f"{settings.limitless_base_url}{APPLY_PATH}",
+        timeout=settings.session_validation_timeout_ms,
+    )
+
+
+def test_authenticated_page_treats_timeout_as_expired_session(tmp_path):
+    """When page.goto() raises TimeoutError, treat as expired session: delete state, re-login, session_refreshed=True."""
+    storage_state_path = tmp_path / "storage_state.json"
+    storage_state_path.write_text("{}")
+
+    mock_page = MagicMock()
+    mock_page.goto.side_effect = PlaywrightTimeoutError("Timeout 10000ms exceeded")
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login") as mock_login:
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert isinstance(ctx, AuthenticatedPageContext)
+            assert ctx.page is mock_page
+            assert ctx.session_refreshed is True
+
+    assert not storage_state_path.exists()
+    mock_login.assert_called_once_with(
+        mock_page,
+        settings.limitless_username,
+        settings.limitless_password,
+        storage_state_path=storage_state_path,
+    )
