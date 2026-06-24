@@ -272,3 +272,101 @@ def test_get_config_returns_defaults_for_non_overridden_keys(client):
     assert body["tournament_ingest_limit"] == 42
     from app.config import settings
     assert body["tournament_backfill_months"] == settings.tournament_backfill_months
+
+
+# --- PUT /api/admin/config — FR28: admin config editing ---
+
+
+def test_put_config_updates_single_key(client):
+    """FR28: PUT with a single key persists the override and returns effective config."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={"tournament_ingest_limit": 42},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tournament_ingest_limit"] == 42
+
+
+def test_put_config_updates_multiple_keys(client):
+    """FR28: PUT with multiple keys persists all overrides."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={
+            "tournament_ingest_limit": 99,
+            "organizer_scan_limit": 500,
+            "resubmit_times_utc": "10:00,22:00",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tournament_ingest_limit"] == 99
+    assert body["organizer_scan_limit"] == 500
+    assert body["resubmit_times_utc"] == "10:00,22:00"
+
+
+def test_put_config_returns_full_effective_config(client):
+    """FR28: PUT response includes all config keys, not just the ones updated."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={"tournament_ingest_limit": 42},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "application_status_check_interval_hours" in body
+    assert "resubmit_times_utc" in body
+    assert "organizer_scan_limit" in body
+    assert "organizer_scan_start_id" in body
+
+
+def test_put_config_rejects_non_editable_key(client):
+    """FR28: keys outside the allowlist are rejected with 422."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={"database_url": "postgres://evil"},
+    )
+    assert response.status_code == 422
+
+
+def test_put_config_rejects_empty_body(client):
+    """FR28: empty update dict is rejected with 422."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={},
+    )
+    assert response.status_code == 422
+
+
+def test_put_config_persists_across_get(client):
+    """FR28: values written via PUT are returned by subsequent GET."""
+    test_client, _ = client
+
+    test_client.put(
+        "/api/admin/config",
+        json={"tournament_ingest_limit": 77},
+    )
+
+    response = test_client.get("/api/admin/config")
+    assert response.status_code == 200
+    assert response.json()["tournament_ingest_limit"] == 77
+
+
+def test_put_config_validates_int_type(client):
+    """FR28: string values for int fields are rejected with 422."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={"tournament_ingest_limit": "not_a_number"},
+    )
+    assert response.status_code == 422

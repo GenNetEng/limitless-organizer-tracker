@@ -3,19 +3,20 @@
 import json
 import logging
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.api.auth import require_api_key
 from app.api.schemas import (
     AdminConfigOut,
+    AdminConfigUpdate,
     DiagnosticsOut,
     EventLogOut,
     Page,
     TaskTriggerInfo,
 )
-from app.config_db import get_effective_config
+from app.config_db import get_effective_config, set_config_value
 from app.db.models import EventLog
 from app.db.session import get_db
 
@@ -184,6 +185,20 @@ def get_diagnostics(db: Session = Depends(get_db)) -> dict:
 
 @router.get("/config", response_model=AdminConfigOut)
 def get_config(db: Session = Depends(get_db)) -> dict:
+    return get_effective_config(db)
+
+
+@router.put("/config", response_model=AdminConfigOut)
+def update_config(
+    updates: AdminConfigUpdate,
+    db: Session = Depends(get_db),
+) -> dict:
+    fields = updates.model_dump(exclude_none=True)
+    if not fields:
+        raise HTTPException(status_code=422, detail="No config values provided")
+    for key, value in fields.items():
+        set_config_value(db, key, str(value))
+    db.commit()
     return get_effective_config(db)
 
 

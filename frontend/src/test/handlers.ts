@@ -128,6 +128,7 @@ export const adminConfig = {
   tournament_backfill_months: 3,
   organizer_scan_interval_hours: 24,
   organizer_scan_limit: 100,
+  organizer_scan_start_id: 1,
 };
 
 export const adminTasks = [
@@ -190,6 +191,10 @@ export const handlers = [
   http.get("*/api/admin/event-log", () => HttpResponse.json(adminEventLog)),
   http.get("*/api/admin/diagnostics", () => HttpResponse.json(adminDiagnostics)),
   http.get("*/api/admin/config", () => HttpResponse.json(adminConfig)),
+  http.put("*/api/admin/config", async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...adminConfig, ...body });
+  }),
   http.get("*/api/admin/tasks", () => HttpResponse.json(adminTasks)),
   http.post("*/api/tasks/*", () => HttpResponse.json({ status: "triggered" })),
 ];

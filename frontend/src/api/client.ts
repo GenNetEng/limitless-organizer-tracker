@@ -166,7 +166,10 @@ export interface AdminConfig {
   tournament_backfill_months: number;
   organizer_scan_interval_hours: number;
   organizer_scan_limit: number;
+  organizer_scan_start_id: number;
 }
+
+export type AdminConfigUpdate = Partial<AdminConfig>;
 
 export interface TaskTriggerInfo {
   name: string;
@@ -190,6 +193,34 @@ async function postJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function putJson<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let detail = `Request to ${path} failed with status ${response.status}`;
+    try {
+      const err = (await response.json()) as { detail?: string | unknown[] };
+      if (typeof err.detail === "string") {
+        detail = err.detail;
+      } else if (Array.isArray(err.detail) && err.detail.length > 0) {
+        const first = err.detail[0] as { msg?: string };
+        if (first.msg) detail = first.msg;
+      }
+    } catch {
+      // response body not JSON — keep generic message
+    }
+    throw new ApiError(detail, response.status);
+  }
+  return (await response.json()) as T;
+}
+
 export function getEventLog(
   params: { limit?: number; offset?: number; event_type?: string; severity?: string; source?: string } = {},
 ): Promise<Page<EventLogEntry>> {
@@ -209,6 +240,10 @@ export function getDiagnostics(): Promise<Diagnostics> {
 
 export function getAdminConfig(): Promise<AdminConfig> {
   return getJson<AdminConfig>("/api/admin/config");
+}
+
+export function updateAdminConfig(updates: AdminConfigUpdate): Promise<AdminConfig> {
+  return putJson<AdminConfig>("/api/admin/config", updates);
 }
 
 export function getTaskTriggers(): Promise<TaskTriggerInfo[]> {
