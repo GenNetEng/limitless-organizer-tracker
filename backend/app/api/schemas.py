@@ -130,6 +130,20 @@ class AdminConfigOut(BaseModel):
     organizer_scan_start_id: int
 
 
+class AdminConfigUpdate(BaseModel):
+    application_status_check_interval_hours: int | None = None
+    resubmit_times_utc: str | None = None
+    tournament_ingest_interval_hours: int | None = None
+    tournament_ingest_limit: int | None = None
+    tournament_backfill_months: int | None = None
+    organizer_scan_interval_hours: int | None = None
+    organizer_scan_limit: int | None = None
+    organizer_scan_start_id: int | None = None
+
+    def has_updates(self) -> bool:
+        return any(v is not None for v in self.model_dump().values())
+
+
 class TaskTriggerInfo(BaseModel):
     name: str
     endpoint: str

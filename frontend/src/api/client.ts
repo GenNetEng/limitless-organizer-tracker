@@ -166,7 +166,10 @@ export interface AdminConfig {
   tournament_backfill_months: number;
   organizer_scan_interval_hours: number;
   organizer_scan_limit: number;
+  organizer_scan_start_id: number;
 }
+
+export type AdminConfigUpdate = Partial<AdminConfig>;
 
 export interface TaskTriggerInfo {
   name: string;
@@ -183,6 +186,22 @@ async function postJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers,
+  });
+  if (!response.ok) {
+    throw new ApiError(`Request to ${path} failed with status ${response.status}`, response.status);
+  }
+  return (await response.json()) as T;
+}
+
+async function putJson<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (API_KEY) {
+    headers["X-API-Key"] = API_KEY;
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new ApiError(`Request to ${path} failed with status ${response.status}`, response.status);
@@ -209,6 +228,10 @@ export function getDiagnostics(): Promise<Diagnostics> {
 
 export function getAdminConfig(): Promise<AdminConfig> {
   return getJson<AdminConfig>("/api/admin/config");
+}
+
+export function updateAdminConfig(updates: AdminConfigUpdate): Promise<AdminConfig> {
+  return putJson<AdminConfig>("/api/admin/config", updates);
 }
 
 export function getTaskTriggers(): Promise<TaskTriggerInfo[]> {
