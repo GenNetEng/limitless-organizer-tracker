@@ -79,3 +79,11 @@ class Organizer(Base):
     onboarded_at: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     first_tournament_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     detected_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+
+class ConfigEntry(Base):
+    __tablename__ = "config_entries"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[str] = mapped_column(String)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
