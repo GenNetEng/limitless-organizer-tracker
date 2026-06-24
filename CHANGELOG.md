@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Added
 
+- **Phase 34 — Config DB table + model + migration
+  ([#100](https://github.com/GenNetEng/limitless-organizer-tracker/issues/100),
+  FR26)**: New `ConfigEntry` model (`key`, `value`, `updated_at`) with Alembic
+  migration. New `config_db.py` module providing `get_config_value()`,
+  `set_config_value()`, and `EDITABLE_CONFIG_KEYS` allowlist (the 8
+  non-sensitive fields from `AdminConfigOut`). Sensitive config (DB URL,
+  credentials, API keys) is never stored in the DB. Data layer only — no API
+  changes yet (part 1/4 of #100).
+
 - **Phase 33 — SCRAPER_DEBUG config flag
   ([#91](https://github.com/GenNetEng/limitless-organizer-tracker/issues/91),
   FR25)**: New `SCRAPER_DEBUG` setting (default `false`). When enabled, captures
