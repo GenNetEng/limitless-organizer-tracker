@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.models import ConfigEntry
 
 EDITABLE_CONFIG_KEYS: frozenset[str] = frozenset(
@@ -41,3 +42,21 @@ def set_config_value(session: Session, key: str, value: str) -> None:
     else:
         entry.value = value
         entry.updated_at = now
+
+
+def get_effective_value(session: Session, key: str) -> str | int:
+    _validate_key(key)
+    db_entry = session.get(ConfigEntry, key)
+    default = getattr(settings, key)
+    if db_entry is None:
+        return default
+    if isinstance(default, int):
+        return int(db_entry.value)
+    return db_entry.value
+
+
+def get_effective_config(session: Session) -> dict:
+    result = {}
+    for key in EDITABLE_CONFIG_KEYS:
+        result[key] = get_effective_value(session, key)
+    return result

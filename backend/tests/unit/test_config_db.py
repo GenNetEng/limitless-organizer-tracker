@@ -1,4 +1,4 @@
-"""Unit tests for config_db module — allowlist, get/set config values."""
+"""Unit tests for config_db module — allowlist, get/set/effective config values."""
 from datetime import datetime, timezone
 
 import pytest
@@ -6,6 +6,8 @@ import pytest
 from app.config_db import (
     EDITABLE_CONFIG_KEYS,
     get_config_value,
+    get_effective_config,
+    get_effective_value,
     set_config_value,
 )
 from app.db.models import ConfigEntry
@@ -113,3 +115,89 @@ class TestSetConfigValue:
     def test_rejects_non_editable_key(self, db_session):
         with pytest.raises(ValueError, match="not an editable config key"):
             set_config_value(db_session, "database_url", "postgres://evil")
+
+
+class TestGetEffectiveValue:
+    """FR27: get_effective_value returns DB override or settings default, type-coerced."""
+
+    def test_returns_settings_default_when_no_db_entry(self, db_session):
+        from app.config import settings
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == settings.tournament_ingest_limit
+        assert isinstance(result, int)
+
+    def test_returns_db_override_as_int(self, db_session):
+        entry = ConfigEntry(
+            key="tournament_ingest_limit",
+            value="42",
+            updated_at=datetime.now(timezone.utc),
+        )
+        db_session.add(entry)
+        db_session.commit()
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == 42
+        assert isinstance(result, int)
+
+    def test_returns_db_override_as_str(self, db_session):
+        entry = ConfigEntry(
+            key="resubmit_times_utc",
+            value="14:00,20:00",
+            updated_at=datetime.now(timezone.utc),
+        )
+        db_session.add(entry)
+        db_session.commit()
+
+        result = get_effective_value(db_session, "resubmit_times_utc")
+        assert result == "14:00,20:00"
+        assert isinstance(result, str)
+
+    def test_rejects_non_editable_key(self, db_session):
+        with pytest.raises(ValueError, match="not an editable config key"):
+            get_effective_value(db_session, "database_url")
+
+
+class TestGetEffectiveConfig:
+    """FR27: get_effective_config merges DB entries over settings defaults."""
+
+    def test_returns_all_editable_keys_with_defaults(self, db_session):
+        result = get_effective_config(db_session)
+        assert set(result.keys()) == EDITABLE_CONFIG_KEYS
+
+    def test_values_match_settings_when_no_db_entries(self, db_session):
+        from app.config import settings
+
+        result = get_effective_config(db_session)
+        assert result["tournament_ingest_limit"] == settings.tournament_ingest_limit
+        assert result["resubmit_times_utc"] == settings.resubmit_times_utc
+
+    def test_db_entries_override_settings_defaults(self, db_session):
+        db_session.add(ConfigEntry(
+            key="tournament_ingest_limit",
+            value="99",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.add(ConfigEntry(
+            key="organizer_scan_limit",
+            value="200",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_config(db_session)
+        assert result["tournament_ingest_limit"] == 99
+        assert result["organizer_scan_limit"] == 200
+
+    def test_non_overridden_keys_keep_settings_defaults(self, db_session):
+        from app.config import settings
+
+        db_session.add(ConfigEntry(
+            key="tournament_ingest_limit",
+            value="99",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_config(db_session)
+        assert result["tournament_backfill_months"] == settings.tournament_backfill_months
