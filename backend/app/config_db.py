@@ -33,10 +33,11 @@ def get_config_value(session: Session, key: str) -> str | None:
 
 def set_config_value(session: Session, key: str, value: str) -> None:
     _validate_key(key)
+    now = datetime.now(timezone.utc)
     entry = session.get(ConfigEntry, key)
     if entry is None:
-        entry = ConfigEntry(key=key, value=value, updated_at=datetime.now(timezone.utc))
+        entry = ConfigEntry(key=key, value=value, updated_at=now)
         session.add(entry)
     else:
         entry.value = value
-        entry.updated_at = datetime.now(timezone.utc)
+        entry.updated_at = now
