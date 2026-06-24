@@ -140,6 +140,34 @@ class TestGetEffectiveValue:
         assert result == 42
         assert isinstance(result, int)
 
+    def test_falls_back_to_default_for_non_numeric_db_value(self, db_session):
+        from app.config import settings
+
+        entry = ConfigEntry(
+            key="tournament_ingest_limit",
+            value="abc",
+            updated_at=datetime.now(timezone.utc),
+        )
+        db_session.add(entry)
+        db_session.commit()
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == settings.tournament_ingest_limit
+
+    def test_falls_back_to_default_for_empty_db_value(self, db_session):
+        from app.config import settings
+
+        entry = ConfigEntry(
+            key="tournament_ingest_limit",
+            value="",
+            updated_at=datetime.now(timezone.utc),
+        )
+        db_session.add(entry)
+        db_session.commit()
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == settings.tournament_ingest_limit
+
     def test_returns_db_override_as_str(self, db_session):
         entry = ConfigEntry(
             key="resubmit_times_utc",

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -51,12 +52,27 @@ def get_effective_value(session: Session, key: str) -> str | int:
     if db_entry is None:
         return default
     if isinstance(default, int):
-        return int(db_entry.value)
+        try:
+            return int(db_entry.value)
+        except (ValueError, TypeError):
+            return default
     return db_entry.value
 
 
 def get_effective_config(session: Session) -> dict:
+    rows = session.execute(select(ConfigEntry)).scalars().all()
+    overrides = {row.key: row.value for row in rows if row.key in EDITABLE_CONFIG_KEYS}
     result = {}
     for key in EDITABLE_CONFIG_KEYS:
-        result[key] = get_effective_value(session, key)
+        default = getattr(settings, key)
+        if key in overrides:
+            if isinstance(default, int):
+                try:
+                    result[key] = int(overrides[key])
+                except (ValueError, TypeError):
+                    result[key] = default
+            else:
+                result[key] = overrides[key]
+        else:
+            result[key] = default
     return result

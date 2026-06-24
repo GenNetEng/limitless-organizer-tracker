@@ -52,17 +52,16 @@ def audit_backfill_task() -> int:
     with task_session() as session:
         ingest_limit = get_effective_value(session, "tournament_ingest_limit")
 
-    total_pages = 0
-    page = 1
+        total_pages = 0
+        page = 1
 
-    while True:
-        dtos = fetch_tournaments(limit=ingest_limit, page=page)
-        if not dtos:
-            break
-        total_pages += 1
-        page += 1
+        while True:
+            dtos = fetch_tournaments(limit=ingest_limit, page=page)
+            if not dtos:
+                break
+            total_pages += 1
+            page += 1
 
-    with task_session() as session:
         log_event(
             session=session,
             event_type="ingestion.backfill_audit",
@@ -86,11 +85,9 @@ def backfill_page_task(page: int, total_pages: int = 0) -> int:
     """
     with task_session() as session:
         ingest_limit = get_effective_value(session, "tournament_ingest_limit")
+        dtos = fetch_tournaments(limit=ingest_limit, page=page)
 
-    dtos = fetch_tournaments(limit=ingest_limit, page=page)
-
-    if not dtos:
-        with task_session() as session:
+        if not dtos:
             log_event(
                 session=session,
                 event_type="ingestion.backfill_complete",
@@ -99,9 +96,8 @@ def backfill_page_task(page: int, total_pages: int = 0) -> int:
                 details={"final_page": page - 1},
             )
             session.commit()
-        return 0
+            return 0
 
-    with task_session() as session:
         ingest_tournaments(session, dtos)
         log_event(
             session=session,
