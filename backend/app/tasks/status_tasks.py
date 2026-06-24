@@ -15,7 +15,10 @@ from app.scraper.session import authenticated_page
 
 
 def record_status_check(
-    session: Session, result: ApplicationStatusResult, checked_at: datetime
+    session: Session,
+    result: ApplicationStatusResult,
+    checked_at: datetime,
+    debug_page_html: str | None = None,
 ) -> tuple[ApplicationStatusCheck, bool]:
     """Insert a status-check datapoint and report whether the status changed.
 
@@ -36,16 +39,19 @@ def record_status_check(
         review_note=result.review_note,
     )
     session.add(check)
+    details = {
+        "status": result.status.value,
+        "changed": changed,
+        "raw_text": result.raw_text[:200] if result.raw_text else None,
+    }
+    if debug_page_html is not None:
+        details["debug_page_html"] = debug_page_html
     log_event(
         session=session,
         event_type="scraper.status_check",
         source="status_tasks",
         message=f"Application status: {result.status.value}",
-        details={
-            "status": result.status.value,
-            "changed": changed,
-            "raw_text": result.raw_text[:200] if result.raw_text else None,
-        },
+        details=details,
     )
     session.commit()
 
@@ -61,6 +67,10 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
     """
     with authenticated_page() as ctx:
         result = check_application_status(ctx.page)
+        try:
+            debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
+        except Exception:
+            debug_html = None
 
     if ctx.session_refreshed:
         log_event(
@@ -72,7 +82,7 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
         )
 
     checked_at = datetime.now(timezone.utc)
-    check, changed = record_status_check(session, result, checked_at)
+    check, changed = record_status_check(session, result, checked_at, debug_page_html=debug_html)
 
     if changed:
         try:

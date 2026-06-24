@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ### Added
 
+- **Phase 33 — SCRAPER_DEBUG config flag
+  ([#91](https://github.com/GenNetEng/limitless-organizer-tracker/issues/91),
+  FR25)**: New `SCRAPER_DEBUG` setting (default `false`). When enabled, captures
+  `page.content()[:20000]` on every scrape attempt (status checks and
+  resubmissions) and includes the HTML in the `log_event()` details, providing
+  on-demand diagnostic visibility without a code change or redeploy.
+
 - **Phase 32 — Configurable session validation timeout
   ([#97](https://github.com/GenNetEng/limitless-organizer-tracker/issues/97))**:
   New `SESSION_VALIDATION_TIMEOUT_MS` setting (default 10000) controls the
