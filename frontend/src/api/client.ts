@@ -206,8 +206,13 @@ async function putJson<T>(path: string, body: unknown): Promise<T> {
   if (!response.ok) {
     let detail = `Request to ${path} failed with status ${response.status}`;
     try {
-      const err = (await response.json()) as { detail?: string };
-      if (err.detail) detail = err.detail;
+      const err = (await response.json()) as { detail?: string | unknown[] };
+      if (typeof err.detail === "string") {
+        detail = err.detail;
+      } else if (Array.isArray(err.detail) && err.detail.length > 0) {
+        const first = err.detail[0] as { msg?: string };
+        if (first.msg) detail = first.msg;
+      }
     } catch {
       // response body not JSON — keep generic message
     }
