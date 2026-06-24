@@ -5,7 +5,7 @@ import respx
 
 import app.tasks.resubmit_tasks as resubmit_tasks
 from app.celery_app import celery_app
-from app.db.models import ResubmissionEvent
+from app.db.models import EventLog, ResubmissionEvent
 from tests.helpers import fake_authenticated_page
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
@@ -93,3 +93,25 @@ def test_resubmit_application_task_records_event_when_discord_webhook_unset(monk
         assert len(events) == 1
         assert events[0].success is True
         assert events[0].discord_notified is False
+
+
+def test_resubmit_task_logs_session_refreshed_event(monkeypatch, db_session_factory):
+    """When authenticated_page signals session_refreshed, a scraper.session_refreshed event is logged (FR24)."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", "")
+
+    mock_page = _mock_resubmit_page({"status": "ok", "ok": True})
+    monkeypatch.setattr(
+        resubmit_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page, session_refreshed=True)
+    )
+
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True
+
+    resubmit_tasks.resubmit_application_task.delay()
+
+    with db_session_factory() as session:
+        events = session.query(EventLog).filter(EventLog.event_type == "scraper.session_refreshed").all()
+        assert len(events) == 1
+        assert events[0].severity == "WARNING"
+        assert events[0].source == "resubmit_tasks"

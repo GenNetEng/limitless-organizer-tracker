@@ -59,8 +59,17 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
     check; a failure to notify does not affect the recorded datapoint.
     Returns the inserted check row and whether the status changed.
     """
-    with authenticated_page() as page:
-        result = check_application_status(page)
+    with authenticated_page() as ctx:
+        result = check_application_status(ctx.page)
+
+    if ctx.session_refreshed:
+        log_event(
+            session=session,
+            event_type="scraper.session_refreshed",
+            source="status_tasks",
+            message="Expired session detected and refreshed before status check",
+            severity="WARNING",
+        )
 
     checked_at = datetime.now(timezone.utc)
     check, changed = record_status_check(session, result, checked_at)

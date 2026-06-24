@@ -7,7 +7,7 @@ import respx
 
 import app.tasks.status_tasks as status_tasks
 from app.celery_app import celery_app
-from app.db.models import ApplicationStatus, ApplicationStatusCheck
+from app.db.models import ApplicationStatus, ApplicationStatusCheck, EventLog
 from tests.helpers import fake_authenticated_page
 
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
@@ -116,3 +116,47 @@ def test_check_application_status_task_records_check_when_discord_webhook_unset(
         checks = session.query(ApplicationStatusCheck).order_by(ApplicationStatusCheck.checked_at).all()
         assert len(checks) == 2
         assert checks[-1].status == ApplicationStatus.APPROVED
+
+
+def test_status_check_logs_session_refreshed_event(monkeypatch, db_session_factory):
+    """When authenticated_page signals session_refreshed, a scraper.session_refreshed event is logged (FR24)."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", "")
+
+    mock_page = MagicMock()
+    mock_page.content.return_value = (FIXTURE_DIR / "application_pending.html").read_text()
+    monkeypatch.setattr(
+        status_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page, session_refreshed=True)
+    )
+
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True
+
+    status_tasks.check_application_status_task.delay()
+
+    with db_session_factory() as session:
+        events = session.query(EventLog).filter(EventLog.event_type == "scraper.session_refreshed").all()
+        assert len(events) == 1
+        assert events[0].severity == "WARNING"
+        assert events[0].source == "status_tasks"
+
+
+def test_status_check_does_not_log_session_refreshed_when_not_refreshed(monkeypatch, db_session_factory):
+    """When session is not refreshed, no scraper.session_refreshed event is logged."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", "")
+
+    mock_page = MagicMock()
+    mock_page.content.return_value = (FIXTURE_DIR / "application_pending.html").read_text()
+    monkeypatch.setattr(
+        status_tasks, "authenticated_page", lambda: fake_authenticated_page(mock_page, session_refreshed=False)
+    )
+
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True
+
+    status_tasks.check_application_status_task.delay()
+
+    with db_session_factory() as session:
+        events = session.query(EventLog).filter(EventLog.event_type == "scraper.session_refreshed").all()
+        assert len(events) == 0

@@ -33,8 +33,9 @@ def resubmit_application_task() -> int:
     recorded (FR5) even if the notification fails. Returns the
     ResubmissionEvent row ID.
     """
-    with authenticated_page() as page:
-        result = resubmit_application(page)
+    with authenticated_page() as ctx:
+        result = resubmit_application(ctx.page)
+    session_refreshed = ctx.session_refreshed
 
     submitted_at = datetime.now(timezone.utc)
 
@@ -46,6 +47,15 @@ def resubmit_application_task() -> int:
         discord_notified = False
 
     with task_session() as session:
+        if session_refreshed:
+            log_event(
+                session=session,
+                event_type="scraper.session_refreshed",
+                source="resubmit_tasks",
+                message="Expired session detected and refreshed before resubmit",
+                severity="WARNING",
+            )
+
         event = record_resubmission(session, result.success, submitted_at, discord_notified)
         details = {
             "success": result.success,

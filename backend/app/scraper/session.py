@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
@@ -12,6 +13,12 @@ from app.scraper.selectors import APPLY_PATH, LOGIN_PATH
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class AuthenticatedPageContext:
+    page: Page
+    session_refreshed: bool
+
+
 def _is_login_page(page: Page) -> bool:
     return LOGIN_PATH in page.url
 
@@ -19,8 +26,8 @@ def _is_login_page(page: Page) -> bool:
 @contextmanager
 def authenticated_page(
     storage_state_path: Path | str = DEFAULT_STORAGE_STATE_PATH,
-) -> Iterator[Page]:
-    """Yield an authenticated Page, logging in if no session is persisted.
+) -> Iterator[AuthenticatedPageContext]:
+    """Yield an AuthenticatedPageContext with the page and whether the session was refreshed.
 
     Reuses `storage_state_path` if it exists and the session is still valid;
     otherwise logs in with the configured credentials and persists the
@@ -32,6 +39,7 @@ def authenticated_page(
     """
     storage_state_path = Path(storage_state_path)
     state = str(storage_state_path) if storage_state_path.exists() else None
+    session_refreshed = False
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -57,7 +65,8 @@ def authenticated_page(
                         settings.limitless_password,
                         storage_state_path=storage_state_path,
                     )
+                    session_refreshed = True
 
-            yield page
+            yield AuthenticatedPageContext(page=page, session_refreshed=session_refreshed)
         finally:
             browser.close()

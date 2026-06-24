@@ -4,7 +4,7 @@ import pytest
 
 from app.config import settings
 from app.scraper.selectors import APPLY_PATH, LOGIN_PATH
-from app.scraper.session import authenticated_page
+from app.scraper.session import AuthenticatedPageContext, authenticated_page
 
 
 def _mock_playwright(mock_page):
@@ -26,8 +26,8 @@ def test_authenticated_page_reuses_existing_storage_state(tmp_path):
             patch("app.scraper.session.login") as mock_login:
         mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
 
-        with authenticated_page(storage_state_path=storage_state_path) as page:
-            assert page is mock_page
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.page is mock_page
 
     mock_browser.new_context.assert_called_once_with(storage_state=str(storage_state_path))
     mock_login.assert_not_called()
@@ -44,8 +44,8 @@ def test_authenticated_page_logs_in_when_no_storage_state(tmp_path):
             patch("app.scraper.session.login") as mock_login:
         mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
 
-        with authenticated_page(storage_state_path=storage_state_path) as page:
-            assert page is mock_page
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.page is mock_page
 
     mock_browser.new_context.assert_called_once_with(storage_state=None)
     mock_login.assert_called_once_with(
@@ -87,8 +87,8 @@ def test_authenticated_page_validates_stored_session_and_skips_login_when_valid(
             patch("app.scraper.session.login") as mock_login:
         mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
 
-        with authenticated_page(storage_state_path=storage_state_path) as page:
-            assert page is mock_page
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.page is mock_page
 
     mock_page.goto.assert_called_once()
     mock_login.assert_not_called()
@@ -108,8 +108,8 @@ def test_authenticated_page_detects_expired_session_and_relogs_in(tmp_path):
             patch("app.scraper.session.login") as mock_login:
         mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
 
-        with authenticated_page(storage_state_path=storage_state_path) as page:
-            assert page is mock_page
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.page is mock_page
 
     assert not storage_state_path.exists()
     mock_login.assert_called_once_with(
@@ -118,3 +118,61 @@ def test_authenticated_page_detects_expired_session_and_relogs_in(tmp_path):
         settings.limitless_password,
         storage_state_path=storage_state_path,
     )
+
+
+# --- Phase 31: AuthenticatedPageContext tests ---
+
+
+def test_authenticated_page_yields_context_with_session_refreshed_false_when_valid(tmp_path):
+    """When the stored session is valid, yields AuthenticatedPageContext with session_refreshed=False."""
+    storage_state_path = tmp_path / "storage_state.json"
+    storage_state_path.write_text("{}")
+
+    mock_page = MagicMock()
+    mock_page.url = f"{settings.limitless_base_url}{APPLY_PATH}"
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"):
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert isinstance(ctx, AuthenticatedPageContext)
+            assert ctx.page is mock_page
+            assert ctx.session_refreshed is False
+
+
+def test_authenticated_page_yields_context_with_session_refreshed_true_when_expired(tmp_path):
+    """When the stored session is expired and re-login occurs, yields session_refreshed=True."""
+    storage_state_path = tmp_path / "storage_state.json"
+    storage_state_path.write_text("{}")
+
+    mock_page = MagicMock()
+    mock_page.url = f"{settings.limitless_base_url}{LOGIN_PATH}?next=/user/apply"
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"):
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert isinstance(ctx, AuthenticatedPageContext)
+            assert ctx.page is mock_page
+            assert ctx.session_refreshed is True
+
+
+def test_authenticated_page_yields_context_with_session_refreshed_false_on_fresh_login(tmp_path):
+    """When no storage state exists (fresh login), yields session_refreshed=False."""
+    storage_state_path = tmp_path / "storage_state.json"
+
+    mock_page = MagicMock()
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"):
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert isinstance(ctx, AuthenticatedPageContext)
+            assert ctx.page is mock_page
+            assert ctx.session_refreshed is False
