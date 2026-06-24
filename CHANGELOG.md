@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Added
+
+- **Phase 31 — Log session refresh event
+  ([#96](https://github.com/GenNetEng/limitless-organizer-tracker/issues/96),
+  FR24)**: `authenticated_page()` now yields an `AuthenticatedPageContext`
+  dataclass with `page` and `session_refreshed` fields. When an expired session
+  is detected and recovered, the calling task (`status_tasks`,
+  `resubmit_tasks`) logs a `scraper.session_refreshed` event (severity WARNING)
+  to the event log, making the recovery visible in the admin Event Log viewer
+  instead of only in Celery worker logs.
+
 ### Tests
 
 - **Phase 30 — Triage resubmit bug
