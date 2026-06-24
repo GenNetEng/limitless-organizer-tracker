@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 from app.config import settings
 from app.scraper.browser import DEFAULT_STORAGE_STATE_PATH, login
@@ -55,8 +55,20 @@ def authenticated_page(
                     storage_state_path=storage_state_path,
                 )
             else:
-                page.goto(f"{settings.limitless_base_url}{APPLY_PATH}")
-                if _is_login_page(page):
+                try:
+                    page.goto(
+                        f"{settings.limitless_base_url}{APPLY_PATH}",
+                        timeout=settings.session_validation_timeout_ms,
+                    )
+                    expired = _is_login_page(page)
+                except PlaywrightTimeoutError:
+                    logger.warning(
+                        "Session validation timed out (%d ms) — treating as expired",
+                        settings.session_validation_timeout_ms,
+                    )
+                    expired = True
+
+                if expired:
                     logger.warning("Stored session expired — re-authenticating")
                     storage_state_path.unlink(missing_ok=True)
                     login(
