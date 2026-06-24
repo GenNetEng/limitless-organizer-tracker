@@ -17,6 +17,7 @@ describe("AdminConfig", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("24")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 
   it("displays configuration labels", async () => {
@@ -31,6 +32,7 @@ describe("AdminConfig", () => {
     expect(screen.getByText(/backfill months/i)).toBeInTheDocument();
     expect(screen.getByText(/organizer scan interval/i)).toBeInTheDocument();
     expect(screen.getByText(/organizer scan limit/i)).toBeInTheDocument();
+    expect(screen.getByText(/organizer scan start id/i)).toBeInTheDocument();
   });
 
   it("shows a loading state while fetching", () => {
@@ -53,7 +55,7 @@ describe("AdminConfig", () => {
     await screen.findByText("4");
 
     const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    expect(editButtons.length).toBeGreaterThanOrEqual(7);
+    expect(editButtons).toHaveLength(8);
   });
 
   it("clicking edit reveals an input field with the current value", async () => {
@@ -114,7 +116,7 @@ describe("AdminConfig", () => {
   it("shows error feedback when save fails", async () => {
     server.use(
       http.put("*/api/admin/config", () =>
-        HttpResponse.json({ detail: "bad" }, { status: 422 }),
+        HttpResponse.json({ detail: "Invalid value" }, { status: 422 }),
       ),
     );
 
@@ -131,7 +133,7 @@ describe("AdminConfig", () => {
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/failed/i)).toBeInTheDocument();
+      expect(screen.getByText("Invalid value")).toBeInTheDocument();
     });
   });
 });

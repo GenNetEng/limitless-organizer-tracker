@@ -193,9 +193,10 @@ def update_config(
     updates: AdminConfigUpdate,
     db: Session = Depends(get_db),
 ) -> dict:
-    if not updates.has_updates():
+    fields = updates.model_dump(exclude_none=True)
+    if not fields:
         raise HTTPException(status_code=422, detail="No config values provided")
-    for key, value in updates.model_dump(exclude_none=True).items():
+    for key, value in fields.items():
         set_config_value(db, key, str(value))
     db.commit()
     return get_effective_config(db)

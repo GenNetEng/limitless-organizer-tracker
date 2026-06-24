@@ -204,7 +204,14 @@ async function putJson<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new ApiError(`Request to ${path} failed with status ${response.status}`, response.status);
+    let detail = `Request to ${path} failed with status ${response.status}`;
+    try {
+      const err = (await response.json()) as { detail?: string };
+      if (err.detail) detail = err.detail;
+    } catch {
+      // response body not JSON — keep generic message
+    }
+    throw new ApiError(detail, response.status);
   }
   return (await response.json()) as T;
 }

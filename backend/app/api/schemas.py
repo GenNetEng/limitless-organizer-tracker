@@ -140,9 +140,6 @@ class AdminConfigUpdate(BaseModel):
     organizer_scan_limit: int | None = None
     organizer_scan_start_id: int | None = None
 
-    def has_updates(self) -> bool:
-        return any(v is not None for v in self.model_dump().values())
-
 
 class TaskTriggerInfo(BaseModel):
     name: str

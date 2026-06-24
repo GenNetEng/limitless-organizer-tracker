@@ -32,8 +32,8 @@ export function AdminConfig() {
       setEditingKey(null);
       setSaveError(null);
     },
-    onError: () => {
-      setSaveError("Save failed");
+    onError: (err: Error) => {
+      setSaveError(err.message || "Save failed");
     },
   });
 
