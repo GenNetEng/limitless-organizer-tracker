@@ -401,3 +401,28 @@ def test_put_config_rebuild_receives_updated_config(client):
 
     config_arg = mock_build.call_args[0][1]
     assert config_arg["resubmit_times_utc"] == "10:00,22:00"
+
+
+def test_put_config_logs_event_when_rebuild_fails(client):
+    """FR29: failed schedule rebuild logs a warning event visible in the admin UI."""
+    test_client, session_factory = client
+
+    with patch(
+        "app.api.routers.admin.build_beat_schedule",
+        side_effect=Exception("Redis down"),
+    ):
+        response = test_client.put(
+            "/api/admin/config",
+            json={"tournament_ingest_limit": 42},
+        )
+
+    assert response.status_code == 200
+
+    with session_factory() as session:
+        from app.db.models import EventLog
+
+        row = session.query(EventLog).filter_by(
+            event_type="config.schedule_rebuild_failed"
+        ).one()
+        assert row.severity == "WARNING"
+        assert "stale" in row.message

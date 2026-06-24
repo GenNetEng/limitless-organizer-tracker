@@ -202,7 +202,7 @@ def test_build_beat_schedule_deletes_old_entries_before_creating(mock_get_redis,
     from app.celery_app import build_beat_schedule
 
     mock_redis = MagicMock()
-    mock_redis.smembers.return_value = {b"resubmit-application-0800", b"old-entry"}
+    mock_redis.smembers.return_value = {"resubmit-application-0800", "old-entry"}
     mock_get_redis.return_value = mock_redis
 
     mock_old_entry = MagicMock()
@@ -223,7 +223,7 @@ def test_build_beat_schedule_tolerates_missing_old_entries(mock_get_redis, MockE
     from app.celery_app import build_beat_schedule
 
     mock_redis = MagicMock()
-    mock_redis.smembers.return_value = {b"ghost-entry"}
+    mock_redis.smembers.return_value = {"ghost-entry"}
     mock_get_redis.return_value = mock_redis
 
     MockEntry.from_key.side_effect = KeyError("not found")

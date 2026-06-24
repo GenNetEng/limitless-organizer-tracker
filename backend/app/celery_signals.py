@@ -92,18 +92,27 @@ def on_task_failure(sender=None, task_id=None, exception=None, traceback=None, *
 
 
 def on_beat_init(sender=None, **kwargs):
-    try:
-        from app.celery_app import build_beat_schedule
-        from app.config_db import get_effective_config
+    from app.celery_app import build_beat_schedule
+    from app.config import settings
+    from app.config_db import EDITABLE_CONFIG_KEYS, get_effective_config
 
+    config = None
+    try:
         session = SessionLocal()
         try:
             config = get_effective_config(session)
-            build_beat_schedule(sender.app, config)
         finally:
             session.close()
     except Exception:
-        logger.warning("Failed to build beat schedule on startup", exc_info=True)
+        logger.warning("DB unavailable at beat startup, using env-var defaults", exc_info=True)
+
+    if config is None:
+        config = {key: getattr(settings, key) for key in EDITABLE_CONFIG_KEYS}
+
+    try:
+        build_beat_schedule(sender.app, config)
+    except Exception:
+        logger.error("Failed to build beat schedule on startup", exc_info=True)
 
 
 def connect_signals():

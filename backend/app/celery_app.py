@@ -90,8 +90,7 @@ def build_beat_schedule(app, config: dict) -> None:
     redis_client = get_redis(app)
 
     old_names = redis_client.smembers(MANAGED_ENTRIES_REDIS_KEY)
-    for raw in old_names:
-        name = raw.decode() if isinstance(raw, bytes) else raw
+    for name in old_names:
         try:
             old_entry = RedBeatSchedulerEntry.from_key(f"redbeat:{name}", app=app)
             old_entry.delete()
