@@ -4,7 +4,12 @@ from datetime import datetime, timezone
 import pytest
 from sqlalchemy import select
 
-from app.config_db import get_config_value, set_config_value
+from app.config_db import (
+    get_config_value,
+    get_effective_config,
+    get_effective_value,
+    set_config_value,
+)
 from app.db.models import ConfigEntry
 
 
@@ -62,3 +67,24 @@ class TestSetThenGet:
 
         for key in EDITABLE_CONFIG_KEYS:
             assert get_config_value(db_session, key) == "test_value"
+
+
+class TestEffectiveConfigRoundTrip:
+    """FR27: set_config_value → get_effective_value round-trip via real DB."""
+
+    def test_set_then_effective_returns_db_value(self, db_session):
+        set_config_value(db_session, "tournament_ingest_limit", "42")
+        db_session.commit()
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == 42
+
+    def test_effective_config_reflects_partial_overrides(self, db_session):
+        from app.config import settings
+
+        set_config_value(db_session, "organizer_scan_limit", "200")
+        db_session.commit()
+
+        result = get_effective_config(db_session)
+        assert result["organizer_scan_limit"] == 200
+        assert result["tournament_ingest_limit"] == settings.tournament_ingest_limit

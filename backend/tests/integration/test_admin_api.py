@@ -1,10 +1,10 @@
-"""Integration tests for the admin API router (FR20-FR23)."""
+"""Integration tests for the admin API router (FR20-FR23, FR27)."""
 
 import json
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from app.db.models import EventLog
+from app.db.models import ConfigEntry, EventLog
 
 
 def _seed_events(session_factory, count=5):
@@ -227,3 +227,48 @@ def test_get_tasks_returns_task_list(client):
         assert "endpoint" in task
         assert "method" in task
         assert "description" in task
+
+
+# --- GET /api/admin/config — FR27: DB-merged effective config ---
+
+
+def test_get_config_returns_db_overrides(client):
+    """FR27: DB entries override env-var defaults in GET /api/admin/config."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(ConfigEntry(
+            key="tournament_ingest_limit",
+            value="42",
+            updated_at=datetime(2026, 6, 24, tzinfo=timezone.utc),
+        ))
+        session.add(ConfigEntry(
+            key="organizer_scan_limit",
+            value="200",
+            updated_at=datetime(2026, 6, 24, tzinfo=timezone.utc),
+        ))
+        session.commit()
+
+    response = test_client.get("/api/admin/config")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tournament_ingest_limit"] == 42
+    assert body["organizer_scan_limit"] == 200
+
+
+def test_get_config_returns_defaults_for_non_overridden_keys(client):
+    """FR27: keys without DB entries still return settings defaults."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(ConfigEntry(
+            key="tournament_ingest_limit",
+            value="42",
+            updated_at=datetime(2026, 6, 24, tzinfo=timezone.utc),
+        ))
+        session.commit()
+
+    response = test_client.get("/api/admin/config")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tournament_ingest_limit"] == 42
+    from app.config import settings
+    assert body["tournament_backfill_months"] == settings.tournament_backfill_months

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 import app.tasks.tournament_tasks as tournament_tasks
-from app.db.models import Tournament
+from app.config import settings
+from app.db.models import ConfigEntry, Tournament
 from app.limitless_client.schemas import TournamentDTO
 
 
@@ -22,7 +23,7 @@ def test_stops_at_empty_page(db_session, monkeypatch):
         return pages[page]
 
     monkeypatch.setattr(tournament_tasks, "fetch_tournaments", fake_fetch)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
+    monkeypatch.setattr(settings, "tournament_backfill_months", 3)
 
     total = tournament_tasks.run_tournament_ingestion(db_session)
 
@@ -42,7 +43,7 @@ def test_stops_once_oldest_tournament_is_past_backfill_window(db_session, monkey
         return pages[page]
 
     monkeypatch.setattr(tournament_tasks, "fetch_tournaments", fake_fetch)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
+    monkeypatch.setattr(settings, "tournament_backfill_months", 3)
 
     total = tournament_tasks.run_tournament_ingestion(db_session)
 
@@ -63,9 +64,33 @@ def test_passes_configured_limit_to_fetch_tournaments(db_session, monkeypatch):
         return [] if page > 1 else [_dto("t1", now)]
 
     monkeypatch.setattr(tournament_tasks, "fetch_tournaments", fake_fetch)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 500)
+    monkeypatch.setattr(settings, "tournament_backfill_months", 3)
+    monkeypatch.setattr(settings, "tournament_ingest_limit", 500)
 
     tournament_tasks.run_tournament_ingestion(db_session)
 
     assert seen_limits == [500, 500]
+
+
+def test_uses_db_override_for_ingest_limit(db_session, monkeypatch):
+    """FR27: run_tournament_ingestion reads tournament_ingest_limit from DB when set."""
+    now = datetime.now(timezone.utc)
+    seen_limits = []
+
+    def fake_fetch(limit, page=None):
+        seen_limits.append(limit)
+        return [] if page > 1 else [_dto("t1", now)]
+
+    monkeypatch.setattr(tournament_tasks, "fetch_tournaments", fake_fetch)
+
+    db_session.add(ConfigEntry(
+        key="tournament_ingest_limit", value="25", updated_at=now,
+    ))
+    db_session.add(ConfigEntry(
+        key="tournament_backfill_months", value="6", updated_at=now,
+    ))
+    db_session.commit()
+
+    tournament_tasks.run_tournament_ingestion(db_session)
+
+    assert seen_limits[0] == 25

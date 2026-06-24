@@ -7,7 +7,7 @@ import respx
 
 import app.tasks.organizer_tasks as organizer_tasks
 from app.config import settings
-from app.db.models import Organizer
+from app.db.models import ConfigEntry, Organizer
 
 FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 
@@ -190,3 +190,48 @@ def test_scan_single_organizer_returns_false_on_non_200(db_session_factory, monk
 
     result = organizer_tasks.scan_single_organizer_task(organizer_id=2731)
     assert result is False
+
+
+@respx.mock
+def test_audit_uses_db_override_for_scan_limit(db_session_factory, monkeypatch):
+    """FR27: audit_organizer_scan_task reads organizer_scan_limit from DB when set."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    now = datetime.now(timezone.utc)
+
+    with db_session_factory() as session:
+        session.add(_scanned(2730))
+        session.add(ConfigEntry(key="organizer_scan_limit", value="1", updated_at=now))
+        session.commit()
+
+    respx.get(f"{settings.limitless_base_url}/organizer/2731").mock(
+        return_value=httpx.Response(200)
+    )
+
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
+
+    assert mock_delay.call_count == 1
+
+
+@respx.mock
+def test_audit_uses_db_override_for_scan_start_id(db_session_factory, monkeypatch):
+    """FR27: audit_organizer_scan_task reads organizer_scan_start_id from DB when set."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    now = datetime.now(timezone.utc)
+
+    with db_session_factory() as session:
+        session.add(ConfigEntry(key="organizer_scan_start_id", value="5000", updated_at=now))
+        session.add(ConfigEntry(key="organizer_scan_limit", value="2", updated_at=now))
+        session.commit()
+
+    respx.get(f"{settings.limitless_base_url}/organizer/5001").mock(
+        return_value=httpx.Response(200)
+    )
+    respx.get(f"{settings.limitless_base_url}/organizer/5002").mock(
+        return_value=httpx.Response(404)
+    )
+
+    with patch.object(organizer_tasks.scan_single_organizer_task, "delay") as mock_delay:
+        organizer_tasks.audit_organizer_scan_task()
+
+    mock_delay.assert_called_with(organizer_id=5001)

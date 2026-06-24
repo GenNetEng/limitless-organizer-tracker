@@ -24,8 +24,8 @@ def _tournament(id_, date, organizer_id=1, game="PTCG"):
 @respx.mock
 def test_ingest_tournaments_task_paginates_through_backfill_window(monkeypatch, db_session_factory):
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 1000)
+    monkeypatch.setattr(settings, "tournament_backfill_months", 3)
+    monkeypatch.setattr(settings, "tournament_ingest_limit", 1000)
 
     now = datetime.now(timezone.utc)
     pages = {
@@ -54,8 +54,8 @@ def test_ingest_tournaments_task_paginates_through_backfill_window(monkeypatch, 
 @respx.mock
 def test_ingest_tournaments_task_stops_after_first_page_when_within_backfill_window(monkeypatch, db_session_factory):
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_backfill_months", 3)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 1000)
+    monkeypatch.setattr(settings, "tournament_backfill_months", 3)
+    monkeypatch.setattr(settings, "tournament_ingest_limit", 1000)
 
     now = datetime.now(timezone.utc)
     old_date = now - timedelta(days=100)
@@ -77,7 +77,7 @@ def test_ingest_tournaments_task_stops_after_first_page_when_within_backfill_win
 def test_audit_backfill_discovers_pages_and_dispatches_tasks(monkeypatch, db_session_factory):
     """Audit discovers all pages, then dispatches per-page backfill tasks."""
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
-    monkeypatch.setattr(tournament_tasks.settings, "tournament_ingest_limit", 1000)
+    monkeypatch.setattr(settings, "tournament_ingest_limit", 1000)
 
     now = datetime.now(timezone.utc)
     pages = {

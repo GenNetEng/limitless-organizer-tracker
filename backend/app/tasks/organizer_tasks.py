@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 
 from app.celery_app import celery_app
 from app.config import settings
+from app.config_db import get_effective_value
 from app.db.models import Organizer
 from app.db.session import task_session
 from app.events import log_event
@@ -24,10 +25,12 @@ def audit_organizer_scan_task() -> int:
         db_watermark = session.scalar(
             select(func.max(Organizer.organizer_id)).where(Organizer.onboarded_at.isnot(None))
         ) or 0
-        start_id = max(db_watermark, settings.organizer_scan_start_id) + 1
+        scan_start_id = get_effective_value(session, "organizer_scan_start_id")
+        scan_limit = get_effective_value(session, "organizer_scan_limit")
+        start_id = max(db_watermark, scan_start_id) + 1
 
     found_ids = []
-    for organizer_id in range(start_id, start_id + settings.organizer_scan_limit):
+    for organizer_id in range(start_id, start_id + scan_limit):
         url = f"{settings.limitless_base_url}/organizer/{organizer_id}"
         response = httpx.get(url, follow_redirects=True, timeout=30)
 

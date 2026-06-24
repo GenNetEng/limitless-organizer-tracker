@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.celery_app import celery_app
-from app.config import settings
+from app.config_db import get_effective_value
 from app.db.session import task_session
 from app.events import log_event
 from app.limitless_client.ingestion import ingest_tournaments
@@ -20,12 +20,14 @@ def run_tournament_ingestion(session: Session) -> int:
     picks up any retroactive edits within the window. Returns the total
     number of tournaments ingested.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=30 * settings.tournament_backfill_months)
+    backfill_months = get_effective_value(session, "tournament_backfill_months")
+    ingest_limit = get_effective_value(session, "tournament_ingest_limit")
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30 * backfill_months)
     total = 0
     page = 1
 
     while True:
-        dtos = fetch_tournaments(limit=settings.tournament_ingest_limit, page=page)
+        dtos = fetch_tournaments(limit=ingest_limit, page=page)
         if not dtos:
             break
 
@@ -47,17 +49,19 @@ def audit_backfill_task() -> int:
     Counts pages by fetching until empty, logs the total, then dispatches
     backfill_page_task for page 1 which chains to subsequent pages.
     """
-    total_pages = 0
-    page = 1
-
-    while True:
-        dtos = fetch_tournaments(limit=settings.tournament_ingest_limit, page=page)
-        if not dtos:
-            break
-        total_pages += 1
-        page += 1
-
     with task_session() as session:
+        ingest_limit = get_effective_value(session, "tournament_ingest_limit")
+
+        total_pages = 0
+        page = 1
+
+        while True:
+            dtos = fetch_tournaments(limit=ingest_limit, page=page)
+            if not dtos:
+                break
+            total_pages += 1
+            page += 1
+
         log_event(
             session=session,
             event_type="ingestion.backfill_audit",
@@ -79,10 +83,11 @@ def backfill_page_task(page: int, total_pages: int = 0) -> int:
 
     Runs sequentially — each page completes before the next is dispatched.
     """
-    dtos = fetch_tournaments(limit=settings.tournament_ingest_limit, page=page)
+    with task_session() as session:
+        ingest_limit = get_effective_value(session, "tournament_ingest_limit")
+        dtos = fetch_tournaments(limit=ingest_limit, page=page)
 
-    if not dtos:
-        with task_session() as session:
+        if not dtos:
             log_event(
                 session=session,
                 event_type="ingestion.backfill_complete",
@@ -91,9 +96,8 @@ def backfill_page_task(page: int, total_pages: int = 0) -> int:
                 details={"final_page": page - 1},
             )
             session.commit()
-        return 0
+            return 0
 
-    with task_session() as session:
         ingest_tournaments(session, dtos)
         log_event(
             session=session,

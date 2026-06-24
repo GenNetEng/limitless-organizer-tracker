@@ -15,7 +15,7 @@ from app.api.schemas import (
     Page,
     TaskTriggerInfo,
 )
-from app.config import settings
+from app.config_db import get_effective_config
 from app.db.models import EventLog
 from app.db.session import get_db
 
@@ -183,17 +183,8 @@ def get_diagnostics(db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/config", response_model=AdminConfigOut)
-def get_config() -> dict:
-    return {
-        "application_status_check_interval_hours": settings.application_status_check_interval_hours,
-        "resubmit_times_utc": settings.resubmit_times_utc,
-        "tournament_ingest_interval_hours": settings.tournament_ingest_interval_hours,
-        "tournament_ingest_limit": settings.tournament_ingest_limit,
-        "tournament_backfill_months": settings.tournament_backfill_months,
-        "organizer_scan_interval_hours": settings.organizer_scan_interval_hours,
-        "organizer_scan_limit": settings.organizer_scan_limit,
-        "organizer_scan_start_id": settings.organizer_scan_start_id,
-    }
+def get_config(db: Session = Depends(get_db)) -> dict:
+    return get_effective_config(db)
 
 
 @router.get("/tasks", response_model=list[TaskTriggerInfo])

@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.models import ConfigEntry
 
 EDITABLE_CONFIG_KEYS: frozenset[str] = frozenset(
@@ -41,3 +43,36 @@ def set_config_value(session: Session, key: str, value: str) -> None:
     else:
         entry.value = value
         entry.updated_at = now
+
+
+def get_effective_value(session: Session, key: str) -> str | int:
+    _validate_key(key)
+    db_entry = session.get(ConfigEntry, key)
+    default = getattr(settings, key)
+    if db_entry is None:
+        return default
+    if isinstance(default, int):
+        try:
+            return int(db_entry.value)
+        except (ValueError, TypeError):
+            return default
+    return db_entry.value
+
+
+def get_effective_config(session: Session) -> dict:
+    rows = session.execute(select(ConfigEntry)).scalars().all()
+    overrides = {row.key: row.value for row in rows if row.key in EDITABLE_CONFIG_KEYS}
+    result = {}
+    for key in EDITABLE_CONFIG_KEYS:
+        default = getattr(settings, key)
+        if key in overrides:
+            if isinstance(default, int):
+                try:
+                    result[key] = int(overrides[key])
+                except (ValueError, TypeError):
+                    result[key] = default
+            else:
+                result[key] = overrides[key]
+        else:
+            result[key] = default
+    return result
