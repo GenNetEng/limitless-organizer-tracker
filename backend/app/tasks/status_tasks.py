@@ -44,7 +44,7 @@ def record_status_check(
         "changed": changed,
         "raw_text": result.raw_text[:200] if result.raw_text else None,
     }
-    if debug_page_html:
+    if debug_page_html is not None:
         details["debug_page_html"] = debug_page_html
     log_event(
         session=session,
@@ -67,7 +67,10 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
     """
     with authenticated_page() as ctx:
         result = check_application_status(ctx.page)
-        debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
+        try:
+            debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
+        except Exception:
+            debug_html = None
 
     if ctx.session_refreshed:
         log_event(

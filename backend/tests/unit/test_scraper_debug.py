@@ -12,9 +12,12 @@ from app.tasks.status_tasks import record_status_check, run_application_status_c
 
 
 @contextmanager
-def _fake_authenticated_page(page_content="<html></html>", session_refreshed=False):
+def _fake_authenticated_page(page_content="<html></html>", session_refreshed=False, content_raises=False):
     page = MagicMock()
-    page.content.return_value = page_content
+    if content_raises:
+        page.content.side_effect = RuntimeError("browser crashed")
+    else:
+        page.content.return_value = page_content
     yield AuthenticatedPageContext(page=page, session_refreshed=session_refreshed)
 
 
@@ -114,6 +117,28 @@ class TestResubmitTaskScraperDebug:
         assert details["page_html"] == "<html>failure snapshot</html>"
         assert details["debug_page_html"] == "<html>current state</html>"
 
+    def test_task_succeeds_when_page_content_throws(self, db_session):
+        with (
+            patch("app.tasks.resubmit_tasks.authenticated_page") as mock_auth,
+            patch("app.tasks.resubmit_tasks.resubmit_application") as mock_resubmit,
+            patch("app.tasks.resubmit_tasks.post_resubmission_notice") as mock_discord,
+            patch("app.tasks.resubmit_tasks.task_session") as mock_ts,
+            patch("app.tasks.resubmit_tasks.settings") as mock_settings,
+        ):
+            mock_auth.return_value = _fake_authenticated_page(content_raises=True)
+            mock_resubmit.return_value = ResubmitResult(success=True, server_response={"ok": True})
+            mock_discord.return_value = MagicMock(status_code=200)
+            mock_ts.return_value = _fake_task_session(db_session)
+            mock_settings.scraper_debug = True
+            mock_settings.discord_webhook_url = "https://example.com"
+
+            event_id = resubmit_application_task()
+
+        assert event_id is not None
+        event = db_session.query(EventLog).filter_by(event_type="scraper.resubmit").one()
+        details = json.loads(event.details)
+        assert "debug_page_html" not in details
+
 
 class TestRecordStatusCheckScraperDebug:
     def test_includes_debug_html_when_provided(self, db_session):
@@ -192,3 +217,22 @@ class TestRunStatusCheckScraperDebug:
         event = db_session.query(EventLog).filter_by(event_type="scraper.status_check").one()
         details = json.loads(event.details)
         assert len(details["debug_page_html"]) == 20000
+
+    def test_status_check_succeeds_when_page_content_throws(self, db_session):
+        with (
+            patch("app.tasks.status_tasks.authenticated_page") as mock_auth,
+            patch("app.tasks.status_tasks.check_application_status") as mock_check,
+            patch("app.tasks.status_tasks.settings") as mock_settings,
+        ):
+            mock_auth.return_value = _fake_authenticated_page(content_raises=True)
+            mock_check.return_value = ApplicationStatusResult(
+                status=ApplicationStatus.PENDING, raw_text="Pending"
+            )
+            mock_settings.scraper_debug = True
+
+            check, changed = run_application_status_check(db_session)
+
+        assert check is not None
+        event = db_session.query(EventLog).filter_by(event_type="scraper.status_check").one()
+        details = json.loads(event.details)
+        assert "debug_page_html" not in details
