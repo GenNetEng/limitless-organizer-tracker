@@ -1,19 +1,36 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getEventLog } from "../api/client";
 import { formatTimestamp } from "../lib/formatDate";
 
+const SEVERITY_BADGE: Record<string, string> = {
+  error: "badge-error",
+  warning: "badge-warning",
+  info: "badge-info",
+  debug: "badge-ghost",
+};
+
+const PAGE_SIZE = 20;
+
 export function EventLogViewer() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["admin", "event-log"],
-    queryFn: () => getEventLog(),
+  const [page, setPage] = useState(0);
+
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ["admin", "event-log", page],
+    queryFn: () => getEventLog({ limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
+    placeholderData: keepPreviousData,
+    refetchInterval: 30_000,
   });
 
   if (isLoading) return <p>Loading…</p>;
   if (error) return <p className="text-error">Failed to load event log</p>;
-  if (!data || data.items.length === 0) return <p>No events recorded yet.</p>;
+  if (!data || (data.items.length === 0 && page === 0)) return <p>No events recorded yet</p>;
+
+  const total = data.total;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="overflow-x-auto">
+    <div className={`overflow-x-auto ${isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}`}>
       <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
         <thead>
           <tr>
@@ -32,15 +49,7 @@ export function EventLogViewer() {
               </td>
               <td>{entry.event_type}</td>
               <td>
-                <span
-                  className={`badge badge-sm ${
-                    entry.severity === "error"
-                      ? "badge-error"
-                      : entry.severity === "warning"
-                        ? "badge-warning"
-                        : "badge-info"
-                  }`}
-                >
+                <span className={`badge badge-sm ${SEVERITY_BADGE[entry.severity.toLowerCase()] ?? "badge-ghost"}`}>
                   {entry.severity}
                 </span>
               </td>
@@ -50,9 +59,30 @@ export function EventLogViewer() {
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-sm opacity-60">
-        Showing {data.items.length} of {data.total} events
-      </p>
+
+      {totalPages > 1 && (
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="btn btn-sm btn-ghost"
+          >
+            « Previous
+          </button>
+          <span className="opacity-60">
+            Page {page + 1} of {totalPages} · {total} total
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="btn btn-sm btn-ghost"
+          >
+            Next »
+          </button>
+        </div>
+      )}
     </div>
   );
 }

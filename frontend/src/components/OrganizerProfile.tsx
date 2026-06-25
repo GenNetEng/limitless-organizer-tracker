@@ -7,7 +7,7 @@ function TournamentList({ tournaments, label }: { tournaments: TournamentEntry[]
     <div>
       <h4 className="mb-1 text-sm font-medium opacity-70">{label}</h4>
       {tournaments.length === 0 ? (
-        <p className="text-sm opacity-50">No {label.toLowerCase()}.</p>
+        <p className="text-sm opacity-50">No {label.toLowerCase()}</p>
       ) : (
         <ul className="divide-y divide-base-300">
           {tournaments.map((t) => (
@@ -71,10 +71,10 @@ export function OrganizerProfile() {
       {isLoading && <p>Loading organizer profile…</p>}
 
       {isError && (
-        <p>
+        <p className="text-error">
           {error instanceof ApiError && error.status === 404
-            ? "Organizer not found."
-            : "Failed to load organizer profile."}
+            ? "Organizer not found"
+            : "Failed to load organizer profile"}
         </p>
       )}
 

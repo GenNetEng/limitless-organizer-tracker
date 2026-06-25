@@ -7,6 +7,14 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-25: Switch DaisyUI theme from `dark` to `dim` (Phase 38)
+
+**Decision**: Switch the DaisyUI theme from `dark` to `dim` for better contrast ratios across the dashboard. The `dark` theme has very low contrast between base-100/200/300 (lightness: 25.3/23.3/21.2), making card hierarchy and table rows nearly indistinguishable. `dim` (30.9/28.0/26.3) provides better visual separation while maintaining a dark aesthetic.
+
+**Alternatives considered**: Keep `dark` and polish with borders/shadows only — addresses symptoms, not the underlying contrast problem; `dracula` — purple-tinted (28.8/26.8/24.8), pink primary, polarizing aesthetic; `night` — deepest dark (20.8/19.3/17.9), even less contrast than `dark`.
+
+**Why**: Owner chose `dim` for the best balance of contrast improvement and neutral color palette.
+
 ## 2026-06-24: celery-redbeat for dynamic beat schedule reload
 
 **Decision**: Use `celery-redbeat` to replace the static import-time beat schedule with Redis-backed dynamic entries. One new dependency (`celery-redbeat`).

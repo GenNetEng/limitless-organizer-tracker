@@ -85,8 +85,12 @@ export function getStatusHistory(limit = 50, offset = 0): Promise<Page<StatusChe
   return getJson<Page<StatusCheck>>(`/api/status-history?${params}`);
 }
 
-export function getResubmissions(): Promise<Page<ResubmissionEvent>> {
-  return getJson<Page<ResubmissionEvent>>("/api/resubmissions");
+export function getResubmissions(limit?: number, offset?: number): Promise<Page<ResubmissionEvent>> {
+  const params = new URLSearchParams();
+  if (limit !== undefined) params.set("limit", String(limit));
+  if (offset !== undefined) params.set("offset", String(offset));
+  const qs = params.toString();
+  return getJson<Page<ResubmissionEvent>>(`/api/resubmissions${qs ? `?${qs}` : ""}`);
 }
 
 export function getGames(): Promise<string[]> {
@@ -176,6 +180,7 @@ export interface TaskTriggerInfo {
   endpoint: string;
   method: string;
   description: string;
+  component: string;
 }
 
 async function postJson<T>(path: string): Promise<T> {

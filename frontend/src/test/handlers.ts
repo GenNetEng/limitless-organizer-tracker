@@ -136,13 +136,15 @@ export const adminTasks = [
     name: "ingest_tournaments",
     endpoint: "/api/tasks/ingest-tournaments",
     method: "POST",
-    description: "Ingest tournament data from the Limitless API across all games",
+    description: "Fetch recent tournaments from Limitless API",
+    component: "Tournaments",
   },
   {
     name: "scan_organizers",
     endpoint: "/api/tasks/scan-organizers",
     method: "POST",
-    description: "Scan for newly onboarded organizer profiles",
+    description: "Scan for newly onboarded organizers",
+    component: "Organizers",
   },
 ];
 

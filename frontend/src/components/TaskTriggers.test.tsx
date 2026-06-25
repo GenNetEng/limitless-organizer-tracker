@@ -6,29 +6,40 @@ import { server } from "../test/server";
 import { TaskTriggers } from "./TaskTriggers";
 
 describe("TaskTriggers", () => {
-  it("renders task trigger buttons from the API", async () => {
+  it("renders trigger buttons for each task", async () => {
     renderWithQueryClient(<TaskTriggers />);
 
-    expect(await screen.findByRole("button", { name: /ingest_tournaments/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /scan_organizers/i })).toBeInTheDocument();
+    const buttons = await screen.findAllByRole("button", { name: /run/i });
+    expect(buttons).toHaveLength(2);
   });
 
-  it("displays task descriptions", async () => {
+  it("displays task descriptions and component badges", async () => {
     renderWithQueryClient(<TaskTriggers />);
 
     expect(
-      await screen.findByText("Ingest tournament data from the Limitless API across all games"),
+      await screen.findByText("Fetch recent tournaments from Limitless API"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Scan for newly onboarded organizer profiles"),
+      screen.getByText("Scan for newly onboarded organizers"),
     ).toBeInTheDocument();
+    expect(screen.getByText("Tournaments")).toBeInTheDocument();
+    expect(screen.getByText("Organizers")).toBeInTheDocument();
+  });
+
+  it("renders a table with column headers", async () => {
+    renderWithQueryClient(<TaskTriggers />);
+
+    await screen.findByText("Fetch recent tournaments from Limitless API");
+    expect(screen.getByText("Component")).toBeInTheDocument();
+    expect(screen.getByText("Task")).toBeInTheDocument();
+    expect(screen.getByText("Action")).toBeInTheDocument();
   });
 
   it("triggers a task when the button is clicked", async () => {
     renderWithQueryClient(<TaskTriggers />);
 
-    const button = await screen.findByRole("button", { name: /ingest_tournaments/i });
-    fireEvent.click(button);
+    const buttons = await screen.findAllByRole("button", { name: /run/i });
+    fireEvent.click(buttons[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/triggered/i)).toBeInTheDocument();
