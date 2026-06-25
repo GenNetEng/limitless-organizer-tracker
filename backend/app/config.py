@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     scraper_debug: bool = False
 
+    display_timezone: str = "America/Chicago"
+
     api_keys: str = ""
 
 

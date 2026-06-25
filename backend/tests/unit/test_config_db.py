@@ -26,6 +26,7 @@ class TestEditableConfigKeys:
             "organizer_scan_interval_hours",
             "organizer_scan_limit",
             "organizer_scan_start_id",
+            "display_timezone",
         }
         assert EDITABLE_CONFIG_KEYS == expected
 

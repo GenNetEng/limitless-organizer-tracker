@@ -587,3 +587,119 @@ def test_backfill_updates_multiple_organizers(client):
         assert session.get(Organizer, 1).first_tournament_date == date(2026, 4, 1)
         assert session.get(Organizer, 2).first_tournament_date == date(2026, 5, 1)
         assert session.get(Organizer, 3).first_tournament_date == date(2026, 1, 1)  # unchanged
+
+
+# ---------------------------------------------------------------------------
+# GET /api/organizers/recently-onboarded — FR30 (#102)
+# ---------------------------------------------------------------------------
+
+
+def test_recently_onboarded_returns_organizers_ordered_by_detected_at_desc(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=2700, onboarded_at=date(2026, 6, 1),
+                      detected_at=_dt(2026, 6, 1, 10, 0, 0),
+                      first_tournament_date=date(2026, 6, 15)),
+            Organizer(organizer_id=2710, onboarded_at=date(2026, 6, 5),
+                      detected_at=_dt(2026, 6, 5, 12, 0, 0),
+                      first_tournament_date=None),
+            Organizer(organizer_id=2720, onboarded_at=date(2026, 6, 10),
+                      detected_at=_dt(2026, 6, 10, 14, 30, 0),
+                      first_tournament_date=date(2026, 6, 20)),
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/recently-onboarded", params={"limit": 10})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 3
+    assert data[0]["organizer_id"] == 2720
+    assert data[1]["organizer_id"] == 2710
+    assert data[2]["organizer_id"] == 2700
+
+
+def test_recently_onboarded_returns_full_datetime_fields(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add(Organizer(
+            organizer_id=2720,
+            onboarded_at=date(2026, 6, 10),
+            detected_at=_dt(2026, 6, 10, 14, 30, 0),
+            first_tournament_date=date(2026, 6, 20),
+        ))
+        session.commit()
+
+    response = test_client.get("/api/organizers/recently-onboarded", params={"limit": 10})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    item = data[0]
+    assert item["organizer_id"] == 2720
+    assert item["detected_at"] == "2026-06-10T14:30:00Z"
+    assert item["onboarded_at"] == "2026-06-10"
+    assert item["first_tournament_date"] == "2026-06-20"
+
+
+def test_recently_onboarded_respects_limit(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=2700, detected_at=_dt(2026, 6, 1, 10, 0, 0)),
+            Organizer(organizer_id=2710, detected_at=_dt(2026, 6, 5, 12, 0, 0)),
+            Organizer(organizer_id=2720, detected_at=_dt(2026, 6, 10, 14, 0, 0)),
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/recently-onboarded", params={"limit": 2})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["organizer_id"] == 2720
+    assert data[1]["organizer_id"] == 2710
+
+
+def test_recently_onboarded_excludes_null_detected_at(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=2700, detected_at=_dt(2026, 6, 1, 10, 0, 0)),
+            Organizer(organizer_id=2710, detected_at=None),
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/recently-onboarded", params={"limit": 10})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["organizer_id"] == 2700
+
+
+def test_recently_onboarded_returns_empty_list_when_no_data(client):
+    test_client, _ = client
+
+    response = test_client.get("/api/organizers/recently-onboarded", params={"limit": 10})
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_recently_onboarded_defaults_limit_to_10(client):
+    test_client, session_factory = client
+    with session_factory() as session:
+        for i in range(15):
+            session.add(Organizer(
+                organizer_id=2700 + i,
+                detected_at=_dt(2026, 6, 1 + (i % 28), 10, 0, 0),
+            ))
+        session.commit()
+
+    response = test_client.get("/api/organizers/recently-onboarded")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 10

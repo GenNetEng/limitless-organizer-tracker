@@ -16,6 +16,7 @@ EDITABLE_CONFIG_KEYS: frozenset[str] = frozenset(
         "organizer_scan_interval_hours",
         "organizer_scan_limit",
         "organizer_scan_start_id",
+        "display_timezone",
     }
 )
 

@@ -16,6 +16,7 @@ from app.api.schemas import (
     FittedLineEndpointOut,
     HighestOrganizerIdOut,
     OrganizerProfileOut,
+    RecentlyOnboardedOut,
     WaitEstimateOut,
     WaitEstimatePointOut,
 )
@@ -166,6 +167,20 @@ def get_onboarding_history(
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
 
 
+@router.get("/organizers/recently-onboarded", response_model=list[RecentlyOnboardedOut])
+def get_recently_onboarded(
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> list[RecentlyOnboardedOut]:
+    rows = db.execute(
+        select(Organizer)
+        .where(Organizer.detected_at.isnot(None))
+        .order_by(Organizer.detected_at.desc())
+        .limit(limit)
+    ).scalars().all()
+    return [RecentlyOnboardedOut.model_validate(r) for r in rows]
+
+
 @router.get("/organizers/highest-id", response_model=HighestOrganizerIdOut)
 def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerIdOut:
     highest = db.scalar(select(func.max(Organizer.organizer_id)))
@@ -220,6 +235,7 @@ def scrape_organizer_profile(
 
     result.onboarded_at = org.onboarded_at
     result.first_tournament_date = org.first_tournament_date
+    result.detected_at = org.detected_at
 
     if org.onboarded_at is None:
         result.estimated_onboard_date = _estimate_onboard_date(db, organizer_id)
