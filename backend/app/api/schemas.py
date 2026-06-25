@@ -146,3 +146,4 @@ class TaskTriggerInfo(BaseModel):
     endpoint: str
     method: str
     description: str
+    component: str

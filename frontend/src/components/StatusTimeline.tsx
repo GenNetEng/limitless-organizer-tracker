@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getStatusHistory } from "../api/client";
 import { formatTimestamp } from "../lib/formatDate";
 
@@ -16,9 +16,11 @@ const PAGE_SIZE = 20;
 export function StatusTimeline() {
   const [page, setPage] = useState(0);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["status-history", page],
     queryFn: () => getStatusHistory(PAGE_SIZE, page * PAGE_SIZE),
+    placeholderData: keepPreviousData,
+    refetchInterval: page === 0 ? 30_000 : false,
   });
 
   if (isLoading) {
@@ -26,19 +28,24 @@ export function StatusTimeline() {
   }
 
   if (isError) {
-    return <p>Failed to load status history.</p>;
+    return <p className="text-error">Failed to load status history</p>;
   }
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  if (items.length === 0 && page === 0) {
-    return <p>No status checks yet.</p>;
+  if (items.length === 0 && page > 0) {
+    setPage(0);
+    return null;
+  }
+
+  if (items.length === 0) {
+    return <p>No status checks yet</p>;
   }
 
   return (
-    <div>
+    <div className={isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}>
       <div className="max-h-96 overflow-y-auto">
         <ul className="divide-y divide-base-300">
           {items.map((item) => (
@@ -67,10 +74,10 @@ export function StatusTimeline() {
             disabled={page === 0}
             className="btn btn-sm btn-ghost"
           >
-            Previous
+            « Previous
           </button>
           <span className="opacity-60">
-            Page {page + 1} of {totalPages} ({total} total)
+            Page {page + 1} of {totalPages} · {total} total
           </span>
           <button
             type="button"
@@ -78,7 +85,7 @@ export function StatusTimeline() {
             disabled={page >= totalPages - 1}
             className="btn btn-sm btn-ghost"
           >
-            Next
+            Next »
           </button>
         </div>
       )}

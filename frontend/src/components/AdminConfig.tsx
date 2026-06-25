@@ -62,7 +62,7 @@ export function AdminConfig() {
 
   return (
     <div className="overflow-x-auto">
-      <table className="table table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
+      <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
         <thead>
           <tr>
             <th>Setting</th>

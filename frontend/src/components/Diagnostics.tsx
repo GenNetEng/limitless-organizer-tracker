@@ -37,7 +37,7 @@ export function Diagnostics() {
         </div>
       </div>
 
-      <div className="card bg-base-200 p-4">
+      <div className="card bg-base-300 p-4">
         <h3 className="mb-2 font-semibold">Celery Workers</h3>
         {data.celery_workers.length > 0 ? (
           <ul className="list-inside list-disc">
@@ -50,9 +50,9 @@ export function Diagnostics() {
         )}
       </div>
 
-      <div className="card bg-base-200 p-4">
+      <div className="card bg-base-300 p-4">
         <h3 className="mb-2 font-semibold">Last Task Success</h3>
-        <table className="table table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
+        <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
           <thead>
             <tr>
               <th>Task</th>

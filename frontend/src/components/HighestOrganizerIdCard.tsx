@@ -13,9 +13,9 @@ export function HighestOrganizerIdCard() {
 
   if (isError) {
     if (error instanceof ApiError && error.status === 404) {
-      return <p>No organizer data available yet.</p>;
+      return <p>No organizer data available yet</p>;
     }
-    return <p>Failed to load highest organizer ID.</p>;
+    return <p className="text-error">Failed to load highest organizer ID</p>;
   }
 
   return (

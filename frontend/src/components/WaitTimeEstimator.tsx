@@ -59,10 +59,10 @@ export function WaitTimeEstimator() {
 
       {estimateQuery.isLoading && <p>Calculating wait estimate…</p>}
       {estimateQuery.isError && (
-        <p>
+        <p className="text-error">
           {estimateQuery.error instanceof ApiError && estimateQuery.error.status === 404
-            ? "Not enough data to estimate an onboarding trend."
-            : "Failed to load wait estimate."}
+            ? "Not enough data to estimate an onboarding trend"
+            : "Failed to load wait estimate"}
         </p>
       )}
 

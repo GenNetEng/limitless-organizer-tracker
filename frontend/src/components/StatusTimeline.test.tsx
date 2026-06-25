@@ -86,6 +86,6 @@ describe("StatusTimeline", () => {
       http.get("*/api/status-history", () => HttpResponse.json(null, { status: 500 })),
     );
     renderWithQueryClient(<StatusTimeline />);
-    expect(await screen.findByText("Failed to load status history.")).toBeInTheDocument();
+    expect(await screen.findByText("Failed to load status history")).toBeInTheDocument();
   });
 });
