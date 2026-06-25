@@ -153,6 +153,21 @@ export function getHighestOrganizerId(): Promise<HighestOrganizerId> {
   return getJson<HighestOrganizerId>("/api/organizers/highest-id");
 }
 
+export interface OnboardingDelta {
+  avg_days: number;
+  median_days: number;
+  count: number;
+}
+
+export function getOnboardingDelta(): Promise<OnboardingDelta> {
+  return getJson<OnboardingDelta>("/api/organizers/onboarding-delta");
+}
+
+export function getOnboardingHistory(interval: "day" | "week" = "week"): Promise<ActivityBucket[]> {
+  const params = new URLSearchParams({ interval });
+  return getJson<ActivityBucket[]>(`/api/organizers/onboarding-history?${params}`);
+}
+
 // Admin API types (FR20-FR23)
 
 export interface EventLogEntry {

@@ -3,6 +3,7 @@ import { AdminConfig } from "../components/AdminConfig";
 import { Diagnostics } from "../components/Diagnostics";
 import { EventLogViewer } from "../components/EventLogViewer";
 import { HighestOrganizerIdCard } from "../components/HighestOrganizerIdCard";
+import { OnboardingDelta } from "../components/OnboardingDelta";
 import { OrganizerActivityChart } from "../components/OrganizerActivityChart";
 import { OrganizerProfile } from "../components/OrganizerProfile";
 import { RecentlyOnboarded } from "../components/RecentlyOnboarded";
@@ -47,6 +48,10 @@ export function Dashboard() {
               Organizers running their first tournament per week
             </p>
             <OrganizerActivityChart />
+          </section>
+          <section className="card bg-base-200 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Onboarding to First Tournament</h2>
+            <OnboardingDelta />
           </section>
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Recently Onboarded</h2>

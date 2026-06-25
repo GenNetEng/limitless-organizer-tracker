@@ -112,4 +112,14 @@ describe("OrganizerActivityChart", () => {
     });
     expect(screen.queryByText("No organizer activity yet")).not.toBeInTheDocument();
   });
+
+  it("renders onboarding overlay data in the accessible list", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+
+    // Onboarding data from MSW handler should show as "onboarded: N" in the sr-only list
+    expect(await screen.findByText(/onboarded: 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/onboarded: 1/i)).toBeInTheDocument();
+  });
 });
