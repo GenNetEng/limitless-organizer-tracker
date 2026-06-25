@@ -12,9 +12,12 @@ import {
 } from "recharts";
 import { getGames, getOrganizerActivity } from "../api/client";
 import { toActivityChartData } from "../lib/activityChartData";
+import { filterByDateWindow, type DateWindow } from "../lib/dateWindow";
+import { DateWindowSelect } from "./DateWindowSelect";
 
 export function OrganizerActivityChart() {
   const [game, setGame] = useState<string | null>(null);
+  const [dateWindow, setDateWindow] = useState<DateWindow>("");
 
   const gamesQuery = useQuery({ queryKey: ["games"], queryFn: getGames });
   const activityQuery = useQuery({
@@ -22,32 +25,38 @@ export function OrganizerActivityChart() {
     queryFn: () => getOrganizerActivity(game),
   });
 
-  const chartData = toActivityChartData(activityQuery.data ?? []);
+  const filtered = filterByDateWindow(activityQuery.data ?? [], (b) => b.period, dateWindow);
+  const chartData = toActivityChartData(filtered);
 
   return (
     <div>
-      <div className="form-control mb-4 w-fit">
-        <label htmlFor="activity-game-filter" className="label">
-          <span className="label-text">Game</span>
-        </label>
-        <select
-          id="activity-game-filter"
-          value={game ?? ""}
-          onChange={(event) => setGame(event.target.value || null)}
-          className="select select-bordered select-sm"
-        >
-          <option value="">All</option>
-          {(gamesQuery.data ?? []).map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
+      <div className="mb-4 flex flex-wrap items-end gap-4">
+        <div className="form-control w-fit">
+          <label htmlFor="activity-game-filter" className="label">
+            <span className="label-text">Game</span>
+          </label>
+          <select
+            id="activity-game-filter"
+            value={game ?? ""}
+            onChange={(event) => setGame(event.target.value || null)}
+            className="select select-bordered select-sm"
+          >
+            <option value="">All</option>
+            {(gamesQuery.data ?? []).map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </div>
+        <DateWindowSelect id="activity-date-range" value={dateWindow} onChange={setDateWindow} />
       </div>
 
       {activityQuery.isLoading && <p>Loading organizer activity…</p>}
       {activityQuery.isError && <p className="text-error">Failed to load organizer activity</p>}
-      {activityQuery.data && chartData.length === 0 && <p>No organizer activity yet</p>}
+      {activityQuery.data && chartData.length === 0 && (
+        <p>{dateWindow ? "No activity in the selected date range" : "No organizer activity yet"}</p>
+      )}
 
       {chartData.length > 0 && (
         <>

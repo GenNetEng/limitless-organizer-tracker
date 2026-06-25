@@ -30,6 +30,9 @@ export const resubmissionsPage = {
 export const games = ["POCKET", "PTCG"];
 
 export const organizerActivityByWeek = [
+  { period: "2025-12-01", count: 3 },
+  { period: "2026-01-05", count: 4 },
+  { period: "2026-03-01", count: 2 },
   { period: "2026-06-01", count: 2 },
   { period: "2026-06-08", count: 1 },
 ];
@@ -41,17 +44,19 @@ export const waitEstimate = {
   slope: 0.5,
   r_squared: 0.95,
   projected_active_date: "2026-04-01",
-  sample_size: 3,
-  frontier_size: 2,
-  total_points: 3,
+  sample_size: 5,
+  frontier_size: 3,
+  total_points: 5,
   fitted_line: [
     { organizer_id: 100, projected_date: "2026-01-01" },
     { organizer_id: 400, projected_date: "2026-04-01" },
   ],
   points: [
-    { organizer_id: 100, first_tournament_date: "2026-01-01", is_frontier: true },
+    { organizer_id: 100, first_tournament_date: "2025-10-01", is_frontier: true },
     { organizer_id: 200, first_tournament_date: "2026-02-01", is_frontier: false },
     { organizer_id: 300, first_tournament_date: "2026-03-03", is_frontier: true },
+    { organizer_id: 350, first_tournament_date: "2026-06-10", is_frontier: false },
+    { organizer_id: 380, first_tournament_date: "2026-06-20", is_frontier: true },
   ],
 };
 
@@ -68,6 +73,27 @@ export const organizerProfile = {
   onboarded_at: "2026-05-01",
   first_tournament_date: "2026-05-15",
 };
+
+export const recentlyOnboarded = [
+  {
+    organizer_id: 2720,
+    onboarded_at: "2026-06-20",
+    detected_at: "2026-06-20T14:30:00Z",
+    first_tournament_date: null,
+  },
+  {
+    organizer_id: 2719,
+    onboarded_at: "2026-06-19",
+    detected_at: "2026-06-19T14:30:00Z",
+    first_tournament_date: "2026-06-25",
+  },
+  {
+    organizer_id: 2718,
+    onboarded_at: "2026-06-18",
+    detected_at: "2026-06-18T14:30:00Z",
+    first_tournament_date: null,
+  },
+];
 
 export const highestOrganizerId = { organizer_id: 2720 };
 
@@ -182,6 +208,10 @@ export const handlers = [
           ],
         };
     return HttpResponse.json(response);
+  }),
+  http.get("*/api/organizers/recently-onboarded", ({ request }) => {
+    const limit = Number(new URL(request.url).searchParams.get("limit") ?? 10);
+    return HttpResponse.json(recentlyOnboarded.slice(0, limit));
   }),
   http.get("*/api/organizers/highest-id", () => HttpResponse.json(highestOrganizerId)),
   http.get("*/api/organizers/:organizerId/scrape", ({ params }) => {

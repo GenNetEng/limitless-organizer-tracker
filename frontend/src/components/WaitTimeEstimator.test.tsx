@@ -1,11 +1,20 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { server } from "../test/server";
 import { WaitTimeEstimator } from "./WaitTimeEstimator";
 
 describe("WaitTimeEstimator", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-06-25T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders an organizer ID input and a submit button on load", () => {
     renderWithQueryClient(<WaitTimeEstimator />);
 
@@ -67,7 +76,7 @@ describe("WaitTimeEstimator", () => {
     renderWithQueryClient(<WaitTimeEstimator />);
 
     expect(await screen.findByText(/frontier organizers/i)).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("shows a message when there isn't enough data to estimate", async () => {
@@ -93,5 +102,28 @@ describe("WaitTimeEstimator", () => {
 
     expect(await screen.findByText(/failed to load/i)).toBeInTheDocument();
     expect(screen.queryByText(/not enough data/i)).not.toBeInTheDocument();
+  });
+
+  it("renders a date window selector defaulting to All time", async () => {
+    renderWithQueryClient(<WaitTimeEstimator />);
+
+    await screen.findByText(/0\.5000/);
+    const dateSelect = screen.getByLabelText(/date range/i);
+    expect(dateSelect).toHaveDisplayValue("All time");
+  });
+
+  it("keeps stats unchanged when date window is changed", async () => {
+    renderWithQueryClient(<WaitTimeEstimator />);
+
+    await screen.findByText(/0\.5000/);
+    expect(screen.getByText(/0\.950/)).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+
+    const dateSelect = screen.getByLabelText(/date range/i);
+    fireEvent.change(dateSelect, { target: { value: "30" } });
+
+    expect(screen.getByText(/0\.5000/)).toBeInTheDocument();
+    expect(screen.getByText(/0\.950/)).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
   });
 });

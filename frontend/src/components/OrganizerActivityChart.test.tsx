@@ -1,9 +1,18 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { OrganizerActivityChart } from "./OrganizerActivityChart";
 
 describe("OrganizerActivityChart", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-06-25T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("shows a loading state before activity data loads", () => {
     renderWithQueryClient(<OrganizerActivityChart />);
 
@@ -33,5 +42,74 @@ describe("OrganizerActivityChart", () => {
       expect(screen.getByText("Jun 1: 1")).toBeInTheDocument();
     });
     expect(screen.queryByText("Jun 8: 1")).not.toBeInTheDocument();
+  });
+
+  it("renders a date window selector defaulting to All time", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+
+    const dateSelect = screen.getByLabelText(/date range/i);
+    expect(dateSelect).toHaveDisplayValue("All time");
+  });
+
+  it("filters activity to last 30 days when selected", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+
+    const dateSelect = screen.getByLabelText(/date range/i);
+    fireEvent.change(dateSelect, { target: { value: "30" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Jun 1: 2")).toBeInTheDocument();
+      expect(screen.getByText("Jun 8: 1")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Dec 1: 3")).not.toBeInTheDocument();
+    expect(screen.queryByText("Jan 5: 4")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mar 1: 2")).not.toBeInTheDocument();
+  });
+
+  it("filters activity to last 90 days when selected", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+
+    const dateSelect = screen.getByLabelText(/date range/i);
+    fireEvent.change(dateSelect, { target: { value: "90" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Jun 1: 2")).toBeInTheDocument();
+      expect(screen.getByText("Jun 8: 1")).toBeInTheDocument();
+    });
+    // Mar 1 is ~116 days before Jun 25, outside the 90-day window
+    expect(screen.queryByText("Mar 1: 2")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dec 1: 3")).not.toBeInTheDocument();
+    expect(screen.queryByText("Jan 5: 4")).not.toBeInTheDocument();
+  });
+
+  it("shows all buckets when All time is selected", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+    expect(screen.getByText("Dec 1: 3")).toBeInTheDocument();
+    expect(screen.getByText("Jan 5: 4")).toBeInTheDocument();
+    expect(screen.getByText("Mar 1: 2")).toBeInTheDocument();
+  });
+
+  it("shows a contextual empty message when date filter removes all data", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+
+    // Move system time far enough ahead that all mock data is older than 30 days
+    vi.setSystemTime(new Date("2027-01-01T12:00:00Z"));
+    const dateSelect = screen.getByLabelText(/date range/i);
+    fireEvent.change(dateSelect, { target: { value: "30" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("No activity in the selected date range")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("No organizer activity yet")).not.toBeInTheDocument();
   });
 });
