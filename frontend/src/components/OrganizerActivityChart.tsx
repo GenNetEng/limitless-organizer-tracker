@@ -69,7 +69,7 @@ export function OrganizerActivityChart() {
         <p>{dateWindow ? "No activity in the selected date range" : "No organizer activity yet"}</p>
       )}
 
-      {chartData.length > 0 && (
+      {!activityQuery.isLoading && !activityQuery.isError && chartData.length > 0 && (
         <>
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={chartData}>

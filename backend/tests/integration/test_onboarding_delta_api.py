@@ -84,6 +84,25 @@ def test_onboarding_delta_empty_db(client):
     assert body["median_days"] == 0.0
 
 
+def test_onboarding_delta_excludes_negative_deltas(client):
+    """Organizers whose first_tournament_date precedes onboarded_at are excluded."""
+    test_client, session_factory = client
+    with session_factory() as session:
+        session.add_all([
+            Organizer(organizer_id=2723, onboarded_at=date(2026, 6, 1), first_tournament_date=date(2026, 6, 11)),
+            Organizer(organizer_id=2724, onboarded_at=date(2026, 6, 20), first_tournament_date=date(2026, 6, 10)),
+        ])
+        session.commit()
+
+    response = test_client.get("/api/organizers/onboarding-delta")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 1
+    assert body["avg_days"] == 10.0
+    assert body["median_days"] == 10.0
+
+
 def test_onboarding_delta_even_count_median(client):
     """Median for even count should be average of the two middle values."""
     test_client, session_factory = client

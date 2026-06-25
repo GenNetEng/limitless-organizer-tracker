@@ -174,7 +174,11 @@ def get_onboarding_delta(
 ) -> OnboardingDeltaOut:
     rows = db.execute(
         select(Organizer.onboarded_at, Organizer.first_tournament_date)
-        .where(Organizer.onboarded_at.isnot(None), Organizer.first_tournament_date.isnot(None))
+        .where(
+            Organizer.onboarded_at.isnot(None),
+            Organizer.first_tournament_date.isnot(None),
+            Organizer.first_tournament_date >= Organizer.onboarded_at,
+        )
     ).all()
 
     if not rows:
