@@ -12,6 +12,7 @@ const CONFIG_LABELS: Record<string, string> = {
   organizer_scan_interval_hours: "Organizer Scan Interval (hours)",
   organizer_scan_limit: "Organizer Scan Limit",
   organizer_scan_start_id: "Organizer Scan Start ID",
+  display_timezone: "Display Timezone",
 };
 
 export function AdminConfig() {

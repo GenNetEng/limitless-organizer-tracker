@@ -185,6 +185,7 @@ def test_get_config_returns_non_sensitive_settings(client):
     assert "organizer_scan_interval_hours" in body
     assert "organizer_scan_limit" in body
     assert "resubmit_times_utc" in body
+    assert "display_timezone" in body
 
 
 def test_get_config_excludes_sensitive_fields(client):
@@ -427,3 +428,41 @@ def test_put_config_logs_event_when_rebuild_fails(client):
         ).one()
         assert row.severity == "WARNING"
         assert "stale" in row.message
+
+
+# --- FR30: display_timezone config key ---
+
+
+def test_get_config_returns_display_timezone_default(client):
+    """FR30: display_timezone should default to America/Chicago."""
+    test_client, _ = client
+
+    response = test_client.get("/api/admin/config")
+    assert response.status_code == 200
+    assert response.json()["display_timezone"] == "America/Chicago"
+
+
+def test_put_config_updates_display_timezone(client):
+    """FR30: display_timezone is editable via PUT /api/admin/config."""
+    test_client, _ = client
+
+    response = test_client.put(
+        "/api/admin/config",
+        json={"display_timezone": "America/New_York"},
+    )
+    assert response.status_code == 200
+    assert response.json()["display_timezone"] == "America/New_York"
+
+
+def test_put_config_display_timezone_persists_across_get(client):
+    """FR30: display_timezone set via PUT is returned by subsequent GET."""
+    test_client, _ = client
+
+    test_client.put(
+        "/api/admin/config",
+        json={"display_timezone": "Europe/London"},
+    )
+
+    response = test_client.get("/api/admin/config")
+    assert response.status_code == 200
+    assert response.json()["display_timezone"] == "Europe/London"

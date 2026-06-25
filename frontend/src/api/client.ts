@@ -171,6 +171,7 @@ export interface AdminConfig {
   organizer_scan_interval_hours: number;
   organizer_scan_limit: number;
   organizer_scan_start_id: number;
+  display_timezone: string;
 }
 
 export type AdminConfigUpdate = Partial<AdminConfig>;

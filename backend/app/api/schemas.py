@@ -85,7 +85,17 @@ class OrganizerProfileOut(BaseModel):
     recent_tournaments: list[TournamentEntryOut]
     onboarded_at: date | None = None
     first_tournament_date: date | None = None
+    detected_at: datetime | None = None
     estimated_onboard_date: date | None = None
+
+
+class RecentlyOnboardedOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    organizer_id: int
+    onboarded_at: date | None = None
+    detected_at: datetime | None = None
+    first_tournament_date: date | None = None
 
 
 class HighestOrganizerIdOut(BaseModel):
@@ -128,6 +138,7 @@ class AdminConfigOut(BaseModel):
     organizer_scan_interval_hours: int
     organizer_scan_limit: int
     organizer_scan_start_id: int
+    display_timezone: str
 
 
 class AdminConfigUpdate(BaseModel):
@@ -139,6 +150,7 @@ class AdminConfigUpdate(BaseModel):
     organizer_scan_interval_hours: int | None = None
     organizer_scan_limit: int | None = None
     organizer_scan_start_id: int | None = None
+    display_timezone: str | None = None
 
 
 class TaskTriggerInfo(BaseModel):

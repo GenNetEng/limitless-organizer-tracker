@@ -271,6 +271,52 @@ def test_scrape_returns_estimated_onboard_date_when_no_onboarded_at(client):
 
 
 @respx.mock
+def test_scrape_includes_detected_at_as_full_datetime(client):
+    """FR30: detected_at should appear as a full ISO datetime in the scrape response."""
+    test_client, session_factory = client
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+    with session_factory() as session:
+        session.add(Organizer(
+            organizer_id=2720,
+            onboarded_at=date(2026, 6, 10),
+            first_tournament_date=date(2026, 6, 15),
+            detected_at=datetime(2026, 6, 10, 14, 30, 0, tzinfo=timezone.utc),
+        ))
+        session.commit()
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["detected_at"] == "2026-06-10T14:30:00Z"
+
+
+@respx.mock
+def test_scrape_returns_null_detected_at_when_not_set(client):
+    """FR30: detected_at should be null when the organizer has no detected_at."""
+    test_client, session_factory = client
+    html = (FIXTURE_DIR / "organizer_profile_200.html").read_text()
+    respx.get("https://play.limitlesstcg.com/organizer/2720").mock(
+        return_value=httpx.Response(200, text=html)
+    )
+    with session_factory() as session:
+        session.add(Organizer(
+            organizer_id=2720,
+            onboarded_at=date(2026, 6, 10),
+        ))
+        session.commit()
+
+    resp = test_client.get("/api/organizers/2720/scrape")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["detected_at"] is None
+
+
+@respx.mock
 def test_scrape_omits_estimated_onboard_date_when_onboarded_at_exists(client):
     """If the organizer has a real onboarded_at, estimated_onboard_date should be null."""
     test_client, session_factory = client

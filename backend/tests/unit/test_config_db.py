@@ -14,7 +14,7 @@ from app.db.models import ConfigEntry
 
 
 class TestEditableConfigKeys:
-    """FR26: only the 8 non-sensitive AdminConfigOut fields are editable."""
+    """FR26: only the 9 non-sensitive AdminConfigOut fields are editable."""
 
     def test_contains_expected_keys(self):
         expected = {
@@ -26,6 +26,7 @@ class TestEditableConfigKeys:
             "organizer_scan_interval_hours",
             "organizer_scan_limit",
             "organizer_scan_start_id",
+            "display_timezone",
         }
         assert EDITABLE_CONFIG_KEYS == expected
 
