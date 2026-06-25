@@ -1,7 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { adminConfig } from "../test/handlers";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { server } from "../test/server";
 import { AdminConfig } from "./AdminConfig";
@@ -87,14 +86,7 @@ describe("AdminConfig", () => {
     expect(screen.getByText("200")).toBeInTheDocument();
   });
 
-  it("clicking save sends PUT and shows updated value", async () => {
-    server.use(
-      http.put("*/api/admin/config", async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...adminConfig, ...body });
-      }),
-    );
-
+  it("clicking save sends PUT and shows updated value with correct types", async () => {
     renderWithQueryClient(<AdminConfig />);
 
     await screen.findByText("200");

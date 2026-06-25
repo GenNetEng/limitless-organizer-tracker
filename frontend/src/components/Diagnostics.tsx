@@ -52,7 +52,7 @@ export function Diagnostics() {
 
       <div className="card bg-base-300 p-4">
         <h3 className="mb-2 font-semibold">Last Task Success</h3>
-        <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
+        <table className="table table-sm w-full">
           <thead>
             <tr>
               <th>Task</th>
@@ -61,7 +61,7 @@ export function Diagnostics() {
           </thead>
           <tbody>
             {Object.entries(data.last_success_per_task).map(([task, ts]) => (
-              <tr key={task}>
+              <tr key={task} className="even:bg-base-300">
                 <td>{task}</td>
                 <td>{ts ? formatTimestamp(ts) : "Never"}</td>
               </tr>

@@ -13,8 +13,7 @@ import { WaitTimeEstimator } from "../components/WaitTimeEstimator";
 
 const TABS: Tab[] = [
   { id: "application", label: "My Application" },
-  { id: "growth", label: "Organizer Growth" },
-  { id: "lookup", label: "Organizer Lookup" },
+  { id: "organizers", label: "Organizers" },
   { id: "admin", label: "Admin" },
 ];
 
@@ -22,7 +21,7 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState(TABS[0].id);
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-6">
+    <main className="mx-auto max-w-6xl space-y-6 p-6">
       <h1 className="text-3xl font-bold text-primary">Limitless Organizer Tracker</h1>
       <TabNavigation tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -39,7 +38,7 @@ export function Dashboard() {
         </div>
       )}
 
-      {activeTab === "growth" && (
+      {activeTab === "organizers" && (
         <div className="space-y-6">
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Organizer Activity</h2>
@@ -49,11 +48,6 @@ export function Dashboard() {
             <h2 className="mb-3 text-lg font-semibold">Wait Time Estimator</h2>
             <WaitTimeEstimator />
           </section>
-        </div>
-      )}
-
-      {activeTab === "lookup" && (
-        <div className="space-y-6">
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Highest Organizer ID</h2>
             <HighestOrganizerIdCard />
