@@ -370,3 +370,59 @@ def test_put_config_validates_int_type(client):
         json={"tournament_ingest_limit": "not_a_number"},
     )
     assert response.status_code == 422
+
+
+# --- PUT /api/admin/config — FR29: beat schedule rebuild ---
+
+
+def test_put_config_rebuilds_beat_schedule(client):
+    """FR29: PUT /api/admin/config triggers build_beat_schedule() after persisting changes."""
+    test_client, _ = client
+
+    with patch("app.api.routers.admin.build_beat_schedule") as mock_build:
+        response = test_client.put(
+            "/api/admin/config",
+            json={"tournament_ingest_limit": 42},
+        )
+
+    assert response.status_code == 200
+    mock_build.assert_called_once()
+
+
+def test_put_config_rebuild_receives_updated_config(client):
+    """FR29: build_beat_schedule() is called with the effective config after DB writes."""
+    test_client, _ = client
+
+    with patch("app.api.routers.admin.build_beat_schedule") as mock_build:
+        test_client.put(
+            "/api/admin/config",
+            json={"resubmit_times_utc": "10:00,22:00"},
+        )
+
+    config_arg = mock_build.call_args[0][1]
+    assert config_arg["resubmit_times_utc"] == "10:00,22:00"
+
+
+def test_put_config_logs_event_when_rebuild_fails(client):
+    """FR29: failed schedule rebuild logs a warning event visible in the admin UI."""
+    test_client, session_factory = client
+
+    with patch(
+        "app.api.routers.admin.build_beat_schedule",
+        side_effect=Exception("Redis down"),
+    ):
+        response = test_client.put(
+            "/api/admin/config",
+            json={"tournament_ingest_limit": 42},
+        )
+
+    assert response.status_code == 200
+
+    with session_factory() as session:
+        from app.db.models import EventLog
+
+        row = session.query(EventLog).filter_by(
+            event_type="config.schedule_rebuild_failed"
+        ).one()
+        assert row.severity == "WARNING"
+        assert "stale" in row.message

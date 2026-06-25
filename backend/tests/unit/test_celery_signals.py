@@ -4,7 +4,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 from app.db.models import EventLog
-from app.celery_signals import on_task_prerun, on_task_postrun, on_task_failure
+from app.celery_signals import on_beat_init, on_task_prerun, on_task_postrun, on_task_failure
 
 
 def test_on_task_prerun_logs_started_event(db_session_factory):
@@ -98,3 +98,50 @@ def test_signal_handlers_never_raise():
         exception=RuntimeError("boom"),
         traceback=None,
     )
+
+
+# --- on_beat_init ---
+
+
+@patch("app.celery_app.build_beat_schedule")
+@patch("app.config_db.get_effective_config")
+def test_on_beat_init_calls_build_beat_schedule_with_effective_config(
+    mock_get_config, mock_build, db_session_factory
+):
+    mock_get_config.return_value = {"key": "value"}
+    sender = MagicMock()
+
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
+        on_beat_init(sender=sender)
+
+    mock_get_config.assert_called_once()
+    mock_build.assert_called_once_with(sender.app, {"key": "value"})
+
+
+@patch("app.celery_app.build_beat_schedule")
+@patch("app.config_db.get_effective_config", side_effect=Exception("DB down"))
+def test_on_beat_init_falls_back_to_env_defaults_when_db_unreachable(
+    mock_get_config, mock_build, db_session_factory
+):
+    sender = MagicMock()
+
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
+        on_beat_init(sender=sender)
+
+    mock_build.assert_called_once()
+    config_arg = mock_build.call_args[0][1]
+    from app.config import settings
+    assert config_arg["application_status_check_interval_hours"] == settings.application_status_check_interval_hours
+    assert config_arg["resubmit_times_utc"] == settings.resubmit_times_utc
+
+
+@patch("app.celery_app.build_beat_schedule", side_effect=Exception("Redis down"))
+@patch("app.config_db.get_effective_config")
+def test_on_beat_init_does_not_crash_when_redis_unavailable(
+    mock_get_config, mock_build, db_session_factory
+):
+    mock_get_config.return_value = {"key": "value"}
+    sender = MagicMock()
+
+    with patch("app.celery_signals.SessionLocal", db_session_factory):
+        on_beat_init(sender=sender)
