@@ -129,12 +129,24 @@ export interface OrganizerProfile {
   estimated_onboard_date: string | null;
 }
 
+export interface RecentlyOnboarded {
+  organizer_id: number;
+  onboarded_at: string | null;
+  detected_at: string | null;
+  first_tournament_date: string | null;
+}
+
 export interface HighestOrganizerId {
   organizer_id: number;
 }
 
 export function scrapeOrganizerProfile(organizerId: number): Promise<OrganizerProfile> {
   return getJson<OrganizerProfile>(`/api/organizers/${encodeURIComponent(organizerId)}/scrape`);
+}
+
+export function getRecentlyOnboarded(limit = 10): Promise<RecentlyOnboarded[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return getJson<RecentlyOnboarded[]>(`/api/organizers/recently-onboarded?${params}`);
 }
 
 export function getHighestOrganizerId(): Promise<HighestOrganizerId> {

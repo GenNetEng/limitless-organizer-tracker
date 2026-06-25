@@ -5,6 +5,7 @@ import { EventLogViewer } from "../components/EventLogViewer";
 import { HighestOrganizerIdCard } from "../components/HighestOrganizerIdCard";
 import { OrganizerActivityChart } from "../components/OrganizerActivityChart";
 import { OrganizerProfile } from "../components/OrganizerProfile";
+import { RecentlyOnboarded } from "../components/RecentlyOnboarded";
 import { ResubmissionLog } from "../components/ResubmissionLog";
 import { StatusTimeline } from "../components/StatusTimeline";
 import { TabNavigation, type Tab } from "../components/TabNavigation";
@@ -43,6 +44,10 @@ export function Dashboard() {
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Organizer Activity</h2>
             <OrganizerActivityChart />
+          </section>
+          <section className="card bg-base-200 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Recently Onboarded</h2>
+            <RecentlyOnboarded />
           </section>
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Wait Time Estimator</h2>

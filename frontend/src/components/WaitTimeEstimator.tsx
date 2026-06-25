@@ -13,10 +13,13 @@ import {
 import { ApiError, getWaitEstimate, type WaitEstimate } from "../api/client";
 import { formatEpochDate } from "../lib/formatDate";
 import { toFittedLineData, toFrontierScatterData, toScatterData } from "../lib/waitEstimateChartData";
+import { filterByDateWindow, type DateWindow } from "../lib/dateWindow";
+import { DateWindowSelect } from "./DateWindowSelect";
 
 export function WaitTimeEstimator() {
   const [organizerIdInput, setOrganizerIdInput] = useState("");
   const [targetOrganizerId, setTargetOrganizerId] = useState<number | undefined>(undefined);
+  const [dateWindow, setDateWindow] = useState<DateWindow>("");
 
   const estimateQuery = useQuery<WaitEstimate, Error>({
     queryKey: ["wait-estimate", targetOrganizerId],
@@ -37,6 +40,17 @@ export function WaitTimeEstimator() {
     setTargetOrganizerId(parsed);
   };
 
+  const filteredEstimate: WaitEstimate | undefined = estimateQuery.data
+    ? {
+        ...estimateQuery.data,
+        points: filterByDateWindow(
+          estimateQuery.data.points,
+          (p) => p.first_tournament_date,
+          dateWindow,
+        ),
+      }
+    : undefined;
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-2">
@@ -55,6 +69,7 @@ export function WaitTimeEstimator() {
         <button type="submit" className="btn btn-primary btn-sm">
           Estimate
         </button>
+        <DateWindowSelect id="wait-estimate-date-range" value={dateWindow} onChange={setDateWindow} />
       </form>
 
       {estimateQuery.isLoading && <p>Calculating wait estimate…</p>}
@@ -111,13 +126,13 @@ export function WaitTimeEstimator() {
               <Tooltip />
               <Scatter
                 name="All organizers"
-                data={toScatterData(estimateQuery.data)}
+                data={toScatterData(filteredEstimate!)}
                 dataKey="organizerId"
                 fill="#75d1f0"
               />
               <Scatter
                 name="Frontier (fastest onboarding)"
-                data={toFrontierScatterData(estimateQuery.data)}
+                data={toFrontierScatterData(filteredEstimate!)}
                 dataKey="organizerId"
                 fill="#ff7598"
               />

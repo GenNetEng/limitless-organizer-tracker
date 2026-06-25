@@ -34,12 +34,13 @@ describe("Dashboard", () => {
     fireEvent.click(screen.getByRole("tab", { name: /organizers/i }));
 
     expect(screen.getByRole("heading", { name: /organizer activity/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /recently onboarded/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /wait time estimator/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /highest organizer id/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /organizer profile/i })).toBeInTheDocument();
 
     expect(await screen.findByText("Jun 1: 2")).toBeInTheDocument();
-    expect(await screen.findByText("2720")).toBeInTheDocument();
+    expect((await screen.findAllByText("2720")).length).toBeGreaterThan(0);
   });
 
   it("switches to admin tab and shows diagnostics, task triggers, config, and event log", async () => {
