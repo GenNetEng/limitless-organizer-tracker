@@ -96,4 +96,20 @@ describe("OrganizerActivityChart", () => {
     expect(screen.getByText("Jan 5: 4")).toBeInTheDocument();
     expect(screen.getByText("Mar 1: 2")).toBeInTheDocument();
   });
+
+  it("shows a contextual empty message when date filter removes all data", async () => {
+    renderWithQueryClient(<OrganizerActivityChart />);
+
+    await screen.findByText("Jun 1: 2");
+
+    // Move system time far enough ahead that all mock data is older than 30 days
+    vi.setSystemTime(new Date("2027-01-01T12:00:00Z"));
+    const dateSelect = screen.getByLabelText(/date range/i);
+    fireEvent.change(dateSelect, { target: { value: "30" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("No activity in the selected date range")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("No organizer activity yet")).not.toBeInTheDocument();
+  });
 });

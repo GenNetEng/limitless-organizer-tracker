@@ -54,7 +54,9 @@ export function OrganizerActivityChart() {
 
       {activityQuery.isLoading && <p>Loading organizer activity…</p>}
       {activityQuery.isError && <p className="text-error">Failed to load organizer activity</p>}
-      {activityQuery.data && chartData.length === 0 && <p>No organizer activity yet</p>}
+      {activityQuery.data && chartData.length === 0 && (
+        <p>{dateWindow ? "No activity in the selected date range" : "No organizer activity yet"}</p>
+      )}
 
       {chartData.length > 0 && (
         <>

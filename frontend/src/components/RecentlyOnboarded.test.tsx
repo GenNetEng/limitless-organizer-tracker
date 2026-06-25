@@ -24,11 +24,8 @@ describe("RecentlyOnboarded", () => {
     renderWithQueryClient(<RecentlyOnboarded />);
 
     await screen.findByText("2720");
-    const cells = screen.getAllByRole("cell");
-    const detectedAtCells = cells.filter((cell) =>
-      cell.textContent?.includes("6/20/2026"),
-    );
-    expect(detectedAtCells.length).toBeGreaterThan(0);
+    const expected = new Date("2026-06-20T14:30:00Z").toLocaleString();
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
   it("shows first_tournament_date when available and a dash when not", async () => {

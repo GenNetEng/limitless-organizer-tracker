@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { filterByDateWindow } from "../lib/dateWindow";
+import { filterByDateWindow } from "./dateWindow";
 
 describe("filterByDateWindow", () => {
   beforeEach(() => {
