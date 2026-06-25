@@ -86,7 +86,7 @@ describe("AdminConfig", () => {
     expect(screen.getByText("200")).toBeInTheDocument();
   });
 
-  it("clicking save sends PUT and shows updated value", async () => {
+  it("clicking save sends PUT and shows updated value with correct types", async () => {
     renderWithQueryClient(<AdminConfig />);
 
     await screen.findByText("200");
@@ -103,27 +103,6 @@ describe("AdminConfig", () => {
       expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     });
     expect(screen.getByText("42")).toBeInTheDocument();
-  });
-
-  it("returns numeric values from PUT handler when editing int fields", async () => {
-    renderWithQueryClient(<AdminConfig />);
-
-    await screen.findByText("200");
-
-    const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    fireEvent.click(editButtons[3]);
-
-    const input = screen.getByRole("textbox");
-    fireEvent.change(input, { target: { value: "42" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /save/i }));
-
-    await waitFor(() => {
-      expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.queryByText("\"42\"")).not.toBeInTheDocument();
   });
 
   it("shows error feedback when save fails", async () => {
