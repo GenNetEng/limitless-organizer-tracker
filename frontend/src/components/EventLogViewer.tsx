@@ -19,15 +19,22 @@ export function EventLogViewer() {
     queryKey: ["admin", "event-log", page],
     queryFn: () => getEventLog({ limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
     placeholderData: keepPreviousData,
-    refetchInterval: 30_000,
+    refetchInterval: page === 0 ? 30_000 : false,
   });
 
   if (isLoading) return <p>Loading…</p>;
   if (error) return <p className="text-error">Failed to load event log</p>;
-  if (!data || (data.items.length === 0 && page === 0)) return <p>No events recorded yet</p>;
 
-  const total = data.total;
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  if (items.length === 0 && page > 0) {
+    setPage(0);
+    return null;
+  }
+
+  if (items.length === 0) return <p>No events recorded yet</p>;
 
   return (
     <div className={`overflow-x-auto ${isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}`}>
@@ -42,7 +49,7 @@ export function EventLogViewer() {
           </tr>
         </thead>
         <tbody>
-          {data.items.map((entry) => (
+          {items.map((entry) => (
             <tr key={entry.id}>
               <td className="whitespace-nowrap">
                 {formatTimestamp(entry.timestamp)}
@@ -59,6 +66,10 @@ export function EventLogViewer() {
           ))}
         </tbody>
       </table>
+
+      {totalPages <= 1 && total > 0 && (
+        <p className="mt-2 text-sm opacity-60">{total} events</p>
+      )}
 
       {totalPages > 1 && (
         <div className="mt-3 flex items-center justify-between text-sm">

@@ -227,6 +227,7 @@ def test_get_tasks_returns_task_list(client):
         assert "endpoint" in task
         assert "method" in task
         assert "description" in task
+        assert "component" in task
 
 
 # --- GET /api/admin/config — FR27: DB-merged effective config ---

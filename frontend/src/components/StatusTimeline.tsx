@@ -20,7 +20,7 @@ export function StatusTimeline() {
     queryKey: ["status-history", page],
     queryFn: () => getStatusHistory(PAGE_SIZE, page * PAGE_SIZE),
     placeholderData: keepPreviousData,
-    refetchInterval: 30_000,
+    refetchInterval: page === 0 ? 30_000 : false,
   });
 
   if (isLoading) {
@@ -35,7 +35,12 @@ export function StatusTimeline() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  if (items.length === 0 && page === 0) {
+  if (items.length === 0 && page > 0) {
+    setPage(0);
+    return null;
+  }
+
+  if (items.length === 0) {
     return <p>No status checks yet</p>;
   }
 
