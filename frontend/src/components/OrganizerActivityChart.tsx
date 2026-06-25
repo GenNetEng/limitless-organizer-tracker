@@ -10,8 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getGames, getOrganizerActivity } from "../api/client";
-import { toActivityChartData } from "../lib/activityChartData";
+import { getGames, getOnboardingHistory, getOrganizerActivity } from "../api/client";
+import { mergeOnboardingOverlay, toActivityChartData } from "../lib/activityChartData";
 import { filterByDateWindow, type DateWindow } from "../lib/dateWindow";
 import { DateWindowSelect } from "./DateWindowSelect";
 
@@ -24,9 +24,20 @@ export function OrganizerActivityChart() {
     queryKey: ["organizer-activity", game],
     queryFn: () => getOrganizerActivity(game),
   });
+  const onboardingQuery = useQuery({
+    queryKey: ["onboarding-history"],
+    queryFn: () => getOnboardingHistory("week"),
+  });
 
-  const filtered = filterByDateWindow(activityQuery.data ?? [], (b) => b.period, dateWindow);
-  const chartData = toActivityChartData(filtered);
+  const filteredActivity = filterByDateWindow(activityQuery.data ?? [], (b) => b.period, dateWindow);
+  const activityChartData = toActivityChartData(filteredActivity);
+
+  const filteredOnboarding = filterByDateWindow(
+    onboardingQuery.data ?? [],
+    (b) => b.period,
+    dateWindow,
+  );
+  const chartData = mergeOnboardingOverlay(activityChartData, filteredOnboarding);
 
   return (
     <div>
@@ -66,14 +77,23 @@ export function OrganizerActivityChart() {
               <XAxis dataKey="label" />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="count" name="New organizers" fill="#75d1f0" />
-              <Line dataKey="count" name="Trend" type="monotone" stroke="#ff7598" dot={false} />
+              <Bar dataKey="count" name="First tournament" fill="#75d1f0" />
+              <Line
+                dataKey="onboarded"
+                name="Onboarded"
+                type="monotone"
+                stroke="#a78bfa"
+                dot={false}
+              />
             </ComposedChart>
           </ResponsiveContainer>
           <ul className="sr-only">
             {chartData.map((datum) => (
               <li key={datum.period}>
-                {datum.label}: {datum.count}
+                <span>{datum.label}: {datum.count}</span>
+                {datum.onboarded != null && datum.onboarded > 0 && (
+                  <span>, onboarded: {datum.onboarded}</span>
+                )}
               </li>
             ))}
           </ul>

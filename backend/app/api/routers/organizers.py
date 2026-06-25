@@ -15,6 +15,7 @@ from app.api.schemas import (
     BackfillResultOut,
     FittedLineEndpointOut,
     HighestOrganizerIdOut,
+    OnboardingDeltaOut,
     OrganizerProfileOut,
     RecentlyOnboardedOut,
     WaitEstimateOut,
@@ -165,6 +166,31 @@ def get_onboarding_history(
     ).all()
     buckets = bucket_dates(list(dates), interval)
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
+
+
+@router.get("/organizers/onboarding-delta", response_model=OnboardingDeltaOut)
+def get_onboarding_delta(
+    db: Session = Depends(get_db),
+) -> OnboardingDeltaOut:
+    rows = db.execute(
+        select(Organizer.onboarded_at, Organizer.first_tournament_date)
+        .where(Organizer.onboarded_at.isnot(None), Organizer.first_tournament_date.isnot(None))
+    ).all()
+
+    if not rows:
+        return OnboardingDeltaOut(avg_days=0.0, median_days=0.0, count=0)
+
+    deltas = sorted((ftd - oba).days for oba, ftd in rows)
+    count = len(deltas)
+    avg_days = sum(deltas) / count
+
+    if count % 2 == 1:
+        median_days = float(deltas[count // 2])
+    else:
+        mid = count // 2
+        median_days = (deltas[mid - 1] + deltas[mid]) / 2.0
+
+    return OnboardingDeltaOut(avg_days=avg_days, median_days=median_days, count=count)
 
 
 @router.get("/organizers/recently-onboarded", response_model=list[RecentlyOnboardedOut])

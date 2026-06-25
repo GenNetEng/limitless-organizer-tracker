@@ -102,6 +102,12 @@ class HighestOrganizerIdOut(BaseModel):
     organizer_id: int
 
 
+class OnboardingDeltaOut(BaseModel):
+    avg_days: float
+    median_days: float
+    count: int
+
+
 class TaskResultOut(BaseModel):
     task_id: str
     status: str

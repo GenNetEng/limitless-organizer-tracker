@@ -97,6 +97,17 @@ export const recentlyOnboarded = [
 
 export const highestOrganizerId = { organizer_id: 2720 };
 
+export const onboardingDelta = {
+  avg_days: 13.3,
+  median_days: 10.0,
+  count: 3,
+};
+
+export const onboardingHistoryByWeek = [
+  { period: "2026-06-01", count: 2 },
+  { period: "2026-06-08", count: 1 },
+];
+
 export const adminEventLog = {
   items: [
     {
@@ -209,6 +220,8 @@ export const handlers = [
         };
     return HttpResponse.json(response);
   }),
+  http.get("*/api/organizers/onboarding-delta", () => HttpResponse.json(onboardingDelta)),
+  http.get("*/api/organizers/onboarding-history", () => HttpResponse.json(onboardingHistoryByWeek)),
   http.get("*/api/organizers/recently-onboarded", ({ request }) => {
     const limit = Number(new URL(request.url).searchParams.get("limit") ?? 10);
     return HttpResponse.json(recentlyOnboarded.slice(0, limit));
