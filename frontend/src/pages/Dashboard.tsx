@@ -42,7 +42,10 @@ export function Dashboard() {
       {activeTab === "organizers" && (
         <div className="space-y-6">
           <section className="card bg-base-200 p-4">
-            <h2 className="mb-3 text-lg font-semibold">Organizer Activity</h2>
+            <h2 className="mb-1 text-lg font-semibold">Organizer Activity</h2>
+            <p className="mb-3 text-sm text-base-content/60">
+              Organizers running their first tournament per week
+            </p>
             <OrganizerActivityChart />
           </section>
           <section className="card bg-base-200 p-4">
