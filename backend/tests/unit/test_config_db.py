@@ -14,7 +14,7 @@ from app.db.models import ConfigEntry
 
 
 class TestEditableConfigKeys:
-    """FR26: only the 8 non-sensitive AdminConfigOut fields are editable."""
+    """FR26: only the 9 non-sensitive AdminConfigOut fields are editable."""
 
     def test_contains_expected_keys(self):
         expected = {

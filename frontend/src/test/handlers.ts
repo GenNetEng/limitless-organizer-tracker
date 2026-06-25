@@ -129,6 +129,7 @@ export const adminConfig = {
   organizer_scan_interval_hours: 24,
   organizer_scan_limit: 100,
   organizer_scan_start_id: 1,
+  display_timezone: "America/Chicago",
 };
 
 export const adminTasks = [

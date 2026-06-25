@@ -54,7 +54,7 @@ describe("AdminConfig", () => {
     await screen.findByText("4");
 
     const editButtons = screen.getAllByRole("button", { name: /edit/i });
-    expect(editButtons).toHaveLength(8);
+    expect(editButtons).toHaveLength(9);
   });
 
   it("clicking edit reveals an input field with the current value", async () => {
