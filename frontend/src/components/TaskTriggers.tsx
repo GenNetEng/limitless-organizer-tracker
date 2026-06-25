@@ -33,7 +33,7 @@ export function TaskTriggers() {
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
+        <table className="table table-sm w-full">
           <thead>
             <tr>
               <th>Component</th>
@@ -43,7 +43,7 @@ export function TaskTriggers() {
           </thead>
           <tbody>
             {tasks.map((task) => (
-              <tr key={task.name}>
+              <tr key={task.name} className="even:bg-base-300">
                 <td>
                   <span className={`badge badge-sm ${COMPONENT_BADGE[task.component] ?? "badge-ghost"}`}>
                     {task.component}

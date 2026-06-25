@@ -38,7 +38,7 @@ export function EventLogViewer() {
 
   return (
     <div className={`overflow-x-auto ${isFetching ? "opacity-60 transition-opacity" : "transition-opacity"}`}>
-      <table className="table table-zebra table-sm w-full border border-base-content/10 [&_th]:border-b [&_th]:border-base-content/10 [&_td]:border-b [&_td]:border-base-content/10">
+      <table className="table table-sm w-full">
         <thead>
           <tr>
             <th>Timestamp</th>
@@ -50,7 +50,7 @@ export function EventLogViewer() {
         </thead>
         <tbody>
           {items.map((entry) => (
-            <tr key={entry.id}>
+            <tr key={entry.id} className="even:bg-base-300">
               <td className="whitespace-nowrap">
                 {formatTimestamp(entry.timestamp)}
               </td>

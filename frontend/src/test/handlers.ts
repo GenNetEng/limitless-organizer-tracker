@@ -195,7 +195,16 @@ export const handlers = [
   http.get("*/api/admin/config", () => HttpResponse.json(adminConfig)),
   http.put("*/api/admin/config", async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json({ ...adminConfig, ...body });
+    const coerced: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(body)) {
+      const original = adminConfig[key as keyof typeof adminConfig];
+      if (typeof original === "number" && typeof value === "string") {
+        coerced[key] = Number(value);
+      } else {
+        coerced[key] = value;
+      }
+    }
+    return HttpResponse.json({ ...adminConfig, ...coerced });
   }),
   http.get("*/api/admin/tasks", () => HttpResponse.json(adminTasks)),
   http.post("*/api/tasks/*", () => HttpResponse.json({ status: "triggered" })),

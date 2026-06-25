@@ -1,7 +1,6 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { adminConfig } from "../test/handlers";
 import { renderWithQueryClient } from "../test/renderWithQueryClient";
 import { server } from "../test/server";
 import { AdminConfig } from "./AdminConfig";
@@ -88,13 +87,6 @@ describe("AdminConfig", () => {
   });
 
   it("clicking save sends PUT and shows updated value", async () => {
-    server.use(
-      http.put("*/api/admin/config", async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...adminConfig, ...body });
-      }),
-    );
-
     renderWithQueryClient(<AdminConfig />);
 
     await screen.findByText("200");
@@ -111,6 +103,27 @@ describe("AdminConfig", () => {
       expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     });
     expect(screen.getByText("42")).toBeInTheDocument();
+  });
+
+  it("returns numeric values from PUT handler when editing int fields", async () => {
+    renderWithQueryClient(<AdminConfig />);
+
+    await screen.findByText("200");
+
+    const editButtons = screen.getAllByRole("button", { name: /edit/i });
+    fireEvent.click(editButtons[3]);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "42" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText("42")).toBeInTheDocument();
+    expect(screen.queryByText("\"42\"")).not.toBeInTheDocument();
   });
 
   it("shows error feedback when save fails", async () => {
