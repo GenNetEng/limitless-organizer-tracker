@@ -2,14 +2,7 @@ import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getStatusHistory } from "../api/client";
 import { formatTimestamp } from "../lib/formatDate";
-
-const STATUS_COLORS: Record<string, string> = {
-  approved: "badge-success",
-  rejected: "badge-error",
-  pending: "badge-warning",
-  expired: "badge-ghost",
-  unknown: "badge-ghost",
-};
+import { STATUS_COLORS } from "../lib/statusColors";
 
 const PAGE_SIZE = 20;
 

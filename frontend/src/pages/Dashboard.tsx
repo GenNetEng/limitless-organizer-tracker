@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { AdminConfig } from "../components/AdminConfig";
+import { ApplicationStatCards } from "../components/ApplicationStatCards";
 import { Diagnostics } from "../components/Diagnostics";
 import { EventLogViewer } from "../components/EventLogViewer";
-import { HighestOrganizerIdCard } from "../components/HighestOrganizerIdCard";
 import { OnboardingDelta } from "../components/OnboardingDelta";
 import { OrganizerActivityChart } from "../components/OrganizerActivityChart";
 import { OrganizerProfile } from "../components/OrganizerProfile";
 import { RecentlyOnboarded } from "../components/RecentlyOnboarded";
 import { ResubmissionLog } from "../components/ResubmissionLog";
+import { ScannerStatusCard } from "../components/ScannerStatusCard";
 import { StatusTimeline } from "../components/StatusTimeline";
 import { TabNavigation, type Tab } from "../components/TabNavigation";
 import { TaskTriggers } from "../components/TaskTriggers";
@@ -29,6 +30,10 @@ export function Dashboard() {
 
       {activeTab === "application" && (
         <div className="space-y-6">
+          <section className="card bg-base-200 p-4">
+            <h2 className="mb-3 text-lg font-semibold">Application Overview</h2>
+            <ApplicationStatCards />
+          </section>
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Status History</h2>
             <StatusTimeline />
@@ -62,8 +67,8 @@ export function Dashboard() {
             <WaitTimeEstimator />
           </section>
           <section className="card bg-base-200 p-4">
-            <h2 className="mb-3 text-lg font-semibold">Highest Organizer ID</h2>
-            <HighestOrganizerIdCard />
+            <h2 className="mb-3 text-lg font-semibold">Scanner Status</h2>
+            <ScannerStatusCard />
           </section>
           <section className="card bg-base-200 p-4">
             <h2 className="mb-3 text-lg font-semibold">Organizer Profile</h2>

@@ -18,9 +18,10 @@ describe("Dashboard", () => {
     expect(main?.className).toMatch(/max-w-6xl/);
   });
 
-  it("shows the application tab by default with status history and resubmission log", async () => {
+  it("shows the application tab by default with stat cards, status history, and resubmission log", async () => {
     renderWithQueryClient(<Dashboard />);
 
+    expect(screen.getByRole("heading", { name: /application overview/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /status history/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /resubmission log/i })).toBeInTheDocument();
 
@@ -36,7 +37,7 @@ describe("Dashboard", () => {
     expect(screen.getByRole("heading", { name: /organizer activity/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /recently onboarded/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /wait time estimator/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /highest organizer id/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /scanner status/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /organizer profile/i })).toBeInTheDocument();
 
     expect(await screen.findByText("Jun 1: 2")).toBeInTheDocument();
