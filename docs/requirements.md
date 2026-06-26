@@ -58,7 +58,7 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR31 | Recently onboarded organizers table: `RecentlyOnboarded.tsx` displays recently onboarded organizers with datetime timestamps and clickable IDs linking to Organizer Profile section | BR3 | **Done — Phase 41** ([#92](https://github.com/GenNetEng/limitless-organizer-tracker/issues/92)) |
 | FR32 | Date window selector on Organizer Activity chart and Wait Time Estimator (30/90/180 days, all time) enabling users to focus on recent trends vs historical data | BR3 | **Done — Phase 41** ([#125](https://github.com/GenNetEng/limitless-organizer-tracker/issues/125)) |
 | FR33 | Onboarding analytics overlay + delta: onboarding counts as a Line series on the Organizer Activity chart alongside the existing Bar (first tournament activity); `GET /api/organizers/onboarding-delta` returning avg/median days from `onboarded_at` to `first_tournament_date` for organizers with both fields (excludes negative deltas); `OnboardingDelta` dashboard card displaying the stats with ID ≥ 2723 threshold note | BR3 | **Done — Phase 42** ([#85](https://github.com/GenNetEng/limitless-organizer-tracker/issues/85)) |
-| FR34 | Dashboard stat cards: "My Application" tab shows at-a-glance stat cards (current status badge, last check time, total resubmissions, last resubmission time) sourced from existing `/api/status-history` and `/api/resubmissions` endpoints; "Organizers" tab shows scanner status card (last scan time, scanner watermark/highest ID, organizers found in last scan) sourced from existing `/api/organizers/highest-id` and `/api/admin/event-log` endpoints | BR1, BR3 | **Phase 43** ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103)) |
+| FR34 | Dashboard stat cards: "My Application" tab shows at-a-glance stat cards (current status badge, last check time, total resubmissions, last resubmission time) sourced from existing `/api/status-history` and `/api/resubmissions` endpoints; "Organizers" tab shows scanner status card (last scan time, scanner watermark/highest ID, organizers found in last scan) sourced from existing `/api/organizers/highest-id` and `/api/admin/event-log` endpoints | BR1, BR3 | **Done — Phase 43** ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103)) |
 
 ## Non-Functional Requirements (NFR)
 
@@ -133,6 +133,35 @@ refactors, frontend cleanup, performance fixes, historical backfill,
 error-state tests, wait-estimate API shape cleanup (#37), and expired session
 detection/recovery (#16). CHANGELOG cut to `[0.3.0]`.
 
+### MVP4 — Runtime Configuration & Polish
+
+Runtime config editing from the admin UI (including cronjob schedules) without
+redeploying, session lifecycle improvements, debug tooling, UI polish, and
+onboarding analytics. Phases 30–45.
+
+**Acceptance**: `docker compose up` runs backend + celery worker/beat +
+postgres/redis + frontend; admin UI edits to config are persisted to DB and
+override env-var defaults; Celery beat schedule rebuilds automatically after
+config edits (via celery-redbeat); onboarding dashboard shows recently
+onboarded organizers, activity overlay with onboarding counts, and
+onboarding-to-first-tournament delta; dashboard stat cards show at-a-glance
+application status and scanner status; DaisyUI dim theme with visible zebra
+striping and wider layout. Full test suites pass in containers.
+
+**Verified — Phase 45 (2026-06-25)**: Full test suites pass in containers.
+Staging verification confirms admin config editing, dynamic beat schedule
+reload, onboarding dashboard, stat cards, and UI polish. CHANGELOG cut to
+`[0.4.0]`.
+
+**Release — v0.4.0 (2026-06-25)**: Phases 30–44 shipped. Includes resubmit
+bug triage (#86), session refresh event logging (#96), configurable session
+validation timeout (#97), SCRAPER_DEBUG flag (#91), config-in-database with
+admin editing (#100), celery-redbeat for dynamic beat schedules (#100), UI
+styling rework + dim theme (#79), UI layout + table polish (#122–#124, #116),
+recently onboarded API + display_timezone (#101, #102, #126), onboarding
+dashboard + date windows (#92, #125), onboarding analytics overlay + delta
+(#85), dashboard stat cards (#103), and bug fixes (#106, #109, #113, #119).
+
 ## Build Order
 
 Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer-tracker/milestones)
@@ -185,4 +214,6 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 40 | Surface `detected_at` with full datetime in organizer API responses, new `GET /api/organizers/recently-onboarded` endpoint, `display_timezone` admin-editable setting (FR30) ([#101](https://github.com/GenNetEng/limitless-organizer-tracker/issues/101), [#102](https://github.com/GenNetEng/limitless-organizer-tracker/issues/102), [#126](https://github.com/GenNetEng/limitless-organizer-tracker/issues/126)) | MVP4 | [#101](https://github.com/GenNetEng/limitless-organizer-tracker/issues/101), [#102](https://github.com/GenNetEng/limitless-organizer-tracker/issues/102), [#126](https://github.com/GenNetEng/limitless-organizer-tracker/issues/126) |
 | 41 | Organizer onboarding dashboard: `RecentlyOnboarded.tsx` table, date window selector on activity chart and wait-time estimator (FR31, FR32) ([#92](https://github.com/GenNetEng/limitless-organizer-tracker/issues/92), [#125](https://github.com/GenNetEng/limitless-organizer-tracker/issues/125)) — **Done** | MVP4 | [#92](https://github.com/GenNetEng/limitless-organizer-tracker/issues/92), [#125](https://github.com/GenNetEng/limitless-organizer-tracker/issues/125) |
 | 42 | Onboarding analytics overlay + delta: onboarding line series on activity chart, `GET /api/organizers/onboarding-delta`, `OnboardingDelta` card (FR33) ([#85](https://github.com/GenNetEng/limitless-organizer-tracker/issues/85)) — **Done** | MVP4 | [#85](https://github.com/GenNetEng/limitless-organizer-tracker/issues/85) |
-| 43 | Dashboard stat cards: application stat cards on "My Application" tab, scanner status card on "Organizers" tab (FR34) ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103)) | MVP4 | [#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103) |
+| 43 | Dashboard stat cards: application stat cards on "My Application" tab, scanner status card on "Organizers" tab (FR34) ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103)) — **Done** | MVP4 | [#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103) |
+| 44 | Bug fixes + cleanup: centralize `session_refreshed` event logging (#106), eliminate redundant `page.content()` calls (#109), fix `config_db` bool type coercion (#113), make `build_beat_schedule` atomic (#119) — **Done** | MVP4 | [#106](https://github.com/GenNetEng/limitless-organizer-tracker/issues/106), [#109](https://github.com/GenNetEng/limitless-organizer-tracker/issues/109), [#113](https://github.com/GenNetEng/limitless-organizer-tracker/issues/113), [#119](https://github.com/GenNetEng/limitless-organizer-tracker/issues/119) |
+| 45 | MVP4 verification + release cut (v0.4.0): update requirements traceability, record remaining technical decisions, CHANGELOG cut, full test suite, manual staging verification — **Done** | MVP4 | — |

@@ -7,6 +7,30 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-25: Inline edit UX for admin config (Phase 36)
+
+**Decision**: Admin config editing uses an inline edit pattern — each config row has an edit icon that reveals an in-place input field with a per-row save button. No modal, no bulk-save form.
+
+**Alternatives considered**:
+
+1. **Modal dialog per row** — more isolated editing surface, but adds a layer of UI indirection for a single-field change.
+2. **Bulk edit form with a single Save button** — allows editing multiple values at once, but risks unintended changes and requires tracking dirty state across all fields.
+3. **Inline edit with per-row save** — minimal UI, each change is immediately persisted via `PUT /api/admin/config`, and the user sees the effective value update in place.
+
+**Why**: Owner chose inline edit for simplicity — one click to edit, one click to save, immediate feedback. The config surface is small (8 editable keys), so bulk editing adds complexity without benefit. Per-row save via `useMutation` keeps the implementation straightforward.
+
+## 2026-06-24: Config resolution order — DB overrides env vars (Phase 35)
+
+**Decision**: Runtime config resolution follows a two-tier hierarchy: DB entries override env-var defaults. Env vars are the fallback when no DB entry exists. Sensitive config (DB URL, credentials, API keys) is never stored in the DB and never admin-editable. The set of admin-editable keys is a hardcoded allowlist (`EDITABLE_CONFIG_KEYS`) in `config_db.py`.
+
+**Alternatives considered**:
+
+1. **Env vars override DB** — simpler mental model ("env always wins"), but defeats the purpose of runtime config editing since a redeploy with env changes would be required anyway.
+2. **DB only, no env fallback** — cleanest resolution, but requires DB entries to exist for all config before the app starts, and breaks backward compatibility with existing env-var-based deployments.
+3. **DB overrides env, with hardcoded allowlist** — env vars provide sensible defaults out of the box; DB entries only need to exist when an admin has changed something; the allowlist prevents accidental exposure of sensitive config.
+
+**Why**: Owner approved DB-overrides-env with an allowlist. This lets existing `.env`-based deployments keep working unchanged, while the admin UI can tweak runtime config (intervals, limits, scan settings) without a redeploy. The allowlist is a safety net — only the 8 known non-sensitive fields are editable.
+
 ## 2026-06-25: Switch DaisyUI theme from `dark` to `dim` (Phase 38)
 
 **Decision**: Switch the DaisyUI theme from `dark` to `dim` for better contrast ratios across the dashboard. The `dark` theme has very low contrast between base-100/200/300 (lightness: 25.3/23.3/21.2), making card hierarchy and table rows nearly indistinguishable. `dim` (30.9/28.0/26.3) provides better visual separation while maintaining a dark aesthetic.
