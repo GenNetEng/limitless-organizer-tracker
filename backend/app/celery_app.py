@@ -108,8 +108,8 @@ def build_beat_schedule(app, config: dict) -> None:
         try:
             old_entry = RedBeatSchedulerEntry.from_key(f"redbeat:{name}", app=app)
             old_entry.delete()
-        except KeyError:
-            pass
+        except Exception:
+            logger.debug("Failed to delete stale beat entry %s", name, exc_info=True)
 
     pipe = redis_client.pipeline()
     pipe.delete(MANAGED_ENTRIES_REDIS_KEY)

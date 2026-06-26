@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   - Eliminated redundant `page.content()` calls on resubmit failure paths when
     `SCRAPER_DEBUG` is enabled — reuses `result.page_html` instead (#109)
   - Fixed `config_db` type coercion for bool keys (`bool` subclasses `int`);
-    added `scraper_debug` to `EDITABLE_CONFIG_KEYS` (#113)
+    extracted `_coerce_value()` helper to eliminate duplication (#113)
   - Made `build_beat_schedule` atomic: creates new entries before deleting stale
     ones, uses a Redis pipeline for the tracking set update (#119)
 
