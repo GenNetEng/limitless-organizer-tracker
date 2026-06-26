@@ -5,6 +5,7 @@ import pytest
 
 from app.config_db import (
     EDITABLE_CONFIG_KEYS,
+    _coerce_value,
     get_config_value,
     get_effective_config,
     get_effective_value,
@@ -230,3 +231,62 @@ class TestGetEffectiveConfig:
 
         result = get_effective_config(db_session)
         assert result["tournament_backfill_months"] == settings.tournament_backfill_months
+
+
+# --- Phase 44 (#113): _coerce_value — bool subclasses int ---
+
+
+class TestCoerceValue:
+    """_coerce_value must check bool before int because bool subclasses int."""
+
+    def test_coerces_true_string(self):
+        assert _coerce_value("true", False) is True
+
+    def test_coerces_false_string(self):
+        assert _coerce_value("false", True) is False
+
+    def test_coerces_1_to_true(self):
+        assert _coerce_value("1", False) is True
+        assert isinstance(_coerce_value("1", False), bool)
+
+    def test_coerces_0_to_false(self):
+        assert _coerce_value("0", True) is False
+        assert isinstance(_coerce_value("0", True), bool)
+
+    def test_coerces_yes_to_true(self):
+        assert _coerce_value("yes", False) is True
+
+    def test_coerces_no_to_false(self):
+        assert _coerce_value("no", True) is False
+
+    def test_falls_back_for_invalid_bool(self):
+        assert _coerce_value("maybe", False) is False
+
+    def test_case_insensitive(self):
+        assert _coerce_value("TRUE", False) is True
+        assert _coerce_value("False", True) is False
+
+    def test_coerces_int_string(self):
+        result = _coerce_value("42", 0)
+        assert result == 42
+        assert isinstance(result, int)
+        assert not isinstance(result, bool)
+
+    def test_int_falls_back_for_non_numeric(self):
+        assert _coerce_value("abc", 10) == 10
+
+    def test_returns_raw_string_for_str_default(self):
+        assert _coerce_value("hello", "default") == "hello"
+
+    def test_int_keys_via_get_effective_value(self, db_session):
+        db_session.add(ConfigEntry(
+            key="tournament_ingest_limit",
+            value="42",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == 42
+        assert isinstance(result, int)
+        assert not isinstance(result, bool)

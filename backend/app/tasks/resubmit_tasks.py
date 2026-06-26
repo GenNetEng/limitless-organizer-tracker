@@ -35,12 +35,16 @@ def resubmit_application_task() -> int:
     """
     with authenticated_page() as ctx:
         result = resubmit_application(ctx.page)
-        try:
-            debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
-        except Exception:
+        if settings.scraper_debug:
+            if result.page_html is not None:
+                debug_html = result.page_html[:20000]
+            else:
+                try:
+                    debug_html = ctx.page.content()[:20000]
+                except Exception:
+                    debug_html = None
+        else:
             debug_html = None
-    session_refreshed = ctx.session_refreshed
-
     submitted_at = datetime.now(timezone.utc)
 
     discord_notified = False
@@ -51,15 +55,6 @@ def resubmit_application_task() -> int:
         discord_notified = False
 
     with task_session() as session:
-        if session_refreshed:
-            log_event(
-                session=session,
-                event_type="scraper.session_refreshed",
-                source="resubmit_tasks",
-                message="Expired session detected and refreshed before resubmit",
-                severity="WARNING",
-            )
-
         event = record_resubmission(session, result.success, submitted_at, discord_notified)
         details = {
             "success": result.success,

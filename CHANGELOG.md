@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+### Fixed
+
+- **Phase 44 — Bug fixes + cleanup
+  ([#106](https://github.com/GenNetEng/limitless-organizer-tracker/issues/106),
+  [#109](https://github.com/GenNetEng/limitless-organizer-tracker/issues/109),
+  [#113](https://github.com/GenNetEng/limitless-organizer-tracker/issues/113),
+  [#119](https://github.com/GenNetEng/limitless-organizer-tracker/issues/119))**:
+  - Centralized `session_refreshed` event logging into `authenticated_page()`
+    so every caller gets it automatically (#106)
+  - Eliminated redundant `page.content()` calls on resubmit failure paths when
+    `SCRAPER_DEBUG` is enabled — reuses `result.page_html` instead (#109)
+  - Fixed `config_db` type coercion for bool keys (`bool` subclasses `int`);
+    extracted `_coerce_value()` helper to eliminate duplication (#113)
+  - Made `build_beat_schedule` atomic: creates new entries before deleting stale
+    ones, uses a Redis pipeline for the tracking set update (#119)
+
 ### Added
 
 - **Phase 34 — Config DB table + model + migration

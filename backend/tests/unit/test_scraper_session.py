@@ -235,3 +235,73 @@ def test_authenticated_page_treats_timeout_as_expired_session(tmp_path):
         settings.limitless_password,
         storage_state_path=storage_state_path,
     )
+
+
+# --- Phase 44 (#106): session_refreshed event logging in authenticated_page ---
+
+
+def test_authenticated_page_logs_session_refreshed_event_when_expired(tmp_path):
+    """When session is refreshed, authenticated_page() logs to the DB event log."""
+    storage_state_path = tmp_path / "storage_state.json"
+    storage_state_path.write_text("{}")
+
+    mock_page = MagicMock()
+    mock_page.url = f"{settings.limitless_base_url}{LOGIN_PATH}?next=/user/apply"
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    mock_db_session = MagicMock()
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"), \
+            patch("app.scraper.session.log_event") as mock_log_event, \
+            patch("app.scraper.session.task_session") as mock_ts:
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+        mock_ts.return_value.__enter__ = MagicMock(return_value=mock_db_session)
+        mock_ts.return_value.__exit__ = MagicMock(return_value=False)
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.session_refreshed is True
+
+    mock_log_event.assert_called_once()
+    call_kwargs = mock_log_event.call_args.kwargs
+    assert call_kwargs["event_type"] == "scraper.session_refreshed"
+    assert call_kwargs["severity"] == "WARNING"
+    assert call_kwargs["session"] is mock_db_session
+
+
+def test_authenticated_page_does_not_log_event_when_session_valid(tmp_path):
+    """When session is valid, no session_refreshed event is logged."""
+    storage_state_path = tmp_path / "storage_state.json"
+    storage_state_path.write_text("{}")
+
+    mock_page = MagicMock()
+    mock_page.url = f"{settings.limitless_base_url}{APPLY_PATH}"
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"), \
+            patch("app.scraper.session.log_event") as mock_log_event:
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.session_refreshed is False
+
+    mock_log_event.assert_not_called()
+
+
+def test_authenticated_page_does_not_log_event_on_fresh_login(tmp_path):
+    """When no storage state exists (fresh login), no session_refreshed event is logged."""
+    storage_state_path = tmp_path / "storage_state.json"
+
+    mock_page = MagicMock()
+    mock_playwright, mock_browser = _mock_playwright(mock_page)
+
+    with patch("app.scraper.session.sync_playwright") as mock_sync_playwright, \
+            patch("app.scraper.session.login"), \
+            patch("app.scraper.session.log_event") as mock_log_event:
+        mock_sync_playwright.return_value.__enter__.return_value = mock_playwright
+
+        with authenticated_page(storage_state_path=storage_state_path) as ctx:
+            assert ctx.session_refreshed is False
+
+    mock_log_event.assert_not_called()

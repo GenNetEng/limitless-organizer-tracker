@@ -114,4 +114,4 @@ def test_resubmit_task_logs_session_refreshed_event(monkeypatch, db_session_fact
         events = session.query(EventLog).filter(EventLog.event_type == "scraper.session_refreshed").all()
         assert len(events) == 1
         assert events[0].severity == "WARNING"
-        assert events[0].source == "resubmit_tasks"
+        assert events[0].source == "session"

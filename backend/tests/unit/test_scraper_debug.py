@@ -91,7 +91,7 @@ class TestResubmitTaskScraperDebug:
         details = json.loads(event.details)
         assert len(details["debug_page_html"]) == 20000
 
-    def test_includes_debug_html_alongside_failure_html(self, db_session):
+    def test_reuses_failure_page_html_for_debug_html(self, db_session):
         with (
             patch("app.tasks.resubmit_tasks.authenticated_page") as mock_auth,
             patch("app.tasks.resubmit_tasks.resubmit_application") as mock_resubmit,
@@ -115,7 +115,7 @@ class TestResubmitTaskScraperDebug:
         event = db_session.query(EventLog).filter_by(event_type="scraper.resubmit").one()
         details = json.loads(event.details)
         assert details["page_html"] == "<html>failure snapshot</html>"
-        assert details["debug_page_html"] == "<html>current state</html>"
+        assert details["debug_page_html"] == "<html>failure snapshot</html>"
 
     def test_task_succeeds_when_page_content_throws(self, db_session):
         with (
@@ -236,3 +236,66 @@ class TestRunStatusCheckScraperDebug:
         event = db_session.query(EventLog).filter_by(event_type="scraper.status_check").one()
         details = json.loads(event.details)
         assert "debug_page_html" not in details
+
+
+# --- Phase 44 (#109): no redundant page.content() on failure paths ---
+
+
+class TestResubmitTaskNoRedundantContent:
+    """When resubmit fails and result.page_html is already set, page.content() should NOT be called again."""
+
+    def test_resubmit_failure_reuses_page_html_for_debug(self, db_session):
+        page = MagicMock()
+        page.content.return_value = "<html>current state</html>"
+
+        @contextmanager
+        def fake_auth():
+            yield AuthenticatedPageContext(page=page, session_refreshed=False)
+
+        with (
+            patch("app.tasks.resubmit_tasks.authenticated_page") as mock_auth,
+            patch("app.tasks.resubmit_tasks.resubmit_application") as mock_resubmit,
+            patch("app.tasks.resubmit_tasks.post_resubmission_notice") as mock_discord,
+            patch("app.tasks.resubmit_tasks.task_session") as mock_ts,
+            patch("app.tasks.resubmit_tasks.settings") as mock_settings,
+        ):
+            mock_auth.return_value = fake_auth()
+            mock_resubmit.return_value = ResubmitResult(
+                success=False,
+                failure_stage="page_load_failed",
+                page_html="<html>failure snapshot</html>",
+            )
+            mock_discord.return_value = MagicMock(status_code=200)
+            mock_ts.return_value = _fake_task_session(db_session)
+            mock_settings.scraper_debug = True
+            mock_settings.discord_webhook_url = "https://example.com"
+
+            resubmit_application_task()
+
+        page.content.assert_not_called()
+
+    def test_resubmit_success_still_calls_page_content_for_debug(self, db_session):
+        page = MagicMock()
+        page.content.return_value = "<html>success page</html>"
+
+        @contextmanager
+        def fake_auth():
+            yield AuthenticatedPageContext(page=page, session_refreshed=False)
+
+        with (
+            patch("app.tasks.resubmit_tasks.authenticated_page") as mock_auth,
+            patch("app.tasks.resubmit_tasks.resubmit_application") as mock_resubmit,
+            patch("app.tasks.resubmit_tasks.post_resubmission_notice") as mock_discord,
+            patch("app.tasks.resubmit_tasks.task_session") as mock_ts,
+            patch("app.tasks.resubmit_tasks.settings") as mock_settings,
+        ):
+            mock_auth.return_value = fake_auth()
+            mock_resubmit.return_value = ResubmitResult(success=True, server_response={"ok": True})
+            mock_discord.return_value = MagicMock(status_code=200)
+            mock_ts.return_value = _fake_task_session(db_session)
+            mock_settings.scraper_debug = True
+            mock_settings.discord_webhook_url = "https://example.com"
+
+            resubmit_application_task()
+
+        page.content.assert_called_once()

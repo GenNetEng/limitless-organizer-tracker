@@ -20,10 +20,30 @@ EDITABLE_CONFIG_KEYS: frozenset[str] = frozenset(
     }
 )
 
+_BOOL_TRUTHY = frozenset({"true", "1", "yes"})
+_BOOL_FALSY = frozenset({"false", "0", "no"})
+
 
 def _validate_key(key: str) -> None:
     if key not in EDITABLE_CONFIG_KEYS:
         raise ValueError(f"'{key}' is not an editable config key")
+
+
+def _coerce_value(raw: str, default: str | int | bool) -> str | int | bool:
+    """Coerce a raw DB string to match the type of *default*."""
+    if isinstance(default, bool):
+        val = raw.lower()
+        if val in _BOOL_TRUTHY:
+            return True
+        if val in _BOOL_FALSY:
+            return False
+        return default
+    if isinstance(default, int):
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return default
+    return raw
 
 
 def get_config_value(session: Session, key: str) -> str | None:
@@ -46,18 +66,13 @@ def set_config_value(session: Session, key: str, value: str) -> None:
         entry.updated_at = now
 
 
-def get_effective_value(session: Session, key: str) -> str | int:
+def get_effective_value(session: Session, key: str) -> str | int | bool:
     _validate_key(key)
     db_entry = session.get(ConfigEntry, key)
     default = getattr(settings, key)
     if db_entry is None:
         return default
-    if isinstance(default, int):
-        try:
-            return int(db_entry.value)
-        except (ValueError, TypeError):
-            return default
-    return db_entry.value
+    return _coerce_value(db_entry.value, default)
 
 
 def get_effective_config(session: Session) -> dict:
@@ -67,13 +82,7 @@ def get_effective_config(session: Session) -> dict:
     for key in EDITABLE_CONFIG_KEYS:
         default = getattr(settings, key)
         if key in overrides:
-            if isinstance(default, int):
-                try:
-                    result[key] = int(overrides[key])
-                except (ValueError, TypeError):
-                    result[key] = default
-            else:
-                result[key] = overrides[key]
+            result[key] = _coerce_value(overrides[key], default)
         else:
             result[key] = default
     return result

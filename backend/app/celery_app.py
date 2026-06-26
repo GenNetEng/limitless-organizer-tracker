@@ -85,26 +85,37 @@ def build_schedule_entries(config: dict) -> list[tuple[str, str, crontab | timed
 
 
 def build_beat_schedule(app, config: dict) -> None:
-    """Write RedBeatSchedulerEntry objects to Redis from the given config."""
+    """Write RedBeatSchedulerEntry objects to Redis from the given config.
+
+    Creates new entries before deleting stale ones so the beat scheduler
+    never sees an empty schedule during the rebuild window.
+    """
     entries = build_schedule_entries(config)
     redis_client = get_redis(app)
 
-    old_names = redis_client.smembers(MANAGED_ENTRIES_REDIS_KEY)
-    for name in old_names:
-        try:
-            old_entry = RedBeatSchedulerEntry.from_key(f"redbeat:{name}", app=app)
-            old_entry.delete()
-        except KeyError:
-            pass
-    redis_client.delete(MANAGED_ENTRIES_REDIS_KEY)
+    old_names = {
+        n.decode() if isinstance(n, bytes) else n
+        for n in redis_client.smembers(MANAGED_ENTRIES_REDIS_KEY)
+    }
 
     new_names = []
     for name, task, schedule in entries:
         RedBeatSchedulerEntry(name, task, schedule, app=app).save()
         new_names.append(name)
 
+    new_names_set = set(new_names)
+    for name in old_names - new_names_set:
+        try:
+            old_entry = RedBeatSchedulerEntry.from_key(f"redbeat:{name}", app=app)
+            old_entry.delete()
+        except Exception:
+            logger.debug("Failed to delete stale beat entry %s", name, exc_info=True)
+
+    pipe = redis_client.pipeline()
+    pipe.delete(MANAGED_ENTRIES_REDIS_KEY)
     if new_names:
-        redis_client.sadd(MANAGED_ENTRIES_REDIS_KEY, *new_names)
+        pipe.sadd(MANAGED_ENTRIES_REDIS_KEY, *new_names)
+    pipe.execute()
 
     logger.info("Beat schedule rebuilt: %d entries", len(new_names))
 
