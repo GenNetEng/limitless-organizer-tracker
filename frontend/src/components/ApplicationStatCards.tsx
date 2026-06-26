@@ -1,13 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getResubmissions, getStatusHistory } from "../api/client";
 import { formatTimestamp } from "../lib/formatDate";
-
-const STATUS_COLORS: Record<string, string> = {
-  approved: "badge-success",
-  rejected: "badge-error",
-  pending: "badge-warning",
-  expired: "badge-ghost",
-};
+import { STATUS_COLORS } from "../lib/statusColors";
 
 export function ApplicationStatCards() {
   const statusQuery = useQuery({

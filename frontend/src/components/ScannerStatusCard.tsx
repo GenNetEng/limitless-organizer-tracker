@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getEventLog, getHighestOrganizerId } from "../api/client";
+import { ApiError, getEventLog, getHighestOrganizerId } from "../api/client";
 import { formatTimestamp } from "../lib/formatDate";
 
 export function ScannerStatusCard() {
@@ -17,7 +17,17 @@ export function ScannerStatusCard() {
     return <p>Loading…</p>;
   }
 
-  if (highestIdQuery.isError || scanEventQuery.isError) {
+  if (highestIdQuery.isError) {
+    if (
+      highestIdQuery.error instanceof ApiError &&
+      highestIdQuery.error.status === 404
+    ) {
+      return <p>No organizer data available yet</p>;
+    }
+    return <p className="text-error">Failed to load scanner status</p>;
+  }
+
+  if (scanEventQuery.isError) {
     return <p className="text-error">Failed to load scanner status</p>;
   }
 

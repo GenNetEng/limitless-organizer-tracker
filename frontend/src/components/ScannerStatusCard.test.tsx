@@ -92,6 +92,16 @@ describe("ScannerStatusCard", () => {
     expect(noDataElements.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("shows friendly message when highest-id returns 404", async () => {
+    server.use(
+      http.get("*/api/organizers/highest-id", () =>
+        HttpResponse.json({ detail: "no organizer data available" }, { status: 404 }),
+      ),
+    );
+    renderWithQueryClient(<ScannerStatusCard />);
+    expect(await screen.findByText(/no organizer data/i)).toBeInTheDocument();
+  });
+
   it("shows error state on API failure", async () => {
     server.use(
       http.get("*/api/organizers/highest-id", () =>
