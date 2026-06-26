@@ -19,6 +19,14 @@ Newest entries first.
 
 **Why**: Owner chose inline edit for simplicity — one click to edit, one click to save, immediate feedback. The config surface is small (8 editable keys), so bulk editing adds complexity without benefit. Per-row save via `useMutation` keeps the implementation straightforward.
 
+## 2026-06-25: Switch DaisyUI theme from `dark` to `dim` (Phase 38)
+
+**Decision**: Switch the DaisyUI theme from `dark` to `dim` for better contrast ratios across the dashboard. The `dark` theme has very low contrast between base-100/200/300 (lightness: 25.3/23.3/21.2), making card hierarchy and table rows nearly indistinguishable. `dim` (30.9/28.0/26.3) provides better visual separation while maintaining a dark aesthetic.
+
+**Alternatives considered**: Keep `dark` and polish with borders/shadows only — addresses symptoms, not the underlying contrast problem; `dracula` — purple-tinted (28.8/26.8/24.8), pink primary, polarizing aesthetic; `night` — deepest dark (20.8/19.3/17.9), even less contrast than `dark`.
+
+**Why**: Owner chose `dim` for the best balance of contrast improvement and neutral color palette.
+
 ## 2026-06-24: Config resolution order — DB overrides env vars (Phase 35)
 
 **Decision**: Runtime config resolution follows a two-tier hierarchy: DB entries override env-var defaults. Env vars are the fallback when no DB entry exists. Sensitive config (DB URL, credentials, API keys) is never stored in the DB and never admin-editable. The set of admin-editable keys is a hardcoded allowlist (`EDITABLE_CONFIG_KEYS`) in `config_db.py`.
@@ -30,14 +38,6 @@ Newest entries first.
 3. **DB overrides env, with hardcoded allowlist** — env vars provide sensible defaults out of the box; DB entries only need to exist when an admin has changed something; the allowlist prevents accidental exposure of sensitive config.
 
 **Why**: Owner approved DB-overrides-env with an allowlist. This lets existing `.env`-based deployments keep working unchanged, while the admin UI can tweak runtime config (intervals, limits, scan settings) without a redeploy. The allowlist is a safety net — only the 8 known non-sensitive fields are editable.
-
-## 2026-06-25: Switch DaisyUI theme from `dark` to `dim` (Phase 38)
-
-**Decision**: Switch the DaisyUI theme from `dark` to `dim` for better contrast ratios across the dashboard. The `dark` theme has very low contrast between base-100/200/300 (lightness: 25.3/23.3/21.2), making card hierarchy and table rows nearly indistinguishable. `dim` (30.9/28.0/26.3) provides better visual separation while maintaining a dark aesthetic.
-
-**Alternatives considered**: Keep `dark` and polish with borders/shadows only — addresses symptoms, not the underlying contrast problem; `dracula` — purple-tinted (28.8/26.8/24.8), pink primary, polarizing aesthetic; `night` — deepest dark (20.8/19.3/17.9), even less contrast than `dark`.
-
-**Why**: Owner chose `dim` for the best balance of contrast improvement and neutral color palette.
 
 ## 2026-06-24: celery-redbeat for dynamic beat schedule reload
 
