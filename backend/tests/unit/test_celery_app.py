@@ -179,14 +179,16 @@ def test_build_beat_schedule_tracks_entry_names_in_redis(mock_get_redis, MockEnt
 
     mock_redis = MagicMock()
     mock_redis.smembers.return_value = set()
+    mock_pipe = MagicMock()
+    mock_redis.pipeline.return_value = mock_pipe
     mock_get_redis.return_value = mock_redis
     MockEntry.return_value = MagicMock()
 
     config = _default_config()
     build_beat_schedule(MagicMock(), config)
 
-    mock_redis.sadd.assert_called_once()
-    call_args = mock_redis.sadd.call_args
+    mock_pipe.sadd.assert_called_once()
+    call_args = mock_pipe.sadd.call_args
     assert call_args[0][0] == MANAGED_ENTRIES_REDIS_KEY
     stored_names = set(call_args[0][1:])
     assert "check-application-status" in stored_names
@@ -198,11 +200,12 @@ def test_build_beat_schedule_tracks_entry_names_in_redis(mock_get_redis, MockEnt
 
 @patch("app.celery_app.RedBeatSchedulerEntry")
 @patch("app.celery_app.get_redis")
-def test_build_beat_schedule_deletes_old_entries_before_creating(mock_get_redis, MockEntry):
+def test_build_beat_schedule_deletes_stale_entries(mock_get_redis, MockEntry):
     from app.celery_app import build_beat_schedule
 
     mock_redis = MagicMock()
     mock_redis.smembers.return_value = {"resubmit-application-0800", "old-entry"}
+    mock_redis.pipeline.return_value = MagicMock()
     mock_get_redis.return_value = mock_redis
 
     mock_old_entry = MagicMock()
@@ -214,7 +217,6 @@ def test_build_beat_schedule_deletes_old_entries_before_creating(mock_get_redis,
 
     assert MockEntry.from_key.call_count == 2
     assert mock_old_entry.delete.call_count == 2
-    mock_redis.delete.assert_called_once()
 
 
 @patch("app.celery_app.RedBeatSchedulerEntry")
@@ -233,3 +235,82 @@ def test_build_beat_schedule_tolerates_missing_old_entries(mock_get_redis, MockE
     build_beat_schedule(MagicMock(), config)
 
     assert MockEntry.return_value.save.call_count == 5
+
+
+# --- Phase 44 (#119): atomic build_beat_schedule ---
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_creates_before_deleting_stale(mock_get_redis, MockEntry):
+    """New entries must be saved BEFORE stale old entries are deleted (no gap)."""
+    from app.celery_app import build_beat_schedule
+
+    call_order = []
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = {"stale-entry"}
+    mock_get_redis.return_value = mock_redis
+
+    mock_old_entry = MagicMock()
+    mock_old_entry.delete.side_effect = lambda: call_order.append("delete:stale-entry")
+    MockEntry.from_key.return_value = mock_old_entry
+
+    mock_new_entry = MagicMock()
+    mock_new_entry.save.side_effect = lambda: call_order.append("save")
+    MockEntry.return_value = mock_new_entry
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    first_save = call_order.index("save")
+    first_delete = call_order.index("delete:stale-entry")
+    assert first_save < first_delete, "New entries must be saved before stale entries are deleted"
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_only_deletes_stale_entries(mock_get_redis, MockEntry):
+    """Entries that exist in both old and new sets should NOT be deleted."""
+    from app.celery_app import build_beat_schedule
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = {
+        "check-application-status",  # exists in new set
+        "stale-entry",               # does NOT exist in new set
+    }
+    mock_get_redis.return_value = mock_redis
+
+    mock_old_entry = MagicMock()
+    MockEntry.from_key.return_value = mock_old_entry
+    MockEntry.return_value = MagicMock()
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    from_key_calls = [call.args[0] for call in MockEntry.from_key.call_args_list]
+    assert "redbeat:stale-entry" in from_key_calls
+    assert "redbeat:check-application-status" not in from_key_calls
+
+
+@patch("app.celery_app.RedBeatSchedulerEntry")
+@patch("app.celery_app.get_redis")
+def test_build_beat_schedule_updates_tracking_set_atomically(mock_get_redis, MockEntry):
+    """The tracking set update should use a Redis pipeline for atomicity."""
+    from app.celery_app import build_beat_schedule
+
+    mock_redis = MagicMock()
+    mock_redis.smembers.return_value = set()
+    mock_pipe = MagicMock()
+    mock_redis.pipeline.return_value = mock_pipe
+    mock_get_redis.return_value = mock_redis
+
+    MockEntry.return_value = MagicMock()
+
+    config = _default_config()
+    build_beat_schedule(MagicMock(), config)
+
+    mock_redis.pipeline.assert_called_once()
+    mock_pipe.delete.assert_called_once()
+    mock_pipe.sadd.assert_called_once()
+    mock_pipe.execute.assert_called_once()

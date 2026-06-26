@@ -17,8 +17,11 @@ EDITABLE_CONFIG_KEYS: frozenset[str] = frozenset(
         "organizer_scan_limit",
         "organizer_scan_start_id",
         "display_timezone",
+        "scraper_debug",
     }
 )
+
+_BOOL_TRUTHY = frozenset({"true", "1", "yes"})
 
 
 def _validate_key(key: str) -> None:
@@ -46,11 +49,17 @@ def set_config_value(session: Session, key: str, value: str) -> None:
         entry.updated_at = now
 
 
-def get_effective_value(session: Session, key: str) -> str | int:
+def get_effective_value(session: Session, key: str) -> str | int | bool:
     _validate_key(key)
     db_entry = session.get(ConfigEntry, key)
     default = getattr(settings, key)
     if db_entry is None:
+        return default
+    if isinstance(default, bool):
+        if db_entry.value.lower() in _BOOL_TRUTHY:
+            return True
+        if db_entry.value.lower() in ("false", "0", "no"):
+            return False
         return default
     if isinstance(default, int):
         try:
@@ -67,7 +76,15 @@ def get_effective_config(session: Session) -> dict:
     for key in EDITABLE_CONFIG_KEYS:
         default = getattr(settings, key)
         if key in overrides:
-            if isinstance(default, int):
+            if isinstance(default, bool):
+                val = overrides[key].lower()
+                if val in _BOOL_TRUTHY:
+                    result[key] = True
+                elif val in ("false", "0", "no"):
+                    result[key] = False
+                else:
+                    result[key] = default
+            elif isinstance(default, int):
                 try:
                     result[key] = int(overrides[key])
                 except (ValueError, TypeError):

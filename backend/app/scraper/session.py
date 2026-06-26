@@ -7,6 +7,8 @@ from pathlib import Path
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
 from app.config import settings
+from app.db.session import task_session
+from app.events import log_event
 from app.scraper.browser import DEFAULT_STORAGE_STATE_PATH, login
 from app.scraper.selectors import APPLY_PATH, LOGIN_PATH
 
@@ -78,6 +80,20 @@ def authenticated_page(
                         storage_state_path=storage_state_path,
                     )
                     session_refreshed = True
+
+            if session_refreshed:
+                try:
+                    with task_session() as db_session:
+                        log_event(
+                            session=db_session,
+                            event_type="scraper.session_refreshed",
+                            source="session",
+                            message="Expired session detected and refreshed",
+                            severity="WARNING",
+                        )
+                        db_session.commit()
+                except Exception:
+                    logger.debug("Failed to log session refresh event", exc_info=True)
 
             yield AuthenticatedPageContext(page=page, session_refreshed=session_refreshed)
         finally:

@@ -138,7 +138,7 @@ def test_status_check_logs_session_refreshed_event(monkeypatch, db_session_facto
         events = session.query(EventLog).filter(EventLog.event_type == "scraper.session_refreshed").all()
         assert len(events) == 1
         assert events[0].severity == "WARNING"
-        assert events[0].source == "status_tasks"
+        assert events[0].source == "session"
 
 
 def test_status_check_does_not_log_session_refreshed_when_not_refreshed(monkeypatch, db_session_factory):

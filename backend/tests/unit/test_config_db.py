@@ -27,6 +27,7 @@ class TestEditableConfigKeys:
             "organizer_scan_limit",
             "organizer_scan_start_id",
             "display_timezone",
+            "scraper_debug",
         }
         assert EDITABLE_CONFIG_KEYS == expected
 
@@ -230,3 +231,97 @@ class TestGetEffectiveConfig:
 
         result = get_effective_config(db_session)
         assert result["tournament_backfill_months"] == settings.tournament_backfill_months
+
+
+# --- Phase 44 (#113): bool coercion — bool subclasses int ---
+
+
+class TestBoolCoercion:
+    """Fix: isinstance(True, int) is True, so bool must be checked before int."""
+
+    def test_get_effective_value_returns_bool_true_from_db(self, db_session):
+        db_session.add(ConfigEntry(
+            key="scraper_debug",
+            value="true",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "scraper_debug")
+        assert result is True
+        assert isinstance(result, bool)
+
+    def test_get_effective_value_returns_bool_false_from_db(self, db_session):
+        db_session.add(ConfigEntry(
+            key="scraper_debug",
+            value="false",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "scraper_debug")
+        assert result is False
+        assert isinstance(result, bool)
+
+    def test_get_effective_value_coerces_1_to_true(self, db_session):
+        db_session.add(ConfigEntry(
+            key="scraper_debug",
+            value="1",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "scraper_debug")
+        assert result is True
+        assert isinstance(result, bool)
+
+    def test_get_effective_value_coerces_0_to_false(self, db_session):
+        db_session.add(ConfigEntry(
+            key="scraper_debug",
+            value="0",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "scraper_debug")
+        assert result is False
+        assert isinstance(result, bool)
+
+    def test_get_effective_value_falls_back_for_invalid_bool(self, db_session):
+        from app.config import settings
+
+        db_session.add(ConfigEntry(
+            key="scraper_debug",
+            value="maybe",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "scraper_debug")
+        assert result == settings.scraper_debug
+
+    def test_get_effective_config_coerces_bool_key(self, db_session):
+        db_session.add(ConfigEntry(
+            key="scraper_debug",
+            value="true",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_config(db_session)
+        assert result["scraper_debug"] is True
+        assert isinstance(result["scraper_debug"], bool)
+
+    def test_int_keys_still_coerce_correctly(self, db_session):
+        """Ensure the bool fix doesn't break int coercion."""
+        db_session.add(ConfigEntry(
+            key="tournament_ingest_limit",
+            value="42",
+            updated_at=datetime.now(timezone.utc),
+        ))
+        db_session.commit()
+
+        result = get_effective_value(db_session, "tournament_ingest_limit")
+        assert result == 42
+        assert isinstance(result, int)
+        assert not isinstance(result, bool)

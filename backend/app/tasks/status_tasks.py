@@ -72,15 +72,6 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
         except Exception:
             debug_html = None
 
-    if ctx.session_refreshed:
-        log_event(
-            session=session,
-            event_type="scraper.session_refreshed",
-            source="status_tasks",
-            message="Expired session detected and refreshed before status check",
-            severity="WARNING",
-        )
-
     checked_at = datetime.now(timezone.utc)
     check, changed = record_status_check(session, result, checked_at, debug_page_html=debug_html)
 
