@@ -9,23 +9,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
-### Fixed
-
-- **Phase 44 — Bug fixes + cleanup
-  ([#106](https://github.com/GenNetEng/limitless-organizer-tracker/issues/106),
-  [#109](https://github.com/GenNetEng/limitless-organizer-tracker/issues/109),
-  [#113](https://github.com/GenNetEng/limitless-organizer-tracker/issues/113),
-  [#119](https://github.com/GenNetEng/limitless-organizer-tracker/issues/119))**:
-  - Centralized `session_refreshed` event logging into `authenticated_page()`
-    so every caller gets it automatically (#106)
-  - Eliminated redundant `page.content()` calls on resubmit failure paths when
-    `SCRAPER_DEBUG` is enabled — reuses `result.page_html` instead (#109)
-  - Fixed `config_db` type coercion for bool keys (`bool` subclasses `int`);
-    extracted `_coerce_value()` helper to eliminate duplication (#113)
-  - Made `build_beat_schedule` atomic: creates new entries before deleting stale
-    ones, uses a Redis pipeline for the tracking set update (#119)
+## [0.4.0] - 2026-06-25
 
 ### Added
+
+- **Phase 43 — Dashboard stat cards + activity summary
+  ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103),
+  FR34)**: At-a-glance stat cards on "My Application" tab (current status badge,
+  last check time, total resubmissions, last resubmission time) and "Organizers"
+  tab (scanner status card with last scan time, scanner watermark/highest ID,
+  organizers found in last scan). Data sourced from existing endpoints
+  (`/api/status-history`, `/api/resubmissions`, `/api/organizers/highest-id`,
+  `/api/admin/event-log`).
+
+- **Phase 42 — Onboarding analytics overlay + delta
+  ([#85](https://github.com/GenNetEng/limitless-organizer-tracker/issues/85),
+  FR33)**: Onboarding counts displayed as a `Line` series on the Organizer
+  Activity chart alongside the existing `Bar` (first tournament activity).
+  New `GET /api/organizers/onboarding-delta` endpoint returning
+  `{avg_days, median_days, count}` — average/median time from `onboarded_at`
+  to `first_tournament_date` for organizers with both fields (excludes negative
+  deltas). `OnboardingDelta` dashboard card with ID ≥ 2723 threshold note.
+
+- **Phase 41 — Organizer onboarding dashboard + date windows
+  ([#92](https://github.com/GenNetEng/limitless-organizer-tracker/issues/92),
+  [#125](https://github.com/GenNetEng/limitless-organizer-tracker/issues/125),
+  FR31, FR32)**: `RecentlyOnboarded.tsx` table of recently onboarded organizers
+  with datetime timestamps and clickable IDs linking to Organizer Profile.
+  Date window selector (30/90/180 days, all time) on `OrganizerActivityChart`
+  and `WaitTimeEstimator` for focusing on recent trends vs historical data.
+
+- **Phase 40 — Surface detected_at + recently onboarded API + timezone
+  ([#101](https://github.com/GenNetEng/limitless-organizer-tracker/issues/101),
+  [#102](https://github.com/GenNetEng/limitless-organizer-tracker/issues/102),
+  [#126](https://github.com/GenNetEng/limitless-organizer-tracker/issues/126),
+  FR30)**: `detected_at` surfaced with full datetime in organizer API responses.
+  New `GET /api/organizers/recently-onboarded?limit=N` endpoint returning the N
+  most recently detected organizers ordered by `detected_at` desc.
+  `display_timezone` admin-editable setting (default `America/Chicago`).
+
+- **Phase 37 — Dynamic Celery beat schedule via celery-redbeat
+  ([#100](https://github.com/GenNetEng/limitless-organizer-tracker/issues/100),
+  FR29)**: Replaced static import-time beat schedule with Redis-backed
+  `RedBeatSchedulerEntry` objects via `celery-redbeat`. `build_beat_schedule()`
+  reads effective config (DB-merged) and writes schedule entries to Redis.
+  Schedule is rebuilt on app startup and after `PUT /api/admin/config` writes,
+  so config changes take effect without redeploying. New dependency:
+  `celery-redbeat`.
+
+- **Phase 36 — Admin config edit API + frontend
+  ([#100](https://github.com/GenNetEng/limitless-organizer-tracker/issues/100),
+  FR28)**: `PUT /api/admin/config` accepts partial updates validated against the
+  editable-keys allowlist, persists via `set_config_value()`, and returns the
+  updated effective config. Frontend `AdminConfig.tsx` supports inline editing
+  with per-row edit/save controls via `useMutation`.
+
+- **Phase 35 — Config resolution: DB overrides env
+  ([#100](https://github.com/GenNetEng/limitless-organizer-tracker/issues/100),
+  FR27)**: `get_effective_config()` merges DB overrides over env-var defaults for
+  all editable keys; `get_effective_value()` resolves a single key with type
+  coercion. `GET /api/admin/config` returns effective (DB-merged) config.
+  Runtime task config reads use `get_effective_value()` instead of raw
+  `settings.*`.
 
 - **Phase 34 — Config DB table + model + migration
   ([#100](https://github.com/GenNetEng/limitless-organizer-tracker/issues/100),
@@ -58,6 +103,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   `resubmit_tasks`) logs a `scraper.session_refreshed` event (severity WARNING)
   to the event log, making the recovery visible in the admin Event Log viewer
   instead of only in Celery worker logs.
+
+### Changed
+
+- **Phase 39 — UI layout + table polish
+  ([#122](https://github.com/GenNetEng/limitless-organizer-tracker/issues/122),
+  [#123](https://github.com/GenNetEng/limitless-organizer-tracker/issues/123),
+  [#124](https://github.com/GenNetEng/limitless-organizer-tracker/issues/124),
+  [#116](https://github.com/GenNetEng/limitless-organizer-tracker/issues/116))**:
+  Widened page layout from `max-w-3xl` to `max-w-5xl` (#122). Fixed zebra
+  striping contrast in dim theme with explicit `even:bg-base-200` (#123).
+  Reorganized dashboard tabs for better information architecture (#124). Fixed
+  MSW PUT handler type mismatch (#116).
+
+- **Phase 38 — UI styling rework
+  ([#79](https://github.com/GenNetEng/limitless-organizer-tracker/issues/79))**:
+  Switched DaisyUI theme from `dark` to `dim` for better base color contrast.
+  Added table zebra striping, pagination on all list views, task trigger table
+  with component badges, standardized error messages, auto-refresh on data
+  queries, and `keepPreviousData` for smooth pagination transitions.
+
+### Fixed
+
+- **Phase 44 — Bug fixes + cleanup
+  ([#106](https://github.com/GenNetEng/limitless-organizer-tracker/issues/106),
+  [#109](https://github.com/GenNetEng/limitless-organizer-tracker/issues/109),
+  [#113](https://github.com/GenNetEng/limitless-organizer-tracker/issues/113),
+  [#119](https://github.com/GenNetEng/limitless-organizer-tracker/issues/119))**:
+  - Centralized `session_refreshed` event logging into `authenticated_page()`
+    so every caller gets it automatically (#106)
+  - Eliminated redundant `page.content()` calls on resubmit failure paths when
+    `SCRAPER_DEBUG` is enabled — reuses `result.page_html` instead (#109)
+  - Fixed `config_db` type coercion for bool keys (`bool` subclasses `int`);
+    extracted `_coerce_value()` helper to eliminate duplication (#113)
+  - Made `build_beat_schedule` atomic: creates new entries before deleting stale
+    ones, uses a Redis pipeline for the tracking set update (#119)
 
 ### Tests
 
@@ -168,6 +248,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
     three intervals (`day`, `week`, `month`) (#55).
 
 ### Added
+
 - **Phase 21b — Admin frontend tab
   ([#70](https://github.com/GenNetEng/limitless-organizer-tracker/issues/70))**:
   new "Admin" tab in the dashboard with four components consuming the Phase 21a
@@ -249,6 +330,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [0.2.0] - 2026-06-18
 
 ### Added
+
 - **MVP2 acceptance (Phase 13)**: verified via `docker compose up --build` — all 6 services
   (postgres, redis, backend, celery-worker, celery-beat, frontend) start cleanly. `backend`
   serves `/healthz` (200); `celery-worker` registers all 3 tasks and connects to Redis;
@@ -340,6 +422,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   this endpoint.
 
 ### Changed
+
 - `CONTRIBUTING.md`: per-phase workflow now includes a "Manual verification"
   step between `/code-review`/`/security-review` and merge — bring up the
   stack with `docker compose up --build` and walk through new/changed
@@ -353,6 +436,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   is configured. See `DECISIONS.md`.
 
 ### Fixed
+
 - `app/scraper/resubmit.py` (Phase 12.5): now waits for `.page2` to become visible after
   clicking Continue (ensures the JavaScript transition completes) and waits for `.page3`
   visibility instead of `networkidle`, so the resubmit wizard works reliably for
@@ -411,6 +495,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 ## [0.1.0] - 2026-06-13
 
 ### Added
+
 - **MVP1 acceptance (Phase 9)**: verified via `docker compose up --build` —
   `postgres`/`redis` report healthy, `backend` serves `/healthz` (200) after
   applying migrations on startup, `celery-worker`/`celery-beat` connect to
@@ -531,6 +616,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   verification pass against an authenticated session.
 
 ### Fixed
+
 - `docker-compose.yml`: `celery-worker` and `celery-beat` now set
   `entrypoint: []` to skip the `backend` image's migration-running
   entrypoint. Running `alembic upgrade head` concurrently in all three
@@ -563,6 +649,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
   deterministic.
 
 ### Tests
+
 - `frontend`: Vitest + React Testing Library + MSW component tests for
   `StatusTimeline`, `ResubmissionLog`, and `Dashboard` covering loading
   states and rendering of mocked `/api/status-history` /
