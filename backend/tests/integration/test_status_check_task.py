@@ -14,6 +14,12 @@ FIXTURE_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "html"
 WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
 
 
+def _set_preflight_config(monkeypatch):
+    monkeypatch.setattr(status_tasks.settings, "limitless_username", "test@example.com")
+    monkeypatch.setattr(status_tasks.settings, "limitless_password", "testpass")
+    monkeypatch.setattr(status_tasks.settings, "limitless_application_id", "test-app-id")
+
+
 @respx.mock
 def test_check_application_status_task_records_check_and_notifies_on_change(monkeypatch, db_session_factory):
     with db_session_factory() as seed_session:
@@ -28,6 +34,7 @@ def test_check_application_status_task_records_check_and_notifies_on_change(monk
 
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
+    _set_preflight_config(monkeypatch)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_approved.html").read_text()
@@ -66,6 +73,7 @@ def test_check_application_status_task_skips_notification_when_unchanged(monkeyp
 
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
+    _set_preflight_config(monkeypatch)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_pending.html").read_text()
@@ -100,6 +108,7 @@ def test_check_application_status_task_records_check_when_discord_webhook_unset(
 
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", "")
+    _set_preflight_config(monkeypatch)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_approved.html").read_text()
@@ -122,6 +131,7 @@ def test_status_check_logs_session_refreshed_event(monkeypatch, db_session_facto
     """When authenticated_page signals session_refreshed, a scraper.session_refreshed event is logged (FR24)."""
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", "")
+    _set_preflight_config(monkeypatch)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_pending.html").read_text()
@@ -145,6 +155,7 @@ def test_status_check_does_not_log_session_refreshed_when_not_refreshed(monkeypa
     """When session is not refreshed, no scraper.session_refreshed event is logged."""
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", "")
+    _set_preflight_config(monkeypatch)
 
     mock_page = MagicMock()
     mock_page.content.return_value = (FIXTURE_DIR / "application_pending.html").read_text()

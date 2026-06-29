@@ -5,6 +5,7 @@ from app.api.auth import require_api_key
 from app.api.schemas import ResubmissionEventOut, TaskResultOut
 from app.db.models import ResubmissionEvent
 from app.db.session import get_db
+from app.tasks.backfill_tasks import backfill_organizers_from_tournaments_task
 from app.tasks.organizer_tasks import audit_organizer_scan_task
 from app.tasks.resubmit_tasks import resubmit_application_task
 from app.tasks.tournament_tasks import audit_backfill_task, ingest_tournaments_task
@@ -67,6 +68,21 @@ def trigger_scan_organizers() -> dict:
         task_id=result.id,
         status="started",
         result="Organizer scan audit started — individual scan tasks will be queued. Monitor progress in the event log.",
+    )
+
+
+@router.post("/backfill-organizers", response_model=TaskResultOut)
+def trigger_backfill_organizers() -> dict:
+    """Trigger a one-time backfill of Organizer rows from tournament data.
+
+    Creates Organizer rows for all organizer_ids in the tournaments table
+    that lack one. Returns immediately — monitor progress via the event log.
+    """
+    result = backfill_organizers_from_tournaments_task.delay()
+    return TaskResultOut(
+        task_id=result.id,
+        status="started",
+        result="Organizer backfill started — monitor progress in the event log.",
     )
 
 

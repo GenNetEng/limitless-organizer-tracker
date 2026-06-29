@@ -42,6 +42,9 @@ def test_full_beat_cycle_status_check_then_resubmit(monkeypatch, db_session_fact
 
     monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
     monkeypatch.setattr(status_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
+    monkeypatch.setattr(status_tasks.settings, "limitless_username", "test@example.com")
+    monkeypatch.setattr(status_tasks.settings, "limitless_password", "testpass")
+    monkeypatch.setattr(status_tasks.settings, "limitless_application_id", "test-app-id")
     monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", WEBHOOK_URL)
 
     celery_app.conf.task_always_eager = True

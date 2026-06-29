@@ -27,6 +27,9 @@ class ApplicationStatus(str, enum.Enum):
     REJECTED = "rejected"
     EXPIRED = "expired"
     UNKNOWN = "unknown"
+    ERROR_MISSING_APPLICATION_ID = "error:missing application id"
+    ERROR_MISSING_CREDENTIALS = "error:missing credentials"
+    ERROR_INCORRECT_CREDENTIALS = "error:incorrect credentials"
 
 
 class ApplicationStatusCheck(Base):

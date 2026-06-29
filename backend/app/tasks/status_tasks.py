@@ -5,11 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.celery_app import celery_app
 from app.config import settings
-from app.db.models import ApplicationStatusCheck
+from app.db.models import ApplicationStatus, ApplicationStatusCheck
 from app.db.session import task_session
 from app.events import log_event
 from app.notifications.discord import post_status_update_notice
 from app.scraper.application_status import check_application_status
+from app.scraper.browser import LoginFailed
 from app.scraper.parsing import ApplicationStatusResult
 from app.scraper.session import authenticated_page
 
@@ -58,6 +59,25 @@ def record_status_check(
     return check, changed
 
 
+def preflight_check(
+    username: str,
+    password: str,
+    application_id: str,
+) -> ApplicationStatusResult | None:
+    """Return an error result if required config is missing, else None."""
+    if not username or not password:
+        return ApplicationStatusResult(
+            status=ApplicationStatus.ERROR_MISSING_CREDENTIALS,
+            raw_text="",
+        )
+    if not application_id:
+        return ApplicationStatusResult(
+            status=ApplicationStatus.ERROR_MISSING_APPLICATION_ID,
+            raw_text="",
+        )
+    return None
+
+
 def run_application_status_check(session: Session) -> tuple[ApplicationStatusCheck, bool]:
     """Check the organizer application status and record it (FR2, FR14).
 
@@ -65,12 +85,28 @@ def run_application_status_check(session: Session) -> tuple[ApplicationStatusChe
     check; a failure to notify does not affect the recorded datapoint.
     Returns the inserted check row and whether the status changed.
     """
-    with authenticated_page() as ctx:
-        result = check_application_status(ctx.page)
-        try:
-            debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
-        except Exception:
-            debug_html = None
+    error = preflight_check(
+        settings.limitless_username,
+        settings.limitless_password,
+        settings.limitless_application_id,
+    )
+    if error is not None:
+        checked_at = datetime.now(timezone.utc)
+        return record_status_check(session, error, checked_at)
+
+    try:
+        with authenticated_page() as ctx:
+            result = check_application_status(ctx.page)
+            try:
+                debug_html = ctx.page.content()[:20000] if settings.scraper_debug else None
+            except Exception:
+                debug_html = None
+    except LoginFailed:
+        result = ApplicationStatusResult(
+            status=ApplicationStatus.ERROR_INCORRECT_CREDENTIALS,
+            raw_text="",
+        )
+        debug_html = None
 
     checked_at = datetime.now(timezone.utc)
     check, changed = record_status_check(session, result, checked_at, debug_page_html=debug_html)

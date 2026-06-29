@@ -13,6 +13,10 @@ from app.scraper.selectors import (
 DEFAULT_STORAGE_STATE_PATH = Path("storage_state.json")
 
 
+class LoginFailed(Exception):
+    """Raised when login completes but the page is still on the login form."""
+
+
 def login(
     page: Page,
     username: str,
@@ -29,4 +33,6 @@ def login(
     page.fill(LOGIN_PASSWORD_SELECTOR, password)
     page.click(LOGIN_SUBMIT_SELECTOR)
     page.wait_for_load_state("networkidle")
+    if LOGIN_PATH in page.url:
+        raise LoginFailed("Still on login page after submitting credentials")
     page.context.storage_state(path=str(storage_state_path))
