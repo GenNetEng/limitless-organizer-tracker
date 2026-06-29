@@ -1,3 +1,32 @@
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.analytics.regression import fit_linear_regression
+from app.db.models import OrganizerActivity
+
+TOP_N_ORGANIZERS = 1000
+
+
+def build_frontier_regression(session: Session):
+    rows = session.execute(
+        select(
+            OrganizerActivity.organizer_id,
+            func.min(OrganizerActivity.first_tournament_date).label("first_tournament_date"),
+        )
+        .group_by(OrganizerActivity.organizer_id)
+        .order_by(OrganizerActivity.organizer_id.desc())
+        .limit(TOP_N_ORGANIZERS)
+    ).all()
+    if len(rows) < 2:
+        return None, None, None
+
+    points = [(float(oid), float(first_date.date().toordinal())) for oid, first_date in reversed(rows)]
+    frontier_points = compute_frontier(points)
+    regression_points = frontier_points if len(frontier_points) >= 2 else points
+    result = fit_linear_regression(regression_points)
+    return points, frontier_points, result
+
+
 def compute_frontier(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
     """Return the Pareto-optimal (lower-envelope) subset of (organizer_id, date_ordinal) points.
 

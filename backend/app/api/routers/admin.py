@@ -67,6 +67,13 @@ TASK_TRIGGERS = [
         component="Organizers",
     ),
     TaskTriggerInfo(
+        name="verify_frontier_regression",
+        endpoint="/api/tasks/verify-frontier-regression",
+        method="POST",
+        description="Verify frontier regression metrics after backfill (one-time)",
+        component="Organizers",
+    ),
+    TaskTriggerInfo(
         name="resubmit_application",
         endpoint="/api/tasks/resubmit-application",
         method="POST",

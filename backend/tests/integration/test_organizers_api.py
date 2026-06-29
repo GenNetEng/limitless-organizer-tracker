@@ -153,9 +153,9 @@ def test_get_wait_estimate_global_aggregates_across_games(client):
 
 
 def test_get_wait_estimate_limits_to_top_n_by_organizer_id(client, monkeypatch):
-    import app.api.routers.organizers as organizers_module
+    import app.analytics.frontier as frontier_module
 
-    monkeypatch.setattr(organizers_module, "TOP_N_ORGANIZERS", 2)
+    monkeypatch.setattr(frontier_module, "TOP_N_ORGANIZERS", 2)
 
     test_client, session_factory = client
     with session_factory() as session:
