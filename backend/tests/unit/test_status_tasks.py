@@ -131,7 +131,26 @@ def test_preflight_returns_error_when_credentials_missing_no_password():
 def test_preflight_returns_error_when_all_missing():
     result = preflight_check(username="", password="", application_id="")
     assert result is not None
-    assert result.status in (
-        ApplicationStatus.ERROR_MISSING_CREDENTIALS,
-        ApplicationStatus.ERROR_MISSING_APPLICATION_ID,
-    )
+    assert result.status == ApplicationStatus.ERROR_MISSING_CREDENTIALS
+
+
+def test_run_status_check_records_incorrect_credentials_on_login_failed(db_session, monkeypatch):
+    from contextlib import contextmanager
+    from app.scraper.browser import LoginFailed
+    import app.tasks.status_tasks as status_tasks
+
+    monkeypatch.setattr(status_tasks.settings, "limitless_username", "user@example.com")
+    monkeypatch.setattr(status_tasks.settings, "limitless_password", "badpass")
+    monkeypatch.setattr(status_tasks.settings, "limitless_application_id", "abc123")
+
+    @contextmanager
+    def raise_login_failed():
+        raise LoginFailed("bad credentials")
+        yield  # noqa: unreachable
+
+    monkeypatch.setattr(status_tasks, "authenticated_page", raise_login_failed)
+
+    check, changed = status_tasks.run_application_status_check(db_session)
+
+    assert check.status == ApplicationStatus.ERROR_INCORRECT_CREDENTIALS
+    assert check.raw_text == ""

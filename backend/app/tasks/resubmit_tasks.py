@@ -9,6 +9,7 @@ from app.db.models import ResubmissionEvent
 from app.db.session import task_session
 from app.events import log_event
 from app.notifications.discord import post_resubmission_notice
+from app.scraper.browser import LoginFailed
 from app.scraper.resubmit import resubmit_application
 from app.scraper.session import authenticated_page
 
@@ -33,18 +34,33 @@ def resubmit_application_task() -> int:
     recorded (FR5) even if the notification fails. Returns the
     ResubmissionEvent row ID.
     """
-    with authenticated_page() as ctx:
-        result = resubmit_application(ctx.page)
-        if settings.scraper_debug:
-            if result.page_html is not None:
-                debug_html = result.page_html[:20000]
+    try:
+        with authenticated_page() as ctx:
+            result = resubmit_application(ctx.page)
+            if settings.scraper_debug:
+                if result.page_html is not None:
+                    debug_html = result.page_html[:20000]
+                else:
+                    try:
+                        debug_html = ctx.page.content()[:20000]
+                    except Exception:
+                        debug_html = None
             else:
-                try:
-                    debug_html = ctx.page.content()[:20000]
-                except Exception:
-                    debug_html = None
-        else:
-            debug_html = None
+                debug_html = None
+    except LoginFailed:
+        submitted_at = datetime.now(timezone.utc)
+        with task_session() as session:
+            event = record_resubmission(session, False, submitted_at, False)
+            log_event(
+                session=session,
+                event_type="scraper.resubmit",
+                source="resubmit_tasks",
+                message="Application resubmission failed: incorrect credentials",
+                severity="WARNING",
+                details={"success": False, "failure_stage": "login", "event_id": event.id},
+            )
+            session.commit()
+            return event.id
     submitted_at = datetime.now(timezone.utc)
 
     discord_notified = False

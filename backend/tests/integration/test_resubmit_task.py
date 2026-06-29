@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from unittest.mock import MagicMock
 
 import httpx
@@ -6,6 +7,7 @@ import respx
 import app.tasks.resubmit_tasks as resubmit_tasks
 from app.celery_app import celery_app
 from app.db.models import EventLog, ResubmissionEvent
+from app.scraper.browser import LoginFailed
 from tests.helpers import fake_authenticated_page
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc"
@@ -115,3 +117,32 @@ def test_resubmit_task_logs_session_refreshed_event(monkeypatch, db_session_fact
         assert len(events) == 1
         assert events[0].severity == "WARNING"
         assert events[0].source == "session"
+
+
+def test_resubmit_task_records_failure_on_login_failed(monkeypatch, db_session_factory):
+    """LoginFailed records a failed resubmission instead of crashing the task."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    monkeypatch.setattr(resubmit_tasks.settings, "discord_webhook_url", "")
+
+    @contextmanager
+    def raise_login_failed():
+        raise LoginFailed("bad credentials")
+        yield  # noqa: unreachable
+
+    monkeypatch.setattr(resubmit_tasks, "authenticated_page", raise_login_failed)
+
+    celery_app.conf.task_always_eager = True
+    celery_app.conf.task_eager_propagates = True
+
+    resubmit_tasks.resubmit_application_task.delay()
+
+    with db_session_factory() as session:
+        events = session.query(ResubmissionEvent).all()
+        assert len(events) == 1
+        assert events[0].success is False
+
+        log_entries = session.query(EventLog).filter(
+            EventLog.event_type == "scraper.resubmit"
+        ).all()
+        assert len(log_entries) == 1
+        assert "incorrect credentials" in log_entries[0].message
