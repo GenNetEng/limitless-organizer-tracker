@@ -20,6 +20,7 @@ celery_app = Celery(
         "app.tasks.resubmit_tasks",
         "app.tasks.tournament_tasks",
         "app.tasks.organizer_tasks",
+        "app.tasks.backfill_tasks",
     ],
 )
 

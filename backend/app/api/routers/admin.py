@@ -53,6 +53,13 @@ TASK_TRIGGERS = [
         component="Organizers",
     ),
     TaskTriggerInfo(
+        name="backfill_organizers",
+        endpoint="/api/tasks/backfill-organizers",
+        method="POST",
+        description="Backfill Organizer rows from tournament data (one-time)",
+        component="Organizers",
+    ),
+    TaskTriggerInfo(
         name="resubmit_application",
         endpoint="/api/tasks/resubmit-application",
         method="POST",
