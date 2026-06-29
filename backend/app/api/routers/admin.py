@@ -60,6 +60,13 @@ TASK_TRIGGERS = [
         component="Organizers",
     ),
     TaskTriggerInfo(
+        name="historical_organizer_scan",
+        endpoint="/api/tasks/historical-organizer-scan",
+        method="POST",
+        description="Scan organizer IDs 1–watermark for existence (one-time)",
+        component="Organizers",
+    ),
+    TaskTriggerInfo(
         name="resubmit_application",
         endpoint="/api/tasks/resubmit-application",
         method="POST",

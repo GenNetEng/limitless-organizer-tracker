@@ -58,12 +58,12 @@ def audit_organizer_scan_task() -> int:
 
 
 @celery_app.task(name="app.tasks.organizer_tasks.scan_single_organizer_task")
-def scan_single_organizer_task(organizer_id: int) -> bool:
+def scan_single_organizer_task(organizer_id: int, set_onboarded: bool = True) -> bool:
     """Fetch, parse, and upsert a single organizer profile (FR17).
 
-    Sets onboarded_at = today (scanner-observed). Parses the profile to
-    extract first_tournament_date if available. Returns True if the
-    organizer was created or updated.
+    When set_onboarded=True (default, frontier scanner), sets onboarded_at to
+    today. When False (historical scan), only sets detected_at — we cannot know
+    when pre-watermark organizers were actually onboarded.
     """
     url = f"{settings.limitless_base_url}/organizer/{organizer_id}"
     response = httpx.get(url, follow_redirects=True, timeout=30)
@@ -89,12 +89,14 @@ def scan_single_organizer_task(organizer_id: int) -> bool:
         if existing is None:
             existing = Organizer(
                 organizer_id=organizer_id,
-                onboarded_at=today,
+                onboarded_at=today if set_onboarded else None,
                 detected_at=now,
             )
             session.add(existing)
-        elif existing.onboarded_at is None:
+        elif existing.onboarded_at is None and set_onboarded:
             existing.onboarded_at = today
+            existing.detected_at = now
+        elif existing.detected_at is None:
             existing.detected_at = now
 
         profile = parse_organizer_profile(response.text, organizer_id)

@@ -235,3 +235,42 @@ def test_audit_uses_db_override_for_scan_start_id(db_session_factory, monkeypatc
         organizer_tasks.audit_organizer_scan_task()
 
     mock_delay.assert_called_with(organizer_id=5001)
+
+
+@respx.mock
+def test_scan_single_organizer_skips_onboarded_at_when_flag_false(db_session_factory, monkeypatch):
+    """set_onboarded=False creates row with detected_at but NOT onboarded_at."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+
+    respx.get(f"{settings.limitless_base_url}/organizer/500").mock(
+        return_value=httpx.Response(200, text="<html><body>No profile</body></html>")
+    )
+
+    result = organizer_tasks.scan_single_organizer_task(organizer_id=500, set_onboarded=False)
+
+    assert result is True
+    with db_session_factory() as session:
+        org = session.get(Organizer, 500)
+        assert org is not None
+        assert org.onboarded_at is None
+        assert org.detected_at is not None
+
+
+@respx.mock
+def test_scan_single_organizer_no_onboard_backfill_when_flag_false(db_session_factory, monkeypatch):
+    """set_onboarded=False on existing stub does NOT set onboarded_at."""
+    monkeypatch.setattr("app.db.session.SessionLocal", db_session_factory)
+    with db_session_factory() as session:
+        session.add(Organizer(organizer_id=500, onboarded_at=None))
+        session.commit()
+
+    respx.get(f"{settings.limitless_base_url}/organizer/500").mock(
+        return_value=httpx.Response(200, text="<html><body>No profile</body></html>")
+    )
+
+    organizer_tasks.scan_single_organizer_task(organizer_id=500, set_onboarded=False)
+
+    with db_session_factory() as session:
+        org = session.get(Organizer, 500)
+        assert org.onboarded_at is None
+        assert org.detected_at is not None
