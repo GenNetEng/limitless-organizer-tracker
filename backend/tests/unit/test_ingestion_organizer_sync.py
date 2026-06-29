@@ -62,3 +62,31 @@ def test_ingest_creates_organizer_rows_for_multiple_organizers(db_session):
 
     assert db_session.get(Organizer, 100).first_tournament_date == date(2026, 6, 1)
     assert db_session.get(Organizer, 200).first_tournament_date == date(2026, 6, 5)
+
+
+def test_ingest_sets_detected_at_on_new_organizer(db_session):
+    """New Organizer rows created by ingestion get detected_at set."""
+    ingest_tournaments(db_session, [_dto("t1", 100, "PTCG", datetime(2026, 6, 5, tzinfo=timezone.utc))])
+
+    organizer = db_session.get(Organizer, 100)
+    assert organizer.detected_at is not None
+
+
+def test_ingest_does_not_overwrite_detected_at_on_existing_organizer(db_session):
+    """Ingestion must not overwrite detected_at on an existing Organizer row."""
+    original_detected = datetime(2026, 4, 1, tzinfo=timezone.utc)
+    db_session.add(Organizer(organizer_id=100, detected_at=original_detected))
+    db_session.commit()
+
+    ingest_tournaments(db_session, [_dto("t1", 100, "PTCG", datetime(2026, 6, 5, tzinfo=timezone.utc))])
+
+    organizer = db_session.get(Organizer, 100)
+    assert organizer.detected_at == original_detected
+
+
+def test_ingest_does_not_set_onboarded_at(db_session):
+    """Ingestion must not set onboarded_at — that's scanner-only."""
+    ingest_tournaments(db_session, [_dto("t1", 100, "PTCG", datetime(2026, 6, 5, tzinfo=timezone.utc))])
+
+    organizer = db_session.get(Organizer, 100)
+    assert organizer.onboarded_at is None
