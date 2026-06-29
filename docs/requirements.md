@@ -162,6 +162,18 @@ recently onboarded API + display_timezone (#101, #102, #126), onboarding
 dashboard + date windows (#92, #125), onboarding analytics overlay + delta
 (#85), dashboard stat cards (#103), and bug fixes (#106, #109, #113, #119).
 
+### MVP5 — Organizer Data Completeness & Metrics Docs
+
+Close organizer data gaps (ingestion upsert fix, backfill from tournaments,
+historical ID scan 1–2722), verify frontier regression improvement, and add a
+metrics documentation site. Phases 46–52.
+
+**Acceptance**: All organizer_ids present in the `tournaments` table have a
+corresponding `Organizer` row with `detected_at` set; historical IDs 1–2722
+probed for existence; frontier regression metrics logged after backfill;
+MkDocs site builds cleanly with project, development, deployment, and metrics
+documentation.
+
 ## Build Order
 
 Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer-tracker/milestones)
@@ -217,3 +229,4 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 43 | Dashboard stat cards: application stat cards on "My Application" tab, scanner status card on "Organizers" tab (FR34) ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103)) — **Done** | MVP4 | [#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103) |
 | 44 | Bug fixes + cleanup: centralize `session_refreshed` event logging (#106), eliminate redundant `page.content()` calls (#109), fix `config_db` bool type coercion (#113), make `build_beat_schedule` atomic (#119) — **Done** | MVP4 | [#106](https://github.com/GenNetEng/limitless-organizer-tracker/issues/106), [#109](https://github.com/GenNetEng/limitless-organizer-tracker/issues/109), [#113](https://github.com/GenNetEng/limitless-organizer-tracker/issues/113), [#119](https://github.com/GenNetEng/limitless-organizer-tracker/issues/119) |
 | 45 | MVP4 verification + release cut (v0.4.0): update requirements traceability, record remaining technical decisions, CHANGELOG cut, full test suite, manual staging verification — **Done** | MVP4 | — |
+| 46 | Ingestion organizer upsert fix: set `detected_at` on new Organizer rows created by `sync_organizer_first_tournament_dates()` (FR17) | MVP5 | [#138](https://github.com/GenNetEng/limitless-organizer-tracker/issues/138) |

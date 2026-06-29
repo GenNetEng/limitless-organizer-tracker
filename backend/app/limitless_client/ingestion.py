@@ -86,10 +86,14 @@ def sync_organizer_first_tournament_dates(session: Session, organizer_ids: set[i
         ).all()
     }
 
+    now = datetime.now(timezone.utc)
     for organizer_id, min_dt in min_dates.items():
         organizer = existing.get(organizer_id)
         if organizer is None:
-            organizer = session.merge(Organizer(organizer_id=organizer_id))
+            organizer = session.merge(Organizer(
+                organizer_id=organizer_id,
+                detected_at=now,
+            ))
         organizer.first_tournament_date = min_dt.date()
 
     session.flush()
