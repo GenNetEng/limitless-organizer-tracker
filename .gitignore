@@ -22,6 +22,7 @@ coverage/
 !.env.example
 
 # --- Playwright ---
+screenshots/
 backend/storage_state.json
 backend/playwright-report/
 backend/test-results/
