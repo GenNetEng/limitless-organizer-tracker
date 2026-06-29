@@ -41,6 +41,8 @@ def test_dispatches_for_200_responses(db_session_factory, monkeypatch):
         backfill_tasks.historical_organizer_scan_task()
 
     assert mock_delay.call_count == 4
+    for call in mock_delay.call_args_list:
+        assert call.kwargs.get("set_onboarded") is False
 
 
 @respx.mock
@@ -59,8 +61,8 @@ def test_does_not_stop_at_404(db_session_factory, monkeypatch):
         backfill_tasks.historical_organizer_scan_task()
 
     assert mock_delay.call_count == 2
-    mock_delay.assert_any_call(organizer_id=1)
-    mock_delay.assert_any_call(organizer_id=3)
+    mock_delay.assert_any_call(organizer_id=1, set_onboarded=False)
+    mock_delay.assert_any_call(organizer_id=3, set_onboarded=False)
 
 
 @respx.mock
@@ -103,8 +105,8 @@ def test_skips_existing_organizer_ids(db_session_factory, monkeypatch):
         backfill_tasks.historical_organizer_scan_task()
 
     assert mock_delay.call_count == 2
-    mock_delay.assert_any_call(organizer_id=1)
-    mock_delay.assert_any_call(organizer_id=3)
+    mock_delay.assert_any_call(organizer_id=1, set_onboarded=False)
+    mock_delay.assert_any_call(organizer_id=3, set_onboarded=False)
 
 
 @respx.mock

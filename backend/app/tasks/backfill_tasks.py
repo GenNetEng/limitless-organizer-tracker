@@ -76,61 +76,68 @@ def backfill_organizers_from_tournaments_task() -> int:
         return count
 
 
-def run_historical_scan(session: Session) -> int:
+def _get_existing_ids_below_watermark(watermark: int) -> set[int]:
+    with task_session() as session:
+        return set(session.scalars(
+            select(Organizer.organizer_id)
+            .where(Organizer.organizer_id <= watermark)
+        ).all())
+
+
+def run_historical_scan(existing_ids: set[int], watermark: int) -> int:
     """Probe organizer IDs 1 through watermark, dispatching scan tasks for 200s.
 
     Unlike the frontier scanner, continues past 404/500 — historical IDs have gaps.
+    Passes set_onboarded=False so historical organizers don't get onboarded_at set.
     Returns the number of scan tasks dispatched.
     """
-    watermark = settings.organizer_scan_start_id
-
-    existing_ids = set(session.scalars(
-        select(Organizer.organizer_id)
-        .where(Organizer.organizer_id <= watermark)
-    ).all())
-
     ids_to_probe = [oid for oid in range(1, watermark + 1) if oid not in existing_ids]
     if not ids_to_probe:
+        with task_session() as session:
+            log_event(
+                session=session,
+                event_type="backfill.historical_scan_complete",
+                source="backfill_tasks",
+                message="Historical scan: no missing IDs to probe",
+                details={"watermark": watermark, "dispatched": 0, "probed": 0},
+            )
+            session.commit()
+        return 0
+
+    dispatched = 0
+    errors = 0
+
+    with httpx.Client(follow_redirects=True, timeout=30) as client:
+        for probed, oid in enumerate(ids_to_probe, 1):
+            try:
+                url = f"{settings.limitless_base_url}/organizer/{oid}"
+                response = client.get(url)
+            except httpx.HTTPError:
+                errors += 1
+                logger.warning("Historical scan: HTTP error probing organizer %d", oid)
+                continue
+
+            if response.status_code == 200:
+                scan_single_organizer_task.delay(organizer_id=oid, set_onboarded=False)
+                dispatched += 1
+
+            if probed % 100 == 0:
+                logger.info("Historical scan progress: probed %d/%d IDs, dispatched %d", probed, len(ids_to_probe), dispatched)
+
+    with task_session() as session:
         log_event(
             session=session,
             event_type="backfill.historical_scan_complete",
             source="backfill_tasks",
-            message="Historical scan: no missing IDs to probe",
-            details={"watermark": watermark, "dispatched": 0, "probed": 0},
+            message=f"Historical scan complete: dispatched {dispatched} scan tasks from {len(ids_to_probe)} probed IDs",
+            details={"watermark": watermark, "dispatched": dispatched, "probed": len(ids_to_probe), "errors": errors},
         )
-        return 0
-
-    dispatched = 0
-    probed = 0
-
-    for oid in ids_to_probe:
-        probed += 1
-        try:
-            url = f"{settings.limitless_base_url}/organizer/{oid}"
-            response = httpx.get(url, follow_redirects=True, timeout=30)
-        except httpx.HTTPError:
-            continue
-
-        if response.status_code == 200:
-            scan_single_organizer_task.delay(organizer_id=oid)
-            dispatched += 1
-
-        if probed % 100 == 0:
-            logger.info("Historical scan progress: probed %d/%d IDs, dispatched %d", probed, len(ids_to_probe), dispatched)
-
-    log_event(
-        session=session,
-        event_type="backfill.historical_scan_complete",
-        source="backfill_tasks",
-        message=f"Historical scan complete: dispatched {dispatched} scan tasks from {probed} probed IDs",
-        details={"watermark": watermark, "dispatched": dispatched, "probed": probed},
-    )
+        session.commit()
     return dispatched
 
 
 @celery_app.task(name="app.tasks.backfill_tasks.historical_organizer_scan_task")
 def historical_organizer_scan_task() -> int:
-    with task_session() as session:
-        count = run_historical_scan(session)
-        session.commit()
-        return count
+    watermark = settings.organizer_scan_start_id
+    existing_ids = _get_existing_ids_below_watermark(watermark)
+    return run_historical_scan(existing_ids, watermark)
