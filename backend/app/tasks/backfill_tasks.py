@@ -9,7 +9,10 @@ from app.celery_app import celery_app
 from app.db.models import Organizer, Tournament
 from app.db.session import task_session
 from app.events import log_event
-from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
+from app.limitless_client.ingestion import (
+    recompute_organizer_activity,
+    sync_organizer_first_tournament_dates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +40,27 @@ def run_backfill_organizers(session: Session) -> int:
         )
         return 0
 
+    orphan_pairs = set(session.execute(
+        select(Tournament.organizer_id, Tournament.game)
+        .where(Tournament.organizer_id.in_(orphan_ids))
+        .distinct()
+    ).all())
+
+    recompute_organizer_activity(session, orphan_pairs)
     sync_organizer_first_tournament_dates(session, orphan_ids)
 
-    count = len(orphan_ids)
+    created_ids = set(session.scalars(
+        select(Organizer.organizer_id)
+        .where(Organizer.organizer_id.in_(orphan_ids))
+    ).all())
+    count = len(created_ids)
+
     log_event(
         session=session,
         event_type="backfill.organizers_from_tournaments",
         source="backfill_tasks",
         message=f"Backfilled {count} Organizer rows from tournament data",
-        details={"count": count},
+        details={"count": count, "orphan_ids_found": len(orphan_ids)},
     )
     return count
 

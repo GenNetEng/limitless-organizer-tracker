@@ -122,6 +122,33 @@ def test_logs_event(db_session):
     assert "1" in events[0].message
 
 
+def test_creates_rows_even_without_prior_organizer_activity(db_session):
+    """Orphans with tournaments but no OrganizerActivity still get Organizer rows."""
+    _add_tournament(db_session, "t1", 100, dt=datetime(2026, 3, 15, tzinfo=timezone.utc))
+    _add_tournament(db_session, "t2", 200, dt=datetime(2026, 4, 1, tzinfo=timezone.utc))
+    db_session.commit()
+
+    count = run_backfill_organizers(db_session)
+
+    assert count == 2
+    assert db_session.get(Organizer, 100) is not None
+    assert db_session.get(Organizer, 200) is not None
+
+
+def test_count_reflects_actual_rows_created(db_session):
+    """Returned count must match the number of Organizer rows actually created."""
+    _add_tournament(db_session, "t1", 100)
+    _add_tournament(db_session, "t2", 200)
+    db_session.commit()
+
+    count = run_backfill_organizers(db_session)
+
+    actual = db_session.query(Organizer).filter(
+        Organizer.organizer_id.in_([100, 200])
+    ).count()
+    assert count == actual
+
+
 def test_does_not_overwrite_existing_organizer_fields(db_session):
     """Existing Organizer rows are untouched — onboarded_at and detected_at preserved."""
     from datetime import date
