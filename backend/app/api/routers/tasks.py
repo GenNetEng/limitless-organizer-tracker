@@ -5,7 +5,10 @@ from app.api.auth import require_api_key
 from app.api.schemas import ResubmissionEventOut, TaskResultOut
 from app.db.models import ResubmissionEvent
 from app.db.session import get_db
-from app.tasks.backfill_tasks import backfill_organizers_from_tournaments_task
+from app.tasks.backfill_tasks import (
+    backfill_organizers_from_tournaments_task,
+    historical_organizer_scan_task,
+)
 from app.tasks.organizer_tasks import audit_organizer_scan_task
 from app.tasks.resubmit_tasks import resubmit_application_task
 from app.tasks.tournament_tasks import audit_backfill_task, ingest_tournaments_task
@@ -83,6 +86,22 @@ def trigger_backfill_organizers() -> dict:
         task_id=result.id,
         status="started",
         result="Organizer backfill started — monitor progress in the event log.",
+    )
+
+
+@router.post("/historical-organizer-scan", response_model=TaskResultOut)
+def trigger_historical_organizer_scan() -> dict:
+    """Trigger a historical organizer ID scan (1 through watermark).
+
+    Probes each missing organizer ID via HTTP and dispatches
+    scan_single_organizer_task for each 200. Continues past 404/500.
+    Returns immediately — monitor progress via the event log.
+    """
+    result = historical_organizer_scan_task.delay()
+    return TaskResultOut(
+        task_id=result.id,
+        status="started",
+        result="Historical organizer scan started — monitor progress in the event log.",
     )
 
 
