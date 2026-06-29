@@ -14,6 +14,9 @@ def test_application_status_enum_values():
         "rejected",
         "expired",
         "unknown",
+        "error:missing application id",
+        "error:missing credentials",
+        "error:incorrect credentials",
     }
 
 
