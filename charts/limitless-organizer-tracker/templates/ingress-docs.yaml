@@ -1,0 +1,23 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "lot.fullname" . }}-docs-ingress
+  labels:
+    {{- include "lot.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /manual(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: docs
+                port:
+                  number: 80
+{{- end }}

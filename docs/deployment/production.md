@@ -57,7 +57,13 @@ list and the rule that these must never be committed.
 kubectl --context mcgee-local -n limitless-production get pods
 kubectl --context mcgee-local -n limitless-production rollout status deployment/limitless-backend
 curl https://limitless-org-dashboard.badconfig.com/healthz   # via Cloudflare Tunnel
+curl https://limitless-org-dashboard.badconfig.com/manual/   # docs site, via Cloudflare Tunnel
 ```
+
+The documentation site (MkDocs, built in its own `docs` image) is reachable
+at `/manual` through a separate Ingress resource (`ingress-docs.yaml`) that
+doesn't share a Deployment with the frontend — see
+[Helm Reference](helm.md#docs-site-manual).
 
 If `mcgee-local` times out (off-network), use the `mcgee-remote` context
 instead.

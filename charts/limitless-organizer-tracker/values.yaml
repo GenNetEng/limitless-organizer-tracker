@@ -20,6 +20,14 @@ frontend:
   replicas: 1
   port: 80
 
+docs:
+  image:
+    repository: ghcr.io/genneteng/limitless-organizer-tracker/docs
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 80
+
 worker:
   image:
     repository: ghcr.io/genneteng/limitless-organizer-tracker/worker
