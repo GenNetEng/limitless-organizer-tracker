@@ -181,11 +181,10 @@ documentation and is reachable at `/manual` in staging/production. Full test
 suites pass in containers, `ruff` clean, `mkdocs build --strict` succeeds.
 
 **Verified — Phase 53 (2026-06-30)**: Full backend test suite passes in
-containers, `ruff` clean. Staging verification confirms backfill tasks
-increase the Organizer count, regression metrics appear in the event log, and
-the new admin trigger buttons (`backfill_organizers`,
-`historical_organizer_scan`, `verify_frontier_regression`) work.
-`mkdocs build --strict` succeeds. CHANGELOG cut to `[0.5.0]`.
+containers (393/393), `ruff` clean. `mkdocs build --strict` succeeds.
+CHANGELOG cut to `[0.5.0]`. Staging verification (backfill tasks increase the
+Organizer count, regression metrics in the event log, new admin trigger
+buttons, `/manual` reachability) pending — see follow-up after this PR merges.
 
 **Release — v0.5.0 (2026-06-30)**: Phases 46–53 shipped. Includes ingestion
 organizer upsert fix (#138), Organizer backfill from tournament data (#136),
