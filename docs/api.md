@@ -1,8 +1,8 @@
 # API Reference
 
-All `/api/*` endpoints require an `X-API-Key` header matching the backend's
-`API_KEY` setting (see [Configuration](configuration.md)). Responses below
-show the Pydantic response model fields; see
+All `/api/*` endpoints require an `X-API-Key` header matching one of the
+backend's `API_KEYS` (see [Configuration](configuration.md)). Responses
+below show the Pydantic response model fields; see
 `backend/app/api/schemas.py` for the source of truth.
 
 Paginated list endpoints share a common envelope:
@@ -54,8 +54,8 @@ Paginated list endpoints share a common envelope:
   "frontier_size": 55,
   "total_points": 468,
   "fitted_line": [
-    {"organizer_id": 1, "projected_date": "2024-01-01"},
-    {"organizer_id": 2742, "projected_date": "2026-09-15"}
+    {"organizer_id": 1500, "projected_date": "2025-01-01"},
+    {"organizer_id": 2720, "projected_date": "2026-08-01"}
   ],
   "points": [
     {"organizer_id": 1500, "first_tournament_date": "2025-01-01", "is_frontier": false}
@@ -87,7 +87,7 @@ schedules). Every task listed here is also discoverable via
 |--------|------|--------------|---------|
 | `POST` | `/api/tasks/ingest-tournaments` | Fetch recent tournaments from Limitless across all games | `TaskResultOut` (synchronous, 120s timeout) |
 | `POST` | `/api/tasks/full-backfill` | Discover all tournament pages, dispatch one task per page | `TaskResultOut` (fire-and-forget — monitor via event log) |
-| `POST` | `/api/tasks/scan-organizers` | Audit organizer IDs from the current watermark forward, dispatch per-ID scans | `TaskResultOut` (fire-and-forget) |
+| `POST` | `/api/tasks/scan-organizers` | Runs `audit_organizer_scan_task` directly — the same task the beat-scheduled `scan_new_organizers_task` dispatches to. Audits organizer IDs from the current watermark forward, dispatches per-ID scans | `TaskResultOut` (fire-and-forget) |
 | `POST` | `/api/tasks/backfill-organizers` | One-time: create `Organizer` rows for every orphan `organizer_id` in `tournaments` | `TaskResultOut` (fire-and-forget) |
 | `POST` | `/api/tasks/historical-organizer-scan` | One-time: probe organizer IDs 1–watermark, queue scans for each `200` | `TaskResultOut` (fire-and-forget) |
 | `POST` | `/api/tasks/verify-frontier-regression` | One-time: count `Organizer` rows, run the regression, log slope/R²/sizes | `TaskResultOut` (fire-and-forget) |

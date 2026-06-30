@@ -23,7 +23,7 @@ Copy `.env.example` to `.env` and fill in real values. `.env` is gitignored
 | `ORGANIZER_SCAN_LIMIT` | Max new organizer IDs probed per scan run (default: 50) |
 | `ORGANIZER_SCAN_START_ID` | Organizer ID the daily scanner starts probing from when no rows exist yet (default: 2722) |
 | `DISPLAY_TIMEZONE` | Timezone used to render `detected_at`/`onboarded_at` in the dashboard (default: `America/Chicago`) |
-| `API_KEY` | Shared secret protecting `/api/*` endpoints; must match `VITE_API_KEY` |
+| `API_KEYS` | Comma-separated list of valid secrets protecting `/api/*` endpoints (any one of them satisfies `X-API-Key`); at least one must match `VITE_API_KEY` |
 | `VITE_API_BASE_URL` | Frontend's base URL for the backend API |
 | `VITE_API_KEY` | API key baked into the frontend build; sent as `X-API-Key` header on every request |
 
