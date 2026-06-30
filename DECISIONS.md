@@ -7,6 +7,19 @@ alternatives before implementation, per [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Newest entries first.
 
+## 2026-06-29: MkDocs + mkdocs-material for the documentation site (Phase 50)
+
+**Decision**: Use MkDocs with the Material theme to build the project documentation site (`mkdocs.yml` at repo root, pages under `docs/`). The `mkdocs` and `mkdocs-material` packages live in `backend/pyproject.toml`'s `dev` extras.
+
+**Alternatives considered**:
+
+1. **Sphinx** — heavier, RST-oriented, geared toward autodoc-generated API references; this project's docs are hand-written narrative + reference pages, so the autodoc machinery isn't needed.
+2. **Docusaurus** — JS-based; would introduce a second toolchain (Node) purely for docs when the backend is the natural fit.
+3. **Plain markdown in `docs/`** (status quo) — no build step, but no navigation, search, or theming, which doesn't scale as the docs site grows (project, dev, deployment, metrics sections).
+4. **New root-level `requirements-docs.txt`** for the doc-tooling dependency — keeps doc tooling conceptually separate from backend deps, but adds a second dependency-management convention to maintain.
+
+**Why**: Owner approved MkDocs + mkdocs-material (matches the Python backend stack, Material theme gives nav/search/professional look with low config overhead) and approved placing the dependency in `backend/pyproject.toml` dev extras since CI already runs `pip install -e ".[dev]"` from `backend/` and there's no root-level Python project to anchor a separate file.
+
 ## 2026-06-25: Inline edit UX for admin config (Phase 36)
 
 **Decision**: Admin config editing uses an inline edit pattern — each config row has an edit icon that reveals an in-place input field with a per-row save button. No modal, no bulk-save form.
