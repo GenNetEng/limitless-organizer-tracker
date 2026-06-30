@@ -155,30 +155,22 @@ def run_verify_frontier_regression(session: Session) -> dict:
 
     points, frontier_points, result = build_frontier_regression(session)
 
-    if result is None:
-        metrics = {"organizer_count": organizer_count}
-        log_event(
-            session=session,
-            event_type="backfill.verify_frontier_regression",
-            source="backfill_tasks",
-            message="Frontier regression verification: insufficient activity data",
-            details=metrics,
+    metrics = {"organizer_count": organizer_count}
+    message = "Frontier regression verification: insufficient activity data"
+    if result is not None:
+        metrics.update(
+            slope=result.slope,
+            r_squared=result.r_squared,
+            frontier_size=len(frontier_points),
+            sample_size=len(points),
         )
-        return metrics
+        message = "Frontier regression verification complete"
 
-    metrics = {
-        "organizer_count": organizer_count,
-        "slope": result.slope,
-        "r_squared": result.r_squared,
-        "frontier_size": len(frontier_points),
-        "sample_size": len(points),
-    }
     log_event(
         session=session,
         event_type="backfill.verify_frontier_regression",
         source="backfill_tasks",
-        message=f"Frontier regression: slope={result.slope:.6f}, R²={result.r_squared:.4f}, "
-                f"frontier={len(frontier_points)}, sample={len(points)}, organizers={organizer_count}",
+        message=message,
         details=metrics,
     )
     return metrics
