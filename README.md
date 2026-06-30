@@ -25,8 +25,12 @@ analytics, MVP3: documentation & traceability). See
 [`docs/requirements.md`](docs/requirements.md) for the full BR/FR/NFR list,
 MVP acceptance criteria, and per-phase build order.
 
-## Development
+## Documentation
 
-See [`docs/dev_guide.md`](docs/dev_guide.md) for local setup, running tests,
-environment configuration, and the full Docker Compose stack. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) for the per-phase contribution workflow.
+Full project, development, and deployment documentation is published as an
+MkDocs site — see [`docs/getting-started.md`](docs/getting-started.md) for
+local setup, [`docs/developer-guide.md`](docs/developer-guide.md) for the
+contribution workflow, and [`docs/index.md`](docs/index.md) for the full
+table of contents (architecture, configuration, API reference, deployment).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the per-phase contribution
+workflow summary.
