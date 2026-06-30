@@ -17,9 +17,11 @@ into either:
   (`d - timedelta(days=d.weekday())`)
 - **month** buckets — keyed to the 1st of each month
 
-Buckets with zero organizers don't appear in the result — the frontend
-(`toActivityChartData` in `frontend/src/lib/activityChartData.ts`) is
-responsible for any gap-filling needed for a continuous chart axis.
+Buckets with zero organizers don't appear in the result. The frontend
+(`toActivityChartData` in `frontend/src/lib/activityChartData.ts`) maps each
+returned bucket 1:1 to a chart point — it does not synthesize zero-count
+periods, so the chart's x-axis only spans periods that had at least one
+event (activity or onboarding).
 
 ## Game filtering
 
@@ -54,17 +56,22 @@ computes, for every organizer with both an `onboarded_at` and a
 `first_tournament_date` where the tournament date is on or after onboarding,
 the gap in days between the two. It returns the average and median of that
 distribution plus the sample count. Organizers whose first tournament
-predates their recorded `onboarded_at` are excluded — that combination only
-happens for backfilled/historical organizers where `onboarded_at` isn't a
-real detection event in the first place (see
-[Organizer Lifecycle](organizer_lifecycle.md)).
+predates their recorded `onboarded_at` are excluded from the average/median
+— this can happen for an organizer the live scanner already onboarded, if a
+later tournament ingestion run discovers an earlier `first_tournament_date`
+than was known at onboarding time. Backfilled/historical organizers (see
+[Organizer Lifecycle](organizer_lifecycle.md)) never appear in this metric
+at all, since they have no `onboarded_at` to begin with.
 
 ## Scanner watermark and detection
 
 `audit_organizer_scan_task` (`backend/app/tasks/organizer_tasks.py`) is the
 live scanner: it computes a watermark as
-`MAX(organizer_id WHERE onboarded_at IS NOT NULL)`, then probes IDs above
-that watermark sequentially via HTTP, stopping at the first 404. Every `200`
+`max(MAX(organizer_id WHERE onboarded_at IS NOT NULL), organizer_scan_start_id)`
+— the higher of the highest already-onboarded ID and a configured floor (see
+[Organizer Lifecycle](organizer_lifecycle.md) for that floor's role) — then
+probes IDs above that watermark sequentially via HTTP, stopping at the first
+404. Every `200`
 dispatches `scan_single_organizer_task`, which sets `onboarded_at = today`
 on first detection (`set_onboarded=True` is the default for this path) and
 records `detected_at`.
