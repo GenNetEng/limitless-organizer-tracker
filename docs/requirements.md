@@ -59,6 +59,11 @@ Tracker, and maps them to the MVPs and build phases that implement them.
 | FR32 | Date window selector on Organizer Activity chart and Wait Time Estimator (30/90/180 days, all time) enabling users to focus on recent trends vs historical data | BR3 | **Done — Phase 41** ([#125](https://github.com/GenNetEng/limitless-organizer-tracker/issues/125)) |
 | FR33 | Onboarding analytics overlay + delta: onboarding counts as a Line series on the Organizer Activity chart alongside the existing Bar (first tournament activity); `GET /api/organizers/onboarding-delta` returning avg/median days from `onboarded_at` to `first_tournament_date` for organizers with both fields (excludes negative deltas); `OnboardingDelta` dashboard card displaying the stats with ID ≥ 2723 threshold note | BR3 | **Done — Phase 42** ([#85](https://github.com/GenNetEng/limitless-organizer-tracker/issues/85)) |
 | FR34 | Dashboard stat cards: "My Application" tab shows at-a-glance stat cards (current status badge, last check time, total resubmissions, last resubmission time) sourced from existing `/api/status-history` and `/api/resubmissions` endpoints; "Organizers" tab shows scanner status card (last scan time, scanner watermark/highest ID, organizers found in last scan) sourced from existing `/api/organizers/highest-id` and `/api/admin/event-log` endpoints | BR1, BR3 | **Done — Phase 43** ([#103](https://github.com/GenNetEng/limitless-organizer-tracker/issues/103)) |
+| FR35 | One-time admin-triggered backfill task (`backfill_organizers_from_tournaments_task`) that creates `Organizer` rows for every `organizer_id` present in `tournaments` but missing from `Organizer`, reusing `sync_organizer_first_tournament_dates()` (FR17) so `detected_at` is set per FR-fix in Phase 46. Trigger endpoint `POST /api/tasks/backfill-organizers`, admin UI button | BR3 | **Done — Phase 47** ([#136](https://github.com/GenNetEng/limitless-organizer-tracker/issues/136)) |
+| FR36 | One-time admin-triggered historical scan (`historical_organizer_scan_task`) that probes organizer IDs 1 through the scanner watermark (`organizer_scan_start_id`) via httpx 200/404, skipping IDs that already have an `Organizer` row. Unlike the frontier scanner (FR17), does not stop at the first 404 — historical IDs have gaps. Dispatches `scan_single_organizer_task` per 200 with `set_onboarded=False` so historical organizers don't get a misleading `onboarded_at`. Trigger endpoint `POST /api/tasks/historical-organizer-scan`, admin UI button | BR3 | **Done — Phase 48** ([#137](https://github.com/GenNetEng/limitless-organizer-tracker/issues/137)) |
+| FR37 | Frontier regression logic extracted from the organizers router into a shared `app/analytics/frontier.py` module (`build_frontier_regression(session)`), used by both `GET /api/organizers/wait-estimate` (FR12) and a new one-time admin-triggered verification task (`verify_frontier_regression_task`) that counts `Organizer` rows and logs slope/R²/frontier_size/sample_size as an event. Trigger endpoint `POST /api/tasks/verify-frontier-regression`, admin UI button | BR3 | **Done — Phase 49** ([#139](https://github.com/GenNetEng/limitless-organizer-tracker/issues/139)) |
+| FR38 | MkDocs + mkdocs-material documentation site covering project overview/architecture, development setup/workflow/configuration/API reference, deployment (local/staging/production/Helm), and metrics methodology (frontier regression, organizer activity, organizer lifecycle); built via `mkdocs build --strict` in CI | BR1 | **Done — Phase 50/51** ([#140](https://github.com/GenNetEng/limitless-organizer-tracker/issues/140)) |
+| FR39 | Documentation site served from the cube cluster at `/manual` via a dedicated `docs` image (MkDocs static build + nginx), Helm Deployment/Service mirroring the `frontend` pattern, and an independent Ingress resource (`/manual(/\|$)(.*)` rewrite) that does not couple docs deploys to the frontend image | BR1 | **Done — Phase 52** ([#147](https://github.com/GenNetEng/limitless-organizer-tracker/issues/147)) |
 
 ## Non-Functional Requirements (NFR)
 
@@ -166,13 +171,28 @@ dashboard + date windows (#92, #125), onboarding analytics overlay + delta
 
 Close organizer data gaps (ingestion upsert fix, backfill from tournaments,
 historical ID scan 1–2722), verify frontier regression improvement, and add a
-metrics documentation site. Phases 46–52.
+metrics documentation site served from the cluster at `/manual`. Phases 46–53.
 
 **Acceptance**: All organizer_ids present in the `tournaments` table have a
 corresponding `Organizer` row with `detected_at` set; historical IDs 1–2722
 probed for existence; frontier regression metrics logged after backfill;
 MkDocs site builds cleanly with project, development, deployment, and metrics
-documentation.
+documentation and is reachable at `/manual` in staging/production. Full test
+suites pass in containers, `ruff` clean, `mkdocs build --strict` succeeds.
+
+**Verified — Phase 53 (2026-06-30)**: Full backend test suite passes in
+containers, `ruff` clean. Staging verification confirms backfill tasks
+increase the Organizer count, regression metrics appear in the event log, and
+the new admin trigger buttons (`backfill_organizers`,
+`historical_organizer_scan`, `verify_frontier_regression`) work.
+`mkdocs build --strict` succeeds. CHANGELOG cut to `[0.5.0]`.
+
+**Release — v0.5.0 (2026-06-30)**: Phases 46–53 shipped. Includes ingestion
+organizer upsert fix (#138), Organizer backfill from tournament data (#136),
+historical organizer ID scan 1–2722 (#137), frontier regression verification +
+refactor (#139), MkDocs documentation site with project/dev/deployment/metrics
+content (#140), and docs site deployment via dedicated Helm Deployment +
+Ingress at `/manual` (#147).
 
 ## Build Order
 
@@ -230,4 +250,10 @@ Tracked via [GitHub milestones](https://github.com/GenNetEng/limitless-organizer
 | 44 | Bug fixes + cleanup: centralize `session_refreshed` event logging (#106), eliminate redundant `page.content()` calls (#109), fix `config_db` bool type coercion (#113), make `build_beat_schedule` atomic (#119) — **Done** | MVP4 | [#106](https://github.com/GenNetEng/limitless-organizer-tracker/issues/106), [#109](https://github.com/GenNetEng/limitless-organizer-tracker/issues/109), [#113](https://github.com/GenNetEng/limitless-organizer-tracker/issues/113), [#119](https://github.com/GenNetEng/limitless-organizer-tracker/issues/119) |
 | 45 | MVP4 verification + release cut (v0.4.0): update requirements traceability, record remaining technical decisions, CHANGELOG cut, full test suite, manual staging verification — **Done** | MVP4 | — |
 | 46 | Ingestion organizer upsert fix: set `detected_at` on new Organizer rows created by `sync_organizer_first_tournament_dates()` (FR17) — **Done** | MVP5 | [#138](https://github.com/GenNetEng/limitless-organizer-tracker/issues/138) |
-| 47 | Backfill Organizer rows from tournament data: one-time admin-triggered Celery task that creates Organizer rows for all orphan `organizer_id`s in tournaments table, with trigger endpoint and admin UI entry (FR17) | MVP5 | [#136](https://github.com/GenNetEng/limitless-organizer-tracker/issues/136) |
+| 47 | Backfill Organizer rows from tournament data: one-time admin-triggered Celery task that creates Organizer rows for all orphan `organizer_id`s in tournaments table, with trigger endpoint and admin UI entry (FR35) — **Done** | MVP5 | [#136](https://github.com/GenNetEng/limitless-organizer-tracker/issues/136) |
+| 48 | Historical organizer ID scan 1–watermark: one-time admin-triggered Celery task that probes existence via httpx without stopping at the first 404, dispatching `scan_single_organizer_task` for each 200 (FR36) — **Done** | MVP5 | [#137](https://github.com/GenNetEng/limitless-organizer-tracker/issues/137) |
+| 49 | Verify frontier regression + refactor: extract `build_frontier_regression()` into `app/analytics/frontier.py`, add a verification task that logs slope/R²/frontier_size/sample_size after backfill (FR37) — **Done** | MVP5 | [#139](https://github.com/GenNetEng/limitless-organizer-tracker/issues/139) |
+| 50 | Documentation site scaffold: MkDocs + mkdocs-material, project/development/deployment pages, `docs-build` CI job (FR38) — **Done** | MVP5 | [#140](https://github.com/GenNetEng/limitless-organizer-tracker/issues/140) |
+| 51 | Documentation site: metrics pages (overview, frontier regression, organizer activity, organizer lifecycle) (FR38) — **Done** | MVP5 | [#140](https://github.com/GenNetEng/limitless-organizer-tracker/issues/140) |
+| 52 | Deploy docs site via Helm + Ingress: dedicated `docs` image (MkDocs build + nginx), Deployment/Service mirroring `frontend`, independent Ingress at `/manual` (FR39) — **Done** | MVP5 | [#147](https://github.com/GenNetEng/limitless-organizer-tracker/issues/147) |
+| 53 | MVP5 verification + release cut (v0.5.0): update requirements traceability, CHANGELOG cut, full test suite, manual staging verification, `mkdocs build --strict` — **Done** | MVP5 | — |

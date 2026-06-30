@@ -9,6 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/). Per
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-30
+
+### Added
+
+- **Phase 52 — Deploy docs site via Helm + Ingress
+  ([#147](https://github.com/GenNetEng/limitless-organizer-tracker/issues/147),
+  FR39)**: Documentation site served from the cube cluster at `/manual` via a
+  dedicated `docs` image (MkDocs static build + nginx), Helm Deployment/Service
+  mirroring the existing `frontend` pattern, and an independent Ingress
+  resource so docs deploys aren't coupled to a frontend image rebuild.
+
+- **Phase 50/51 — Documentation site
+  ([#140](https://github.com/GenNetEng/limitless-organizer-tracker/issues/140),
+  FR38)**: MkDocs + mkdocs-material site with project overview/architecture,
+  development setup/workflow/configuration/API reference, deployment
+  (local/staging/production/Helm), and metrics methodology (frontier
+  regression, organizer activity, organizer lifecycle) documentation.
+  `docs-build` CI job runs `mkdocs build --strict`.
+
+- **Phase 49 — Verify frontier regression + refactor
+  ([#139](https://github.com/GenNetEng/limitless-organizer-tracker/issues/139),
+  FR37)**: Extracted `build_frontier_regression()` from the organizers router
+  into `app/analytics/frontier.py`, shared by `GET /api/organizers/wait-estimate`
+  and a new one-time admin-triggered `verify_frontier_regression_task` that
+  logs slope/R²/frontier_size/sample_size as an event after backfill.
+
+- **Phase 48 — Historical organizer ID scan
+  ([#137](https://github.com/GenNetEng/limitless-organizer-tracker/issues/137),
+  FR36)**: One-time admin-triggered `historical_organizer_scan_task` that
+  probes organizer IDs 1 through the scanner watermark via httpx, continuing
+  past 404/500 (unlike the frontier scanner) since historical IDs have gaps,
+  dispatching `scan_single_organizer_task` for each 200.
+
+- **Phase 47 — Backfill Organizer rows from tournament data
+  ([#136](https://github.com/GenNetEng/limitless-organizer-tracker/issues/136),
+  FR35)**: One-time admin-triggered `backfill_organizers_from_tournaments_task`
+  that creates `Organizer` rows for every orphan `organizer_id` present in
+  `tournaments`, reusing `sync_organizer_first_tournament_dates()`.
+
+### Fixed
+
+- **Phase 46 — Ingestion organizer upsert fix
+  ([#138](https://github.com/GenNetEng/limitless-organizer-tracker/issues/138),
+  FR17)**: `sync_organizer_first_tournament_dates()` now sets `detected_at` on
+  newly created `Organizer` rows, so ingestion-discovered organizers are
+  visible in "recently detected" queries.
+
 ## [0.4.0] - 2026-06-25
 
 ### Added
