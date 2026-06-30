@@ -7,11 +7,19 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "Dockerfile.docs"
+      - "nginx.docs.conf"
       - ".github/workflows/build-push.yml"
   pull_request:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "Dockerfile.docs"
+      - "nginx.docs.conf"
       - ".github/workflows/build-push.yml"
 
 env:
@@ -19,6 +27,7 @@ env:
   BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
   WORKER_IMAGE: ghcr.io/${{ github.repository }}/worker
   FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+  DOCS_IMAGE: ghcr.io/${{ github.repository }}/docs
 
 jobs:
   build-backend:
@@ -118,3 +127,35 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VITE_API_KEY=${{ secrets.VITE_API_KEY }}
+
+  build-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.DOCS_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=pr
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.docs
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

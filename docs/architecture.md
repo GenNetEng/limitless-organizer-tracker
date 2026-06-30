@@ -108,8 +108,10 @@ section for a deep dive on the math.
 ```mermaid
 graph LR
     subgraph k3s cluster
-        Ingress[nginx Ingress]
+        Ingress[nginx Ingress /]
+        IngressDocs[nginx Ingress /manual]
         FE[frontend Deployment]
+        Docs[docs Deployment]
         BE[backend Deployment]
         CW[celery-worker Deployment]
         CB[celery-beat Deployment]
@@ -120,8 +122,10 @@ graph LR
     Fleet[Rancher Fleet<br/>GitOps, watches main]
 
     Tunnel --> Ingress
+    Tunnel --> IngressDocs
     Ingress --> FE
     Ingress --> BE
+    IngressDocs --> Docs
     BE --> PG
     BE --> R
     CW --> PG
@@ -131,6 +135,7 @@ graph LR
     Fleet -.-> CW
     Fleet -.-> CB
     Fleet -.-> FE
+    Fleet -.-> Docs
 ```
 
 Production is deployed via the Helm chart at
@@ -143,3 +148,9 @@ in the cluster's `cloudflared` setup) exposes the production ingress
 publicly; it is not part of this Helm chart. See
 [Deployment](deployment/local.md) for the full breakdown of each
 environment.
+
+The documentation site (this MkDocs site) is built into its own `docs`
+image and deployed the same way as the frontend, but reachable at
+`/manual` through a separate Ingress resource so docs releases never
+require a frontend rebuild — see
+[Helm Reference](deployment/helm.md#docs-site-manual).

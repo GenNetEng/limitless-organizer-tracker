@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "lot.fullname" . }}-docs
+  labels:
+    {{- include "lot.labels" . | nindent 4 }}
+    app.kubernetes.io/component: docs
+spec:
+  replicas: {{ .Values.docs.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: docs
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: docs
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: docs
+          image: "{{ .Values.docs.image.repository }}:{{ .Values.docs.image.tag }}"
+          imagePullPolicy: {{ .Values.docs.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.docs.port }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.docs.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10

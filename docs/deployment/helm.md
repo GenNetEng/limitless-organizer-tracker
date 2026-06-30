@@ -16,11 +16,14 @@ charts/limitless-organizer-tracker/
 └── templates/
     ├── deployment-backend.yaml
     ├── deployment-frontend.yaml
+    ├── deployment-docs.yaml
     ├── deployment-celery-worker.yaml
     ├── deployment-celery-beat.yaml
     ├── service-backend.yaml
     ├── service-frontend.yaml
-    ├── ingress.yaml             # conditional on ingress.enabled
+    ├── service-docs.yaml
+    ├── ingress.yaml             # conditional on ingress.enabled — serves /
+    ├── ingress-docs.yaml        # conditional on ingress.enabled — serves /manual
     ├── percona-pgcluster.yaml   # conditional on percona.enabled
     ├── configmap.yaml           # non-sensitive backend env (CORS, Limitless base URL/app ID)
     ├── secret.yaml              # DATABASE_URL, Celery URLs, Discord webhook, Limitless creds, API key
@@ -39,9 +42,10 @@ charts/limitless-organizer-tracker/
 | `backend.env.LIMITLESS_BASE_URL` | `https://play.limitlesstcg.com` | Goes into `configmap.yaml` |
 | `backend.env.LIMITLESS_APPLICATION_ID` | `""` | Goes into `configmap.yaml`; set per environment |
 | `frontend.image.*`, `frontend.replicas`, `frontend.port` | — | Same pattern as `backend.*` |
+| `docs.image.*`, `docs.replicas`, `docs.port` | — | Same pattern as `frontend.*`; serves the MkDocs site, reachable at `/manual` |
 | `worker.image.*` | — | Image used by both `celery-worker` and `celery-beat` deployments |
 | `celery.worker.replicas` / `celery.beat.replicas` | `1` / `1` | Pod counts |
-| `ingress.enabled` | `true` | Whether to render `ingress.yaml` |
+| `ingress.enabled` | `true` | Whether to render `ingress.yaml` and `ingress-docs.yaml` |
 | `ingress.className` / `.host` / `.tls` | `nginx` / dashboard hostname / `false` | Ingress spec |
 | `secrets.*` | all `""` | `databaseUrl`, `celeryBrokerUrl`, `celeryResultBackend`, `discordWebhookUrl`, `limitlessUsername`, `limitlessPassword`, `apiKeys` — **never commit real values**; pass via `--set` or a values file outside version control |
 | `percona.enabled` | `true` | Whether to render the `PerconaPGCluster` CRD |
@@ -73,6 +77,24 @@ a template reads it directly.
 GitOps — it's deliberately named to avoid Fleet's recursive auto-discovery
 of `fleet.yaml` files, since staging deploys are manual. Don't rename it to
 `fleet.yaml`.
+
+## Docs site (`/manual`)
+
+The MkDocs site is built into its own image (`Dockerfile.docs` at the repo
+root, served by `nginx.docs.conf`) and deployed via `deployment-docs.yaml`
+and `service-docs.yaml` — the same Deployment/Service shape as `frontend`.
+
+It's reachable through a **separate, independent** Ingress
+(`ingress-docs.yaml`), not a `proxy_pass` block in `frontend/nginx.conf`,
+so docs deploys never require a frontend image rebuild. The Ingress strips
+the `/manual` prefix (`nginx.ingress.kubernetes.io/rewrite-target: /$2`
+with path `/manual(/|$)(.*)`) before forwarding to the `docs` Service, so
+the docs container itself is always addressed at its own root.
+
+Like `ingress.yaml`, `ingress-docs.yaml` is gated on `ingress.enabled` — it
+renders in production and no-ops in staging. Staging still gets the `docs`
+Deployment/Service for parity; public staging access would need a
+Cloudflare Tunnel hostname added out-of-repo.
 
 ## The Percona PG cluster
 
