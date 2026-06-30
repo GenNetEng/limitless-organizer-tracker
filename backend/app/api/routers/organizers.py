@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.auth import require_api_key
 from app.analytics.buckets import bucket_dates
-from app.analytics.frontier import compute_frontier
-from app.analytics.regression import fit_linear_regression
+from app.analytics.frontier import build_frontier_regression
 from app.api.schemas import (
     ActivityBucketOut,
     BackfillResultOut,
@@ -27,7 +26,6 @@ from app.db.session import get_db
 from app.limitless_client.ingestion import sync_organizer_first_tournament_dates
 from app.scraper.organizer_profile import earliest_tournament_date, parse_organizer_profile
 
-TOP_N_ORGANIZERS = 1000
 MAX_CHART_POINTS = 200
 
 router = APIRouter(prefix="/api", tags=["organizers"], dependencies=[Depends(require_api_key)])
@@ -53,26 +51,6 @@ def get_organizer_activity(
     return [ActivityBucketOut(period=period, count=count) for period, count in buckets]
 
 
-def _build_frontier_regression(db: Session):
-    rows = db.execute(
-        select(
-            OrganizerActivity.organizer_id,
-            func.min(OrganizerActivity.first_tournament_date).label("first_tournament_date"),
-        )
-        .group_by(OrganizerActivity.organizer_id)
-        .order_by(OrganizerActivity.organizer_id.desc())
-        .limit(TOP_N_ORGANIZERS)
-    ).all()
-    if len(rows) < 2:
-        return None, None, None
-
-    points = [(float(oid), float(first_date.date().toordinal())) for oid, first_date in reversed(rows)]
-    frontier_points = compute_frontier(points)
-    regression_points = frontier_points if len(frontier_points) >= 2 else points
-    result = fit_linear_regression(regression_points)
-    return points, frontier_points, result
-
-
 def _predict_date(result, organizer_id: int) -> date:
     projected_ordinal = round(result.predict(float(organizer_id)))
     projected_ordinal = max(date.min.toordinal(), min(date.max.toordinal(), projected_ordinal))
@@ -84,7 +62,7 @@ def get_wait_estimate(
     organizer_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ) -> WaitEstimateOut:
-    points, frontier_points, result = _build_frontier_regression(db)
+    points, frontier_points, result = build_frontier_regression(db)
     if points is None:
         raise HTTPException(status_code=404, detail="not enough activity data to estimate")
 
@@ -222,7 +200,7 @@ def get_highest_organizer_id(db: Session = Depends(get_db)) -> HighestOrganizerI
 
 
 def _estimate_onboard_date(db: Session, organizer_id: int) -> date | None:
-    _, _, result = _build_frontier_regression(db)
+    _, _, result = build_frontier_regression(db)
     if result is None:
         return None
     return _predict_date(result, organizer_id)

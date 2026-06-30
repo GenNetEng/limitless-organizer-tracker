@@ -3,9 +3,10 @@
 import logging
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.analytics.frontier import build_frontier_regression
 from app.celery_app import celery_app
 from app.config import settings
 from app.db.models import Organizer, Tournament
@@ -141,3 +142,43 @@ def historical_organizer_scan_task() -> int:
     watermark = settings.organizer_scan_start_id
     existing_ids = _get_existing_ids_below_watermark(watermark)
     return run_historical_scan(existing_ids, watermark)
+
+
+def run_verify_frontier_regression(session: Session) -> dict:
+    """Count Organizer rows, run frontier regression, log metrics as an event.
+
+    Returns a dict with the metrics for programmatic use.
+    """
+    organizer_count = session.scalar(
+        select(func.count()).select_from(Organizer)
+    ) or 0
+
+    points, frontier_points, result = build_frontier_regression(session)
+
+    metrics = {"organizer_count": organizer_count}
+    message = "Frontier regression verification: insufficient activity data"
+    if result is not None:
+        metrics.update(
+            slope=result.slope,
+            r_squared=result.r_squared,
+            frontier_size=len(frontier_points),
+            sample_size=len(points),
+        )
+        message = "Frontier regression verification complete"
+
+    log_event(
+        session=session,
+        event_type="backfill.verify_frontier_regression",
+        source="backfill_tasks",
+        message=message,
+        details=metrics,
+    )
+    return metrics
+
+
+@celery_app.task(name="app.tasks.backfill_tasks.verify_frontier_regression_task")
+def verify_frontier_regression_task() -> dict:
+    with task_session() as session:
+        metrics = run_verify_frontier_regression(session)
+        session.commit()
+        return metrics

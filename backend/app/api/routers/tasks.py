@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.tasks.backfill_tasks import (
     backfill_organizers_from_tournaments_task,
     historical_organizer_scan_task,
+    verify_frontier_regression_task,
 )
 from app.tasks.organizer_tasks import audit_organizer_scan_task
 from app.tasks.resubmit_tasks import resubmit_application_task
@@ -102,6 +103,22 @@ def trigger_historical_organizer_scan() -> dict:
         task_id=result.id,
         status="started",
         result="Historical organizer scan started — monitor progress in the event log.",
+    )
+
+
+@router.post("/verify-frontier-regression", response_model=TaskResultOut)
+def trigger_verify_frontier_regression() -> dict:
+    """Trigger frontier regression verification on the Celery worker.
+
+    Counts Organizer rows, runs the frontier regression, and logs
+    slope/R²/frontier_size/sample_size as an event.
+    Returns immediately — monitor progress via the event log.
+    """
+    result = verify_frontier_regression_task.delay()
+    return TaskResultOut(
+        task_id=result.id,
+        status="started",
+        result="Frontier regression verification started — monitor progress in the event log.",
     )
 
 
