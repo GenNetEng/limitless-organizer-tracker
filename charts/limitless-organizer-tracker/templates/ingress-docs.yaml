@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "lot.labels" . | nindent 4 }}
   annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: {{ .Values.ingress.className }}
