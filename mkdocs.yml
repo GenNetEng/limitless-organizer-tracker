@@ -43,3 +43,8 @@ nav:
       - Staging: deployment/staging.md
       - Production: deployment/production.md
       - Helm Reference: deployment/helm.md
+  - Metrics:
+      - Overview: metrics/overview.md
+      - Frontier Regression: metrics/frontier_regression.md
+      - Organizer Activity: metrics/organizer_activity.md
+      - Organizer Lifecycle: metrics/organizer_lifecycle.md
