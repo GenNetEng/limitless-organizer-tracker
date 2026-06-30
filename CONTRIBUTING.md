@@ -3,7 +3,7 @@
 This project is built incrementally, one phase per pull request, against the
 requirements and build order tracked in
 [`docs/requirements.md`](docs/requirements.md). See
-[`docs/dev_guide.md`](docs/dev_guide.md) for local setup.
+[`docs/getting-started.md`](docs/getting-started.md) for local setup.
 
 ## Workflow
 

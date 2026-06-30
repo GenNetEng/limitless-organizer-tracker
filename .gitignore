@@ -39,3 +39,6 @@ backend/test-results/
 *.pid
 charts/*/charts/
 charts/*/*.tgz
+
+# --- MkDocs ---
+site/
